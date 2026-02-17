@@ -3,6 +3,8 @@ import { HeaderType } from '@/app/types/menu'
 import { ProjectType } from '@/app/types/project'
 import { NextResponse } from 'next/server'
 
+export const dynamic = 'force-static'
+
 const HeaderData: HeaderType[] = [
   { label: 'Home', href: '/' },
   { 
