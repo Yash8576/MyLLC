@@ -8,8 +8,8 @@ const font = Poppins({
 })
 
 export const metadata = {
-  title: 'Nexacore - Future Company Building Software',
-  description: 'Nexacore is a future company that builds innovative software solutions',
+  title: 'Nexacore - Future Company Building innovative Software Solutions',
+  description: 'Nexacore is an innovative software company building solutions for the future.',
 }
 
 export default function RootLayout({
