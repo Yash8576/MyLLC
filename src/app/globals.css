@@ -46,19 +46,19 @@
   }
 
   h1 {
-    @apply text-black sm:text-65 text-5xl
+    @apply text-black text-5xl sm:text-65;
   }
 
   h2 {
-    @apply text-black sm:text-5xl text-40 font-semibold
+    @apply text-black text-40 sm:text-5xl font-semibold;
   }
 
   h3 {
-    @apply text-black text-3xl font-semibold
+    @apply text-black text-3xl font-semibold;
   }
 
   h6 {
-    @apply text-black text-2xl font-semibold
+    @apply text-black text-2xl font-semibold;
   }
 }
 
