@@ -4,28 +4,14 @@ import Logo from './Logo'
 import HeaderLink from '../Header/Navigation/HeaderLink'
 import MobileHeaderLink from '../Header/Navigation/MobileHeaderLink'
 import { Icon } from '@iconify/react/dist/iconify.js'
-import { HeaderType } from '@/app/types/menu'
+import { HeaderData } from '@/app/data/siteData'
 
 const Header: React.FC = () => {
   const [navbarOpen, setNavbarOpen] = useState(false)
   const [sticky, setSticky] = useState(false)
-  const [navLink, setNavLink] = useState<HeaderType[]>([])
+  const navLink = HeaderData
 
   const mobileMenuRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await fetch('/api/data')
-        if (!res.ok) throw new Error('Failed to fetch')
-        const data = await res.json()
-        setNavLink(data.HeaderData)
-      } catch (error) {
-        console.error('Error fetching service:', error)
-      }
-    }
-    fetchData()
-  }, [])
 
   const handleScroll = () => {
     setSticky(window.scrollY >= 80)

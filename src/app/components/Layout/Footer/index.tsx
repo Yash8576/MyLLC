@@ -1,27 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Logo from '../Header/Logo'
 import { Icon } from '@iconify/react/dist/iconify.js'
-import { FooterLinkType } from '@/app/types/footerlink'
+import { FooterLinkData } from '@/app/data/siteData'
 
 const Footer = () => {
-  const [footerlink, SetFooterlink] = useState<FooterLinkType[]>([])
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await fetch('/api/data')
-        if (!res.ok) throw new Error('Failed to fetch')
-        const data = await res.json()
-        SetFooterlink(data.FooterLinkData)
-      } catch (error) {
-        console.error('Error fetching services:', error)
-      }
-    }
-    fetchData()
-  }, [])
+  const footerlink = FooterLinkData
 
   return (
     <footer className='bg-deep-slate pt-10'>

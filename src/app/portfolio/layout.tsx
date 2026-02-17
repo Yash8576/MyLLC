@@ -58,16 +58,7 @@ export default function PortfolioLayout({
   }
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await fetch('/api/data')
-        if (!res.ok) throw new Error('Failed to fetch')
-        const data = await res.json()
-      } catch (error) {
-        console.error('Error fetching service:', error)
-      }
-    }
-    fetchData()
+    // Data now imported directly for static export
   }, [])
 
   const handleScroll = () => {

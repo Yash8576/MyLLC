@@ -1,11 +1,8 @@
 import { FooterLinkType } from '@/app/types/footerlink'
 import { HeaderType } from '@/app/types/menu'
 import { ProjectType } from '@/app/types/project'
-import { NextResponse } from 'next/server'
 
-export const dynamic = 'force-static'
-
-const HeaderData: HeaderType[] = [
+export const HeaderData: HeaderType[] = [
   { label: 'Home', href: '/' },
   { 
     label: 'Founder', 
@@ -30,7 +27,7 @@ const HeaderData: HeaderType[] = [
   { label: 'Contact Me', href: '/#contact' },
 ]
 
-const ProjectData: ProjectType[] = [
+export const ProjectData: ProjectType[] = [
   {
     title: 'Coming Soon',
     description: 'Exciting projects are in development. Check back soon!',
@@ -40,7 +37,7 @@ const ProjectData: ProjectType[] = [
   },
 ]
 
-const FooterLinkData: FooterLinkType[] = [
+export const FooterLinkData: FooterLinkType[] = [
   {
     section: 'Quick Links',
     links: [
@@ -51,11 +48,3 @@ const FooterLinkData: FooterLinkType[] = [
     ],
   },
 ]
-
-export const GET = () => {
-  return NextResponse.json({
-    HeaderData,
-    ProjectData,
-    FooterLinkData,
-  })
-}

@@ -1,23 +1,8 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { ProjectType } from '@/app/types/project'
+import { ProjectData } from '@/app/data/siteData'
 
 const Projects = () => {
-  const [projects, setProjects] = useState<ProjectType[]>([])
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await fetch('/api/data')
-        if (!res.ok) throw new Error('Failed to fetch')
-        const data = await res.json()
-        setProjects(data.ProjectData)
-      } catch (error) {
-        console.error('Error fetching projects:', error)
-      }
-    }
-    fetchData()
-  }, [])
+  const projects = ProjectData
 
   return (
     <section id='projects' className='bg-slate-gray'>
