@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "pages:build": "npx @cloudflare/next-on-pages",
     "start": "next start",
     "lint": "next lint"
   },
@@ -31,6 +32,7 @@
     "sass": "^1.97.3"
   },
   "devDependencies": {
+    "@cloudflare/next-on-pages": "^1",
     "@tailwindcss/postcss": "^4.1.10",
     "@types/node": "^20",
     "@types/react": "^19.1.0",
@@ -39,6 +41,7 @@
     "lightningcss": "^1.28.3",
     "postcss": "^8",
     "tailwindcss": "^4.1.10",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vercel": "^40"
   }
 }
