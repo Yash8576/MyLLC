@@ -36,6 +36,7 @@
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.1",
     "@types/react-vertical-timeline-component": "^3.3.6",
+    "lightningcss": "^1.28.3",
     "postcss": "^8",
     "tailwindcss": "^4.1.10",
     "typescript": "^5"
