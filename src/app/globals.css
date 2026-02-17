@@ -1,6 +1,8 @@
-@import 'tailwindcss';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@theme {
+:root {
   --shadow-input-shadow: 0 63px 59px rgba(26, 33, 188, 0.1);
   --shadow-card-shadow: 0 40px 20px rgba(0, 0, 0, 0.15);
 
@@ -12,7 +14,7 @@
   --color-success: #43c639;
   --color-midnight_text: #222c44;
 
-  --spacing-75\%: 75%;
+  --spacing-75: 75%;
 
   --text-40: 2.5rem;
   --text-65: 4.063rem;
