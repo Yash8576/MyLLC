@@ -97,8 +97,9 @@ export default function TodoPage() {
     }
 
     const handleAuthSuccess = () => {
-        setIsLoginView(true)
+        // Delay closing to keep Login mounted briefly so browser can save credentials
         setTimeout(() => {
+            setIsLoginView(true)
             setShowAccountDropdown(false)
         }, 500)
     }
@@ -253,27 +254,25 @@ export default function TodoPage() {
                         </button>
                         {showAccountDropdown && (
                             <div className="account-dropdown">
-                                {user ? (
+                                {user && isLoginView ? (
                                     <>
                                         <p className="user-email">Logged in as: <strong>{user}</strong></p>
                                         <button onClick={handleLogout} className="logout-btn-dropdown">Logout</button>
                                     </>
                                 ) : (
-                                    <>
-                                        <div className="auth-box-dropdown">
-                                            {isLoginView ? (
-                                                <Login 
-                                                    switchToSignup={toggleAuthView}
-                                                    onAuthSuccess={handleAuthSuccess}
-                                                />
-                                            ) : (
-                                                <Signup 
-                                                    switchToLogin={toggleAuthView}
-                                                    onAuthSuccess={handleAuthSuccess}
-                                                />
-                                            )}
-                                        </div>
-                                    </>
+                                    <div className="auth-box-dropdown">
+                                        {isLoginView ? (
+                                            <Login 
+                                                switchToSignup={toggleAuthView}
+                                                onAuthSuccess={handleAuthSuccess}
+                                            />
+                                        ) : (
+                                            <Signup 
+                                                switchToLogin={toggleAuthView}
+                                                onAuthSuccess={handleAuthSuccess}
+                                            />
+                                        )}
+                                    </div>
                                 )}
                             </div>
                         )}
