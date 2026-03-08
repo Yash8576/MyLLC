@@ -24,8 +24,18 @@ function Signup({ switchToLogin, onAuthSuccess }: SignupProps) {
         }
         
         try {
-            // Firebase creates the new user and logs them in
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+
+            // Trigger browser's "Save Password" prompt via Credential Management API
+            if (typeof window !== 'undefined' && window.PasswordCredential) {
+                const credential = new window.PasswordCredential({
+                    id: email,
+                    password: password,
+                    name: email,
+                });
+                navigator.credentials.store(credential);
+            }
+
             onAuthSuccess(userCredential.user.email || '');
         } catch (error: any) {
             // Handle common Firebase errors
@@ -40,7 +50,7 @@ function Signup({ switchToLogin, onAuthSuccess }: SignupProps) {
     };
 
     return (
-        <form className="auth-form" name="signup" onSubmit={handleSubmit}>
+        <form className="auth-form" name="signup" method="POST" onSubmit={handleSubmit}>
             <h2>Sign Up</h2>
             {error && <p className="error">{error}</p>}
             <input

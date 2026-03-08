@@ -19,11 +19,20 @@ function Login({ switchToSignup, onAuthSuccess }: LoginProps) {
         setError('');
 
         try {
-            // Firebase verifies credentials and signs in the user
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
+
+            // Trigger browser's "Save Password" prompt via Credential Management API
+            if (typeof window !== 'undefined' && window.PasswordCredential) {
+                const credential = new window.PasswordCredential({
+                    id: email,
+                    password: password,
+                    name: email,
+                });
+                navigator.credentials.store(credential);
+            }
+
             onAuthSuccess(userCredential.user.email || '');
         } catch (error: any) {
-            // Handle common Firebase errors
             if (error.code === 'auth/invalid-credential') {
                  setError('Invalid email or password. Please try again.');
             } else {
@@ -33,7 +42,7 @@ function Login({ switchToSignup, onAuthSuccess }: LoginProps) {
     };
 
     return (
-        <form className="auth-form" name="login" onSubmit={handleSubmit}>
+        <form className="auth-form" name="login" method="POST" onSubmit={handleSubmit}>
             <h2>Login</h2>
             {error && <p className="error">{error}</p>}
             <input
