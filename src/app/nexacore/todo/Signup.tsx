@@ -40,11 +40,13 @@ function Signup({ switchToLogin, onAuthSuccess }: SignupProps) {
     };
 
     return (
-        <form className="auth-form" onSubmit={handleSubmit}>
+        <form className="auth-form" name="signup" onSubmit={handleSubmit}>
             <h2>Sign Up</h2>
             {error && <p className="error">{error}</p>}
             <input
                 type="email"
+                name="email"
+                autoComplete="email"
                 placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -52,6 +54,8 @@ function Signup({ switchToLogin, onAuthSuccess }: SignupProps) {
             />
             <input
                 type="password"
+                name="password"
+                autoComplete="new-password"
                 placeholder="Password (min 6 characters)"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
