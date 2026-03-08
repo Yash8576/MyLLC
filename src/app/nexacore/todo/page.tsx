@@ -33,6 +33,7 @@ export default function TodoPage() {
     const [showAccountDropdown, setShowAccountDropdown] = useState(false)
     const [viewFilter, setViewFilter] = useState('active')
     const [showDeleted, setShowDeleted] = useState(false)
+    const [isSuccessTransition, setIsSuccessTransition] = useState(false)
     
     const accountMenuRef = useRef<HTMLDivElement>(null)
 
@@ -97,11 +98,12 @@ export default function TodoPage() {
     }
 
     const handleAuthSuccess = () => {
-        // Delay closing to keep Login mounted briefly so browser can save credentials
+        setIsSuccessTransition(true)
         setTimeout(() => {
+            setIsSuccessTransition(false)
             setIsLoginView(true)
             setShowAccountDropdown(false)
-        }, 500)
+        }, 800)
     }
 
     const handleLogout = async () => {
@@ -254,7 +256,7 @@ export default function TodoPage() {
                         </button>
                         {showAccountDropdown && (
                             <div className="account-dropdown">
-                                {user && isLoginView ? (
+                                {user && !isSuccessTransition ? (
                                     <>
                                         <p className="user-email">Logged in as: <strong>{user}</strong></p>
                                         <button onClick={handleLogout} className="logout-btn-dropdown">Logout</button>
