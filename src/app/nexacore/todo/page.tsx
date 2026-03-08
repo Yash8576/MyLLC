@@ -98,7 +98,9 @@ export default function TodoPage() {
 
     const handleAuthSuccess = () => {
         setIsLoginView(true)
-        setShowAccountDropdown(false)
+        setTimeout(() => {
+            setShowAccountDropdown(false)
+        }, 500)
     }
 
     const handleLogout = async () => {

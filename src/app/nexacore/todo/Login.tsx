@@ -27,9 +27,8 @@ function Login({ switchToSignup, onAuthSuccess }: LoginProps) {
                 const credential = new w.PasswordCredential({
                     id: email,
                     password: password,
-                    name: email,
                 });
-                navigator.credentials.store(credential);
+                await navigator.credentials.store(credential);
             }
 
             onAuthSuccess(userCredential.user.email || '');
@@ -43,13 +42,13 @@ function Login({ switchToSignup, onAuthSuccess }: LoginProps) {
     };
 
     return (
-        <form className="auth-form" name="login" method="POST" onSubmit={handleSubmit}>
+        <form className="auth-form" name="login" method="POST" action="#" onSubmit={handleSubmit}>
             <h2>Login</h2>
             {error && <p className="error">{error}</p>}
             <input
                 type="email"
                 name="email"
-                autoComplete="email"
+                autoComplete="username"
                 placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
