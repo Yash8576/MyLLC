@@ -1,5 +1,5 @@
 'use client'
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from 'next/link'
 import DigitalClock from "./DigitalClock"
 import "./App.css"
@@ -9,9 +9,20 @@ export default function DigitalClockPage() {
   const [isHovering, setIsHovering] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [clockSize, setClockSize] = useState(60)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+    const savedTheme = localStorage.getItem('clockTheme')
+    const savedSize = localStorage.getItem('clockSize')
+    if (savedTheme) setTheme(savedTheme)
+    if (savedSize) setClockSize(parseInt(savedSize, 10))
+  }, [])
 
   const toggleTheme = () => {
-    setTheme(currentTheme => (currentTheme === 'light' ? 'dark' : 'light'))
+    const newTheme = theme === 'light' ? 'dark' : 'light'
+    setTheme(newTheme)
+    localStorage.setItem('clockTheme', newTheme)
   }
 
   const toggleMenu = () => {
@@ -23,7 +34,9 @@ export default function DigitalClockPage() {
   }
 
   const handleSizeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setClockSize(parseInt(event.target.value, 10))
+    const newSize = parseInt(event.target.value, 10)
+    setClockSize(newSize)
+    localStorage.setItem('clockSize', newSize.toString())
   }
 
   const backgroundColor = theme === 'dark' ? 'black' : 'white'
@@ -109,6 +122,8 @@ export default function DigitalClockPage() {
     fontSize: '24px',
     cursor: 'pointer',
   }
+
+  if (!mounted) return null
 
   return ( 
     <>

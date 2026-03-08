@@ -37,6 +37,12 @@ export default function TodoPage() {
     
     const accountMenuRef = useRef<HTMLDivElement>(null)
 
+    // --- LOAD PERSISTED THEME ---
+    useEffect(() => {
+        const savedTheme = localStorage.getItem('todoTheme')
+        if (savedTheme) setTheme(savedTheme)
+    }, [])
+
     // --- AUTHENTICATION & REAL-TIME LISTENER ---
     
     useEffect(() => {
@@ -86,7 +92,9 @@ export default function TodoPage() {
     // --- VIEW & UI HANDLERS ---
     
     const toggleTheme = () => {
-        setTheme(prev => prev === 'light' ? 'dark' : 'light')
+        const newTheme = theme === 'light' ? 'dark' : 'light'
+        setTheme(newTheme)
+        localStorage.setItem('todoTheme', newTheme)
     }
 
     const toggleAccountDropdown = () => {
