@@ -27,8 +27,9 @@ function Signup({ switchToLogin, onAuthSuccess }: SignupProps) {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
             // Trigger browser's "Save Password" prompt via Credential Management API
-            if (typeof window !== 'undefined' && window.PasswordCredential) {
-                const credential = new window.PasswordCredential({
+            const w = window as any;
+            if (typeof window !== 'undefined' && w.PasswordCredential) {
+                const credential = new w.PasswordCredential({
                     id: email,
                     password: password,
                     name: email,
