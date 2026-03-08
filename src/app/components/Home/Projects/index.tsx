@@ -1,5 +1,6 @@
 'use client'
 import { ProjectData } from '@/app/data/siteData'
+import Link from 'next/link'
 
 const Projects = () => {
   const projects = ProjectData
@@ -16,30 +17,40 @@ const Projects = () => {
         </div>
 
         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8'>
-          {projects.map((project, index) => (
-            <div
-              key={index}
-              className='bg-white rounded-xl p-6 hover:shadow-card-shadow transition-all duration-300'>
-              <div className='mb-4'>
-                <span className='inline-block bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium'>
-                  {project.status}
-                </span>
-              </div>
-              <h3 className='mb-3'>{project.title}</h3>
-              <p className='text-black/70 text-base mb-4'>
-                {project.description}
-              </p>
-              <div className='flex flex-wrap gap-2'>
-                {project.tags.map((tag, i) => (
-                  <span
-                    key={i}
-                    className='text-xs bg-slate-gray text-black/60 px-3 py-1 rounded-full'>
-                    {tag}
+          {projects.map((project, index) => {
+            const ProjectCard = (
+              <div
+                key={index}
+                className='bg-white rounded-xl p-6 hover:shadow-card-shadow transition-all duration-300 cursor-pointer h-full'>
+                <div className='mb-4'>
+                  <span className='inline-block bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium'>
+                    {project.status}
                   </span>
-                ))}
+                </div>
+                <h3 className='mb-3'>{project.title}</h3>
+                <p className='text-black/70 text-base mb-4'>
+                  {project.description}
+                </p>
+                <div className='flex flex-wrap gap-2'>
+                  {project.tags.map((tag, i) => (
+                    <span
+                      key={i}
+                      className='text-xs bg-slate-gray text-black/60 px-3 py-1 rounded-full'>
+                      {tag}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+
+            return project.link ? (
+              <Link href={project.link} key={index}>
+                {ProjectCard}
+              </Link>
+            ) : (
+              ProjectCard
+            )
+          })}
         </div>
       </div>
     </section>

@@ -17,11 +17,8 @@ export const HeaderData: HeaderType[] = [
     label: 'Projects', 
     href: '/#projects',
     submenu: [
-      { label: 'Project1', href: '/projects/project1' },
-      { label: 'Project2', href: '/projects/project2' },
-      { label: 'Project3', href: '/projects/project3' },
-      { label: 'Project4', href: '/projects/project4' },
-      { label: 'Project5', href: '/projects/project5' },
+      { label: 'Todo App', href: '/nexacore/todo' },
+      { label: 'Digital Clock', href: '/nexacore/digitalclock' },
     ]
   },
   { label: 'Contact Me', href: '/#contact' },
@@ -29,11 +26,20 @@ export const HeaderData: HeaderType[] = [
 
 export const ProjectData: ProjectType[] = [
   {
-    title: 'Coming Soon',
-    description: 'Exciting projects are in development. Check back soon!',
-    imgSrc: '/images/projects/placeholder.webp',
-    tags: ['Innovation', 'Technology'],
-    status: 'In Development',
+    title: 'Todo Flow',
+    description: 'A feature-rich task management app with Firebase authentication, real-time sync, and status tracking.',
+    imgSrc: '/images/projects/todo-app.webp',
+    tags: ['React', 'Firebase', 'Authentication'],
+    status: 'Live',
+    link: '/nexacore/todo',
+  },
+  {
+    title: 'Digital Clock',
+    description: 'A customizable digital clock with theme switching and adjustable sizing options.',
+    imgSrc: '/images/projects/digital-clock.webp',
+    tags: ['React', 'UI/UX', 'Design'],
+    status: 'Live',
+    link: '/nexacore/digitalclock',
   },
 ]
 

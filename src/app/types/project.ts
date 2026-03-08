@@ -4,4 +4,5 @@ export type ProjectType = {
   imgSrc: string
   tags: string[]
   status: string
+  link?: string
 }
