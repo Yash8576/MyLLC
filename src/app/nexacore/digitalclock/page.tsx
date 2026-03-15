@@ -7,7 +7,6 @@ import "./App.css"
 export default function DigitalClockPage() {
   const [theme, setTheme] = useState('light')
   const [isHovering, setIsHovering] = useState(false)
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [clockSize, setClockSize] = useState(60)
   const [mounted, setMounted] = useState(false)
 
@@ -25,10 +24,6 @@ export default function DigitalClockPage() {
     localStorage.setItem('clockTheme', newTheme)
   }
 
-  const toggleMenu = () => {
-    setIsMenuOpen(current => !current)
-  }
-
   const themeButtonContainerStyle = {
     position: 'relative' as const,
   }
@@ -41,7 +36,6 @@ export default function DigitalClockPage() {
 
   const backgroundColor = theme === 'dark' ? 'black' : 'white'
   const textColor = theme === 'dark' ? '#1DB954 ' : 'black'
-  const menuColor = theme === 'dark' ? 'black' : '#F5F5F7'
   const sliderColor = theme === 'dark' ? '#1DB954' : 'black'
 
   const tooltipStyle = {
@@ -74,20 +68,6 @@ export default function DigitalClockPage() {
     transition: 'background-color 0.3s, color 0.3s',
     position: 'relative' as const,
     overflow: 'hidden',
-  }
-
-  const menuStyle = {
-    position: 'fixed' as const,
-    top: 0,
-    left: 0,
-    height: '100%',
-    width: '250px',
-    backgroundColor: menuColor,
-    padding: '20px',
-    transform: isMenuOpen ? 'translateX(0)' : 'translateX(-100%)',
-    transition: 'transform 0.3s, background-color 0.3s',
-    zIndex: 1000,
-    boxShadow: isMenuOpen ? '1px 0 3px rgba(255, 255, 255, 0.5)' : 'none',
   }
 
   const topBarStyle = {
@@ -135,12 +115,55 @@ export default function DigitalClockPage() {
           width: 100%;
           height: 100%;
         }
+
+        .back-to-nexacore {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.4rem;
+
+          color: #5000ca;
+          text-decoration: none;
+          padding: 0.5rem 1rem;
+          border-radius: 0.5rem;
+          background: rgba(80, 0, 202, 0.2);
+
+          font-size: 0.9rem;
+          font-weight: 500;
+
+          transition: all 0.25s ease;
+        }
+
+        .back-to-nexacore:hover {
+          background: rgba(80, 0, 202, 0.4);
+          color: #5000ca;
+          transform: translateX(-4px);
+        }
+
+        .app-wrapper.dark .back-to-nexacore {
+          color: white !important;
+        }
+
+        .app-wrapper.dark .back-to-nexacore:hover {
+          color: white !important;
+        }
+
+        .back-to-nexacore svg {
+          transition: transform 0.25s ease;
+        }
+
+        .back-to-nexacore:hover svg {
+          transform: translateX(-3px);
+        }
       `}</style>
-      <div style={appStyle}>
+      <div className={`app-wrapper ${theme}`} style={appStyle}>
         <div style={topBarStyle}>
-        <button style={buttonStyle} onClick={toggleMenu}>
-          ☰
-        </button>
+        <Link href="/" className="back-to-nexacore">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 12H5"/>
+            <path d="M12 19l-7-7 7-7"/>
+          </svg>
+          Back to Nexacore
+        </Link>
         <div style={sizeControlStyle}>
           <span style={{ opacity: 0.8 }}>A</span>
           <input
@@ -168,30 +191,6 @@ export default function DigitalClockPage() {
             {theme === 'light' ? '☾' : '☀︎'}
           </button>
         </div>
-      </div>
-      <div style={menuStyle}>
-        <h2>Menu</h2>
-        <Link href="/" style={{
-          display: 'inline-block',
-          marginTop: '20px',
-          padding: '10px 20px',
-          background: '#3498db',
-          color: 'white',
-          textDecoration: 'none',
-          borderRadius: '5px',
-          fontWeight: 500,
-        }}>
-          ← Back to Nexacore
-        </Link>
-        <p style={{marginTop: '40px'}}>This is a sliding menu.</p>
-        <ul>
-          <li>Option 1</li>
-          <li>Option 2</li>
-          <li>Option 3</li>
-        </ul>
-        <button style={{...buttonStyle, color: textColor, position: 'absolute' as const, top: '30px', left: '170px'}} onClick={toggleMenu}>
-          close
-        </button>
       </div>
       <DigitalClock textColor={textColor} clockSize={clockSize} />
     </div>

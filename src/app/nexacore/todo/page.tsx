@@ -247,8 +247,12 @@ export default function TodoPage() {
             
             {/* --- TOP BAR / HEADER --- */}
             <header className="top-bar">
-                <Link href="/" className="back-to-nexacore-link">
-                    ← Back to Nexacore
+                <Link href="/" className="back-to-nexacore">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M19 12H5"/>
+                        <path d="M12 19l-7-7 7-7"/>
+                    </svg>
+                    Back to Nexacore
                 </Link>
                 <h1 className="app-title">{fabulousSentence}</h1>
                 <div className="top-actions">
@@ -421,22 +425,45 @@ export default function TodoPage() {
             </div>
             
             <style jsx global>{`
-                .back-to-nexacore-link {
-                    color: inherit;
+                .back-to-nexacore {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.4rem;
+
+                    color: #5000ca;
                     text-decoration: none;
                     padding: 0.5rem 1rem;
-                    background: rgba(255, 255, 255, 0.1);
                     border-radius: 0.5rem;
-                    transition: all 0.3s ease;
+                    background: rgba(80, 0, 202, 0.2);
+
                     font-size: 0.9rem;
                     font-weight: 500;
+
+                    transition: all 0.25s ease;
                 }
-                
-                .back-to-nexacore-link:hover {
-                    background: rgba(255, 255, 255, 0.2);
-                    transform: translateX(-2px);
+
+                .back-to-nexacore:hover {
+                    background: rgba(80, 0, 202, 0.4);
+                    color: #5000ca;
+                    transform: translateX(-4px);
                 }
-            `}</style>
+
+                .app-wrapper.dark .back-to-nexacore {
+                    color: white !important;
+                }
+
+                .app-wrapper.dark .back-to-nexacore:hover {
+                    color: white !important;
+                }
+
+                .back-to-nexacore svg {
+                    transition: transform 0.25s ease;
+                }
+
+                .back-to-nexacore:hover svg {
+                    transform: translateX(-3px);
+                }
+        `}</style>
         </div>
     )
 }
