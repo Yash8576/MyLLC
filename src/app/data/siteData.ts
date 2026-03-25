@@ -21,7 +21,7 @@ export const HeaderData: HeaderType[] = [
       { label: 'Digital Clock', href: '/nexacore/digitalclock' },
     ]
   },
-  { label: 'Contact Me', href: '/#contact' },
+  { label: 'Contact Us', href: '/#contact' },
 ]
 
 export const ProjectData: ProjectType[] = [
@@ -51,7 +51,7 @@ export const FooterLinkData: FooterLinkType[] = [
     links: [
       { label: 'Home', href: '/' },
       { label: 'Projects', href: '/#projects' },
-      { label: 'Contact Me', href: '/#contact' },
+      { label: 'Contact Us', href: '/#contact' },
     ],
   },
 ]
