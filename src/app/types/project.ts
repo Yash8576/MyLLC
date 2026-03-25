@@ -4,5 +4,6 @@ export type ProjectType = {
   imgSrc: string
   tags: string[]
   status: string
+  category: 'Open Source' | 'Nexacore Owned'
   link?: string
 }

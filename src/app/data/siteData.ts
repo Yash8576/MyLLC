@@ -31,6 +31,7 @@ export const ProjectData: ProjectType[] = [
     imgSrc: '/images/projects/todo-app.webp',
     tags: ['React', 'Firebase', 'Authentication'],
     status: 'Live',
+    category: 'Open Source',
     link: '/nexacore/todo',
   },
   {
@@ -39,6 +40,7 @@ export const ProjectData: ProjectType[] = [
     imgSrc: '/images/projects/digital-clock.webp',
     tags: ['React', 'UI/UX', 'Design'],
     status: 'Live',
+    category: 'Open Source',
     link: '/nexacore/digitalclock',
   },
 ]
@@ -48,7 +50,6 @@ export const FooterLinkData: FooterLinkType[] = [
     section: 'Quick Links',
     links: [
       { label: 'Home', href: '/' },
-      { label: 'Founder', href: '/#founder' },
       { label: 'Projects', href: '/#projects' },
       { label: 'Contact Me', href: '/#contact' },
     ],

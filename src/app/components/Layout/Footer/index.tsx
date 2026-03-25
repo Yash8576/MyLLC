@@ -21,14 +21,14 @@ const Footer = () => {
             </p>
             <div className='flex items-center gap-4'>
               <Link
-                href='https://github.com'
+                href='https://github.com/Yash8576/Nexacore-Opensource'
                 target='_blank'
                 rel='noopener noreferrer'
                 className='hover:text-primary text-black text-3xl'>
                 <Icon icon='tabler:brand-github' />
               </Link>
               <Link
-                href='https://linkedin.com'
+                href='https://www.linkedin.com/company/nexacoreglobal/'
                 target='_blank'
                 rel='noopener noreferrer'
                 className='hover:text-primary text-black text-3xl'>
