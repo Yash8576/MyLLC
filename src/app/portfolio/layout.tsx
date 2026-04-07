@@ -139,6 +139,9 @@ export default function PortfolioLayout({
                 {item.label}
               </button>
             ))}
+            <Link href="/founder/resume" className="portfolio-nav-link">
+              Resume
+            </Link>
           </nav>
 
           <div className='portfolio-header-right'>
@@ -209,6 +212,13 @@ export default function PortfolioLayout({
                     {item.label}
                   </button>
                 ))}
+                <Link
+                  href="/founder/resume"
+                  className="portfolio-mobile-link"
+                  onClick={() => setNavbarOpen(false)}
+                >
+                  Resume
+                </Link>
                 <button
                   onClick={toggleDarkMode}
                   className="portfolio-mobile-link portfolio-theme-link"
