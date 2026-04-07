@@ -4,14 +4,13 @@ import { ProjectType } from '@/app/types/project'
 
 export const HeaderData: HeaderType[] = [
   { label: 'Home', href: '/' },
-  { 
-    label: 'Founder', 
+  {
+    label: 'Founder',
     href: '/#founder',
     submenu: [
-      { label: 'About', href: '/#founder' },
       { label: 'Portfolio', href: '/portfolio' },
-      { label: 'Resume', href: '/#resume' },
-    ]
+      { label: 'Resume', href: '/founder/resume' },
+    ],
   },
   { 
     label: 'Projects', 

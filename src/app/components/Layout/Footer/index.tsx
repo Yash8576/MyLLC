@@ -68,13 +68,13 @@ const Footer = () => {
               Contact Info
             </p>
             <div className='flex flex-col gap-4'>
-              <Link href='mailto:contact@nexacore.com' className='flex items-center w-fit'>
+              <Link href='mailto:yaswanth.rtd2@gmail.com' className='flex items-center w-fit'>
                 <Icon
                   icon='solar:mailbox-bold'
                   className='text-primary text-2xl inline-block me-2'
                 />
                 <p className='text-black/60 hover:text-primary text-base'>
-                  contact@nexacore.com
+                  yaswanth.rtd2@gmail.com
                 </p>
               </Link>
             </div>

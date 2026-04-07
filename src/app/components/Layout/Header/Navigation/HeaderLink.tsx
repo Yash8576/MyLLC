@@ -1,15 +1,21 @@
 'use client'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { HeaderType } from '@/app/types/menu'
 import { Icon } from '@iconify/react/dist/iconify.js'
 
 const HeaderLink = ({ item }: { item: HeaderType }) => {
   const [isOpen, setIsOpen] = useState(false)
+  const pathname = usePathname()
 
   const scrollToTop = (e: React.MouseEvent<HTMLAnchorElement>) => {
     // Only scroll to top if clicking Home or root link
     if (item.href === '/' || item.href === '#') {
+      if (pathname !== '/') {
+        return
+      }
+
       e.preventDefault()
       
       // Use native smooth scroll - instant, no delay, always smooth

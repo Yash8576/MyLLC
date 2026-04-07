@@ -1,8 +1,15 @@
 'use client'
 import Link from "next/link";
+import { usePathname } from 'next/navigation'
 
 const Logo: React.FC = () => {
+  const pathname = usePathname()
+
   const scrollToTop = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (pathname !== '/') {
+      return
+    }
+
     e.preventDefault()
     
     // Use native smooth scroll - instant, no delay, always smooth
