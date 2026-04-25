@@ -1,0 +1,584 @@
+\documentclass[12pt,letterpaper]{report}
+
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{titlesec}
+\usepackage{tocloft}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{fancyhdr}
+\usepackage{float}
+\usepackage{url}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=black,
+  urlcolor=blue,
+  pdftitle={BuzzCart Project Report},
+  pdfauthor={BuzzCart Project Team}
+}
+
+\setstretch{1.15}
+\setlength{\parskip}{6pt}
+\setlength{\parindent}{0pt}
+\setlist[itemize]{topsep=4pt,itemsep=2pt,leftmargin=1.5em}
+\setlist[enumerate]{topsep=4pt,itemsep=2pt,leftmargin=1.8em}
+
+\titleformat{\chapter}[display]
+  {\bfseries\Large}
+  {\filright \MakeUppercase{\chaptertitlename}\ \thechapter}
+  {1ex}
+  {\filcenter\Huge}
+
+\titleformat{\section}
+  {\bfseries\large}
+  {\thesection}
+  {0.75em}
+  {}
+
+\titleformat{\subsection}
+  {\bfseries\normalsize}
+  {\thesubsection}
+  {0.75em}
+  {}
+
+\renewcommand{\cftchapfont}{\bfseries}
+\renewcommand{\cftchappagefont}{\bfseries}
+\renewcommand{\cftchapleader}{\cftdotfill{\cftdotsep}}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+% ------------------------------------------------------------------
+% Editable metadata
+% ------------------------------------------------------------------
+\newcommand{\ProjectTitleLineOne}{BuzzCart: A Trust-Centered Social Commerce Platform with Verified Social Reviews and RAG-Based Product Understanding}
+\newcommand{\ProjectTitleLineTwo}{}
+\newcommand{\DegreeName}{Master of Science}
+\newcommand{\DepartmentName}{School of Computing}
+\newcommand{\UniversityName}{The University of Georgia}
+\newcommand{\ReportYear}{2026}
+\newcommand{\StudentName}{Yaswanth Ravi Teja Dammalapati}
+\newcommand{\StudentEmail}{yd85086@uga.edu}
+\newcommand{\MajorAdvisor}{Dr. Krzysztof J. Kochut}
+\newcommand{\SecondaryAdvisor}{Dr. Ismailcem B. Arpinar}
+
+% If you want to place a logo like the reference report, set this to a valid file.
+\newcommand{\UniversityLogoPath}{}
+
+\begin{document}
+
+\begin{titlepage}
+\thispagestyle{empty}
+\begin{center}
+
+{\fontsize{18}{22}\selectfont\bfseries \ProjectTitleLineOne\par}
+
+\vspace{1.2cm}
+
+{\large \StudentName\par}
+\vspace{0.2cm}
+{\normalsize \StudentEmail\par}
+
+\vspace{0.7cm}
+
+{\normalsize Major Advisor: \MajorAdvisor\par}
+{\normalsize Secondary Advisor: \SecondaryAdvisor\par}
+
+\vspace{0.9cm}
+
+{\normalsize Submitted to the faculties of the \DepartmentName\par}
+{\normalsize in fulfillment of the requirements for the degree of\par}
+
+\vspace{0.25cm}
+
+{\Large \DegreeName\par}
+
+\vspace{1.0cm}
+
+\ifx\UniversityLogoPath\empty
+  \vspace{2.2cm}
+\else
+  \includegraphics[width=0.65in]{Picture1}\par
+  \vspace{0.8cm}
+\fi
+
+{\normalsize \DepartmentName\par}
+{\normalsize \UniversityName\par}
+{\normalsize \ReportYear\par}
+
+\end{center}
+\end{titlepage}
+
+\pagenumbering{roman}
+\setcounter{page}{1}
+
+\tableofcontents
+\clearpage
+
+\pagenumbering{arabic}
+
+\chapter{Introduction}
+
+BuzzCart is a full-stack social commerce platform that combines ecommerce, social content, trusted reviews, real-time messaging, and AI-assisted product understanding in one unified system. Instead of presenting shopping as a plain catalog lookup task, BuzzCart supports discovery through a social feed, product-linked videos and reels, direct seller interaction, and trust-centered review visibility.
+
+The project is implemented as a multi-service architecture. The frontend is built in Flutter and provides a responsive experience across desktop-style and mobile-style layouts. The backend is implemented in Go using the Gin framework and exposes the main business APIs for authentication, products, reviews, social feed, cart and checkout, uploads, and messaging. PostgreSQL is used as the primary transactional database, Firebase Storage is used for media and product documents, Redis is used for selected caching scenarios, and a separate Python FastAPI service provides Retrieval-Augmented Generation (RAG) for product-specific document question answering.
+
+The significance of BuzzCart lies in two practical commerce problems it addresses. First, online reviews are often difficult to trust because users cannot easily determine whether a review comes from a genuine buyer or from someone socially relevant to them. Second, product documents such as brochures and manuals are usually available but not meaningfully integrated into the purchase journey. BuzzCart solves these issues by showing verified purchase reviews with social-priority ranking and by transforming product documents into a grounded, interactive question-answering system.
+
+This report is written to closely follow the structural pattern of the supplied reference report while adapting every chapter and section to the actual BuzzCart project.
+
+\chapter{Problem Statement}
+
+Modern ecommerce platforms often fail to provide enough trust and clarity during the product decision process. While ratings, reviews, and product descriptions are widely available, buyers still struggle to determine which information is credible and which details actually matter for their specific needs. This uncertainty increases decision time, reduces confidence, and often pushes users to search for validation outside the platform.
+
+The first major issue is the low trustworthiness of reviews. Reviews are frequently presented as flat lists with limited context, so a buyer cannot easily tell whether the reviewer purchased the product, whether the reviewer is socially relevant, or whether the review has been moderated and found useful by others. Star ratings summarize sentiment but do not explain reliability. Helpful-vote counts and recency sorting also do not guarantee that the most credible or most decision-relevant reviews appear first. As a result, the review layer becomes a weak decision-support mechanism, even when a product has many reviews.
+
+The second major issue is product understanding. Sellers may provide manuals, brochures, and technical PDFs, but these documents are hard to navigate during shopping, especially on mobile devices. Buyers typically want direct answers to concrete questions such as compatibility constraints, supported features, variants, dimensions, battery life, included components, setup requirements, and warranty or policy details. Traditional keyword search is inconvenient and assumes the user knows the correct terms to search. At the same time, generic conversational assistants may produce plausible but incorrect answers when they are not grounded in official product documents, which can mislead buyers and reduce trust.
+
+BuzzCart addresses both problems through a trust-centered review system and a product-scoped Retrieval-Augmented Generation (RAG) assistant. Reviews are tied to purchase history through verified checks and are surfaced with social relevance in mind, helping users see trustworthy feedback first. Product documents are ingested and indexed per product so the assistant can retrieve relevant sections and generate answers grounded in the uploaded sources, improving accuracy and clarity within the purchase journey.
+
+\chapter{Motivation}
+
+\section{The Trust Problem in Online Reviews}
+
+Reviews strongly influence digital purchases, yet most platforms still rank them in simplistic ways. A star rating and short comment do not sufficiently answer important trust questions:
+
+\begin{itemize}
+  \item Is this reviewer a verified buyer?
+  \item Is this reviewer someone socially relevant to me?
+  \item Has this review passed moderation?
+  \item Are the most useful reviews shown first?
+\end{itemize}
+
+When these questions remain unanswered, users hesitate to trust the platform.
+
+\section{Social Commerce Context}
+
+BuzzCart is motivated by the observation that discovery, trust, and purchase intent increasingly happen inside social environments rather than in isolated catalog pages.
+
+\subsection{Buyers}
+
+Buyers increasingly discover products through creators, media, and peers. They rely on social proof, visual discovery, and contextual opinions rather than only keyword-based marketplace search.
+
+\subsection{Sellers}
+
+Sellers need to do more than upload a product title and a price. They benefit from being able to attach content, documents, media, and communication channels that help users evaluate products more confidently.
+
+\subsection{Platforms}
+
+Platforms need to improve trust and conversion at the same time. That requires stronger review authenticity, better explainability of products, and more engaging discovery mechanisms.
+
+\section{Inadequacy of Existing Solutions}
+
+Traditional ecommerce systems often support ratings, filters, and text reviews, but they usually stop there. Social platforms support engagement and reach, but frequently lack robust trust mechanisms linked to actual transactions. Product documents are usually treated as passive attachments rather than live knowledge sources. As a result, users must combine weak signals across separate systems.
+
+\section{The Technology Opportunity}
+
+Recent improvements in backend frameworks, mobile app tooling, cloud storage, embedding models, vector search, and reranking models make it feasible to build a system that:
+
+\begin{itemize}
+  \item ties reviews to real orders,
+  \item ranks reviews by social relevance,
+  \item exposes buyer visibility in a privacy-aware way,
+  \item ingests product documents into searchable knowledge,
+  \item answers user questions with grounded evidence.
+\end{itemize}
+
+BuzzCart is built around this opportunity.
+
+\chapter{Existing Solutions and Related Work}
+
+\section{Traditional Ecommerce Review Systems}
+
+Conventional ecommerce review systems generally provide star ratings, optional review text, and simple sorting by recency or helpfulness. Some platforms mark verified buyers, but most do not personalize trust based on the current user's social graph. BuzzCart extends this area by combining verified purchase status, moderation, privacy, helpful votes, and social ranking.
+
+\section{Social Commerce Platforms}
+
+Social commerce platforms connect products to creators, short-form media, or community engagement. Their strength lies in product discovery and influence. However, product trust and product understanding are often less developed. BuzzCart narrows this gap by bringing shopping, trust signals, and product education into the same workflow.
+
+\section{Retrieval-Augmented Generation for Product Question Answering}
+
+RAG systems retrieve relevant source content and then produce answers grounded in retrieved evidence. This makes them especially useful for domain-specific question answering over manuals, documentation, or internal content. BuzzCart applies this approach in a product-specific manner, so each product can have its own indexed document and corresponding AI assistant behavior.
+
+\section{Real-Time Commerce and Messaging Platforms}
+
+Real-time messaging improves buyer confidence by allowing immediate clarification before purchase. Many commerce systems either do not support messaging or separate it from the product experience. BuzzCart integrates messaging directly into the application to reduce friction between product interest and communication.
+
+\chapter{BuzzCart System Design}
+
+\section{High-Level Architecture}
+
+BuzzCart uses a modular multi-service architecture consisting of:
+
+\begin{itemize}
+  \item a Flutter frontend,
+  \item a Go backend API server,
+  \item PostgreSQL as the primary database,
+  \item Firebase Storage for media and product documents,
+  \item Redis for short-term caching,
+  \item a Python FastAPI RAG service,
+  \item WebSocket-based real-time messaging.
+\end{itemize}
+
+This separation of concerns improves maintainability while still allowing strong integration between the commerce, social, and AI layers.
+
+\section{User Flow}
+
+The typical user journey is:
+
+\begin{enumerate}
+  \item Register and log in.
+  \item Browse content through the home feed, videos, reels, or shop listings.
+  \item Open a product detail page.
+  \item View product media, reviews, review previews, and buyer previews.
+  \item Ask questions about the product document when available.
+  \item Add the product to cart and complete checkout.
+  \item Leave a verified review after purchase.
+\end{enumerate}
+
+\section{Trust-Centered Review Flow}
+
+The trust-aware review workflow is one of the project's main contributions:
+
+\begin{enumerate}
+  \item A user completes a delivered or completed order.
+  \item Order and order item records are stored in PostgreSQL.
+  \item When the user tries to submit a review, the backend verifies purchase history.
+  \item Only valid buyers are allowed to create the review.
+  \item The review is marked as a verified purchase review.
+  \item Review retrieval ranks socially relevant users above unrelated public reviews.
+\end{enumerate}
+
+\section{Database Schema}
+
+The database schema includes structures for:
+
+\begin{itemize}
+  \item users, roles, and privacy settings,
+  \item products and product images,
+  \item product ratings and helpful votes,
+  \item carts, orders, and order items,
+  \item content items, reels, videos, and product links,
+  \item posts and precomputed user feeds,
+  \item conversations and messages.
+\end{itemize}
+
+This schema allows the system to connect commerce events, social context, and trust logic at the database level.
+
+\section{API Design}
+
+The Go backend exposes grouped routes for authentication, users, products, reviews, videos, reels, cart, checkout, uploads, feed, search, and messages. The RAG microservice provides its own API for document sync, upload, index status, delete, and question answering. This clear API separation supports independent service responsibilities.
+
+\section{Key Design Decisions}
+
+The project is shaped by several important design choices:
+
+\begin{itemize}
+  \item Review eligibility is tied to real order history.
+  \item Review ordering is socially aware, not just recency-based.
+  \item Product documents are indexed per product rather than globally.
+  \item Large media assets are stored externally in cloud-backed storage.
+  \item Discovery is feed-driven as well as catalog-driven.
+  \item Messaging is built into the system instead of being delegated to external channels.
+\end{itemize}
+
+\chapter{Implementation}
+
+\section{Frontend: Flutter Application}
+
+The Flutter frontend uses \texttt{provider} for state management and \texttt{go\_router} for navigation. It initializes shared application services, including API service, authentication provider, theme provider, cart provider, upload providers, and messaging state. The main layout adapts between a desktop sidebar and a mobile bottom navigation pattern.
+
+\subsection{Authentication Flow}
+
+The authentication flow uses splash, login, and signup screens, with router redirects based on provider-managed authentication state. Protected routes become available once the user session is initialized. This provides a clean, reactive access-control experience on the client side.
+
+% Screenshot placeholder
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=0.85\textwidth]{screenshots/authentication_flow.png}
+%   \caption{Authentication Flow}
+%   \label{fig:authentication-flow}
+% \end{figure}
+
+\subsection{Product Discovery and Shop Experience}
+
+The shop interface supports both listing and product detail views. Product cards show pricing, discount state, and social preview cues. Product detail pages combine product media, cart actions, buyer information, review visibility, and chatbot access. The home page additionally mixes posts, videos, reels, and product rails to strengthen discovery.
+
+% Screenshot placeholder
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=0.85\textwidth]{screenshots/shop_experience.png}
+%   \caption{Product Discovery and Shop Experience}
+%   \label{fig:shop-experience}
+% \end{figure}
+
+\subsection{Review and Buyer Visibility Interfaces}
+
+The product review sheet allows users to read reviews, write or edit reviews, and see badges such as \texttt{Verified Purchase} and \texttt{Connection}. The buyer sheet shows who purchased the product, with socially connected users prioritized when relevant. These UI features directly reflect the project's trust goals.
+
+% Screenshot placeholder
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=0.85\textwidth]{screenshots/reviews_buyers_interface.png}
+%   \caption{Review and Buyer Visibility Interfaces}
+%   \label{fig:reviews-buyers-interface}
+% \end{figure}
+
+\subsection{Product Document Chat Experience}
+
+The Flutter client includes a dedicated chatbot service layer for:
+
+\begin{itemize}
+  \item sending product-document questions,
+  \item syncing product documents,
+  \item checking indexing status,
+  \item deleting a product document index.
+\end{itemize}
+
+This makes the product-document assistant a normal part of the shopping experience.
+
+% Screenshot placeholder
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=0.85\textwidth]{screenshots/product_document_chat.png}
+%   \caption{Product Document Chat Experience}
+%   \label{fig:product-document-chat}
+% \end{figure}
+
+\section{Backend: Go Server}
+
+The backend is implemented with Go and Gin. At startup it loads configuration, connects to PostgreSQL, initializes Redis, initializes storage, sets up middleware, exposes a health endpoint, and registers all route groups.
+
+\subsection{Deployment Environment}
+
+The repository includes Docker Compose definitions for the frontend, backend, chatbot service, Redis, Ollama, and Cloud SQL proxy. This indicates an environment-aware deployment approach and clear service boundaries.
+
+\subsection{Core API Modules}
+
+The core backend modules include:
+
+\begin{itemize}
+  \item authentication and profile routes,
+  \item product CRUD and product detail routes,
+  \item review creation, update, deletion, privacy, moderation, and helpful voting,
+  \item cart and checkout processing,
+  \item feed, discovery, and post endpoints,
+  \item video and reel handling,
+  \item file and media upload endpoints,
+  \item messaging and WebSocket support.
+\end{itemize}
+
+% Screenshot placeholder
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=0.85\textwidth]{screenshots/core_api_modules.png}
+%   \caption{Core API Modules}
+%   \label{fig:core-api-modules}
+% \end{figure}
+
+\subsection{Review Ranking and Verified Purchase Enforcement}
+
+When a user creates a review, the backend first checks that the product exists, then checks whether the user already reviewed it, then verifies that the user has actually purchased the product through a delivered or completed order. Only then is the review created. This prevents arbitrary or fake review submission.
+
+When ranked reviews are fetched for a logged-in user, the system uses follow relationships to compute social relevance. Reviews from socially relevant users are ordered ahead of unrelated public reviews, and helpful votes further improve surfacing. This is the technical realization of the project's main trust claim.
+
+% Screenshot placeholder
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=0.85\textwidth]{screenshots/review_ranking_verified_purchase.png}
+%   \caption{Review Ranking and Verified Purchase Enforcement}
+%   \label{fig:review-ranking-verified-purchase}
+% \end{figure}
+
+\subsection{Real-Time Messaging Pipeline}
+
+The system exposes a WebSocket messages endpoint and the frontend maintains reconnect-capable message socket handling. The design supports conversation tracking, typing events, active conversation focus, and real-time event dispatch for buyer-seller communication.
+
+% Screenshot placeholder
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=0.85\textwidth]{screenshots/realtime_messaging_pipeline.png}
+%   \caption{Real-Time Messaging Pipeline}
+%   \label{fig:realtime-messaging-pipeline}
+% \end{figure}
+
+\section{Storage, Database, and Cache Integration}
+
+\subsection{PostgreSQL}
+
+PostgreSQL is the primary system of record and stores users, products, orders, reviews, posts, conversations, and related metadata. The use of relational data is especially important because review trust depends on reliable joins between orders, users, products, and social graph data.
+
+\subsection{Firebase Storage}
+
+Firebase Storage is used for user avatars, uploaded content media, product images, and product documents. This keeps binary assets out of the transactional database and supports a scalable storage strategy.
+
+% Screenshot placeholder
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=0.85\textwidth]{screenshots/firebase_storage.png}
+%   \caption{Firebase Storage}
+%   \label{fig:firebase-storage}
+% \end{figure}
+
+\subsection{Redis}
+
+Redis is used as a lightweight cache layer. One important example in the current codebase is the caching of ranked product review results for short durations to reduce repeated recomputation and database load.
+
+\section{Product Document RAG Service}
+
+The RAG service is implemented separately in Python with FastAPI and acts as a product-specific question-answering system.
+
+\subsection{Document Ingestion and Indexing}
+
+The service accepts uploaded PDFs or document URLs, extracts page text, normalizes the content, chunks the content by token-aware logic, and builds a product-scoped vector index. It stores metadata such as pages processed, source name, update time, and document location.
+
+% Screenshot placeholder
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=0.85\textwidth]{screenshots/document_ingestion_indexing.png}
+%   \caption{Document Ingestion and Indexing}
+%   \label{fig:document-ingestion-indexing}
+% \end{figure}
+
+\subsection{Hybrid Retrieval and Reranking}
+
+The chatbot uses:
+
+\begin{itemize}
+  \item dense embedding retrieval,
+  \item lexical retrieval,
+  \item neighbor expansion,
+  \item cross-encoder reranking.
+\end{itemize}
+
+% Screenshot placeholder
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=0.85\textwidth]{screenshots/hybrid_retrieval_reranking.png}
+%   \caption{Hybrid Retrieval and Reranking}
+%   \label{fig:hybrid-retrieval-reranking}
+% \end{figure}
+
+This combination improves reliability compared with simple vector search alone.
+
+\subsection{Grounded Response Generation}
+
+The answer-generation pipeline attempts structured fact extraction, direct fact answering, section-based extraction, and retrieved evidence synthesis. Responses include answer text, page number, chunk identifier, and confidence label so the user receives grounded and inspectable output.
+
+% Screenshot placeholder
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=0.85\textwidth]{screenshots/grounded_response_generation.png}
+%   \caption{Grounded Response Generation}
+%   \label{fig:grounded-response-generation}
+% \end{figure}
+
+\chapter{Evaluation}
+
+\section{Functional Coverage}
+
+From the codebase, the project covers:
+
+\begin{itemize}
+  \item user authentication and profile management,
+  \item product publishing and editing,
+  \item cart and checkout,
+  \item verified review creation,
+  \item social review ranking,
+  \item helpful voting,
+  \item buyer visibility,
+  \item content-driven discovery,
+  \item real-time messaging,
+  \item product-document indexing and question answering.
+\end{itemize}
+
+This shows that BuzzCart is a full system rather than a single-feature prototype.
+
+\section{Results}
+
+The main outcomes of the implementation are:
+
+\begin{itemize}
+  \item reviews are tied to actual purchase history,
+  \item reviews from known or connected people are surfaced more prominently,
+  \item product pages expose trust signals in the UI,
+  \item product PDFs become usable, queryable knowledge through RAG,
+  \item the system integrates commerce, social engagement, and AI assistance coherently.
+\end{itemize}
+
+The two central project goals are clearly represented in the implementation:
+
+\begin{enumerate}
+  \item reviews are more trustworthy because they come from real buyers and are ranked using social relevance,
+  \item users can better understand products because the chatbot answers from indexed product documents.
+\end{enumerate}
+
+\section{Performance and Scalability Considerations}
+
+The repository includes several implementation choices that support scale:
+
+\begin{itemize}
+  \item Redis caching for repeated reads,
+  \item product-specific vector indexes,
+  \item cloud-backed asset storage,
+  \item token-aware chunking for stable retrieval behavior,
+  \item reranking for higher answer quality,
+  \item Dockerized service boundaries.
+\end{itemize}
+
+The current repository does not include a formal benchmark document with hard latency measurements for every subsystem, so this report does not invent quantitative metrics. However, the design choices indicate a system that is structurally prepared for broader deployment.
+
+\chapter{Conclusion and Future Work}
+
+BuzzCart demonstrates that a social commerce platform can be designed around trust and understanding rather than only around listing and checkout. The project integrates product discovery, commerce, review credibility, and AI support into a single workflow.
+
+Its strongest contribution is the combination of two key ideas:
+
+\begin{itemize}
+  \item reviews should come from real buyers and should be prioritized using known-person social context,
+  \item product documents should become interactive knowledge sources rather than ignored attachments.
+\end{itemize}
+
+By enforcing verified purchase review creation and ranking reviews through social relevance, BuzzCart improves review trust. By indexing product documents and answering user questions with grounded evidence, it improves product understanding. Together these make the platform more useful during the real purchase decision process.
+
+Future improvements could include:
+
+\begin{itemize}
+  \item real payment gateway integration,
+  \item seller analytics dashboards,
+  \item stronger recommendation systems,
+  \item multilingual RAG support,
+  \item richer moderation interfaces,
+  \item deeper user and product trust scoring.
+\end{itemize}
+
+Overall, BuzzCart is a strong major-project implementation that demonstrates practical full-stack engineering across frontend, backend, database, messaging, storage, and AI subsystems.
+
+\chapter*{References}
+\addcontentsline{toc}{chapter}{References}
+
+\begin{enumerate}
+  \item BuzzCart source code and project files, including frontend, backend, chatbot, database migrations, and Docker configuration.
+  \item Flutter Documentation. \url{https://docs.flutter.dev/}
+  \item Go Documentation. \url{https://go.dev/doc/}
+  \item Gin Web Framework Documentation. \url{https://gin-gonic.com/}
+  \item PostgreSQL Documentation. \url{https://www.postgresql.org/docs/}
+  \item Redis Documentation. \url{https://redis.io/docs/}
+  \item FastAPI Documentation. \url{https://fastapi.tiangolo.com/}
+  \item Firebase Documentation. \url{https://firebase.google.com/docs}
+  \item FAISS Documentation. \url{https://faiss.ai/}
+  \item Sentence Transformers Documentation. \url{https://www.sbert.net/}
+\end{enumerate}
+
+\end{document}

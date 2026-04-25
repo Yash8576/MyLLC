@@ -1,0 +1,182 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1100" viewBox="0 0 1600 1100">
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .title { font: 700 30px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
+      .subtitle { font: 500 16px 'Segoe UI', Arial, sans-serif; fill: #475569; }
+      .table { fill: #ffffff; stroke: #334155; stroke-width: 2; }
+      .headA { fill: #dbeafe; }
+      .headB { fill: #dcfce7; }
+      .headC { fill: #fef3c7; }
+      .headD { fill: #ede9fe; }
+      .headE { fill: #fee2e2; }
+      .header { font: 700 18px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
+      .field { font: 500 14px 'Segoe UI', Arial, sans-serif; fill: #334155; }
+      .arrow { stroke: #64748b; stroke-width: 2.5; fill: none; marker-end: url(#arrow); }
+      .note { font: 500 13px 'Segoe UI', Arial, sans-serif; fill: #475569; }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1600" height="1100"/>
+  <text class="title" x="800" y="50" text-anchor="middle">BuzzCart Database Schema Overview</text>
+  <text class="subtitle" x="800" y="78" text-anchor="middle">Core entities supporting ecommerce, social interactions, trusted reviews, and messaging</text>
+
+  <g transform="translate(70,120)">
+    <rect class="table" width="250" height="170" rx="18"/>
+    <rect class="headA" width="250" height="42" rx="18"/>
+    <rect class="headA" y="24" width="250" height="18"/>
+    <text class="header" x="125" y="28" text-anchor="middle">users</text>
+    <text class="field" x="18" y="65">id (PK)</text>
+    <text class="field" x="18" y="90">email, password, name</text>
+    <text class="field" x="18" y="115">role, account\_type, status</text>
+    <text class="field" x="18" y="140">privacy\_profile</text>
+    <text class="field" x="18" y="165">visibility\_preferences</text>
+  </g>
+
+  <g transform="translate(410,120)">
+    <rect class="table" width="270" height="180" rx="18"/>
+    <rect class="headB" width="270" height="42" rx="18"/>
+    <rect class="headB" y="24" width="270" height="18"/>
+    <text class="header" x="135" y="28" text-anchor="middle">products</text>
+    <text class="field" x="18" y="65">id (PK)</text>
+    <text class="field" x="18" y="90">seller\_id (FK - users)</text>
+    <text class="field" x="18" y="115">title, description, price</text>
+    <text class="field" x="18" y="140">stock\_quantity, category</text>
+    <text class="field" x="18" y="165">rating, reviews\_count</text>
+  </g>
+
+  <g transform="translate(770,120)">
+    <rect class="table" width="270" height="150" rx="18"/>
+    <rect class="headB" width="270" height="42" rx="18"/>
+    <rect class="headB" y="24" width="270" height="18"/>
+    <text class="header" x="135" y="28" text-anchor="middle">product\_images</text>
+    <text class="field" x="18" y="65">id (PK)</text>
+    <text class="field" x="18" y="90">product\_id (FK)</text>
+    <text class="field" x="18" y="115">image\_url, is\_primary</text>
+    <text class="field" x="18" y="140">display\_order</text>
+  </g>
+
+  <g transform="translate(1120,120)">
+    <rect class="table" width="300" height="210" rx="18"/>
+    <rect class="headC" width="300" height="42" rx="18"/>
+    <rect class="headC" y="24" width="300" height="18"/>
+    <text class="header" x="150" y="28" text-anchor="middle">product\_ratings</text>
+    <text class="field" x="18" y="65">id (PK)</text>
+    <text class="field" x="18" y="90">product\_id (FK)</text>
+    <text class="field" x="18" y="115">user\_id (FK)</text>
+    <text class="field" x="18" y="140">rating, review\_title, review\_text</text>
+    <text class="field" x="18" y="165">is\_verified\_purchase</text>
+    <text class="field" x="18" y="190">is\_private, moderation\_status</text>
+  </g>
+
+  <g transform="translate(1090,410)">
+    <rect class="table" width="330" height="130" rx="18"/>
+    <rect class="headC" width="330" height="42" rx="18"/>
+    <rect class="headC" y="24" width="330" height="18"/>
+    <text class="header" x="165" y="28" text-anchor="middle">review\_helpful\_votes</text>
+    <text class="field" x="18" y="65">review\_id (FK)</text>
+    <text class="field" x="18" y="90">user\_id (FK)</text>
+    <text class="field" x="18" y="115">voted\_at</text>
+  </g>
+
+  <g transform="translate(380,410)">
+    <rect class="table" width="260" height="170" rx="18"/>
+    <rect class="headD" width="260" height="42" rx="18"/>
+    <rect class="headD" y="24" width="260" height="18"/>
+    <text class="header" x="130" y="28" text-anchor="middle">orders</text>
+    <text class="field" x="18" y="65">id (PK)</text>
+    <text class="field" x="18" y="90">user\_id (FK - users)</text>
+    <text class="field" x="18" y="115">order\_number, status</text>
+    <text class="field" x="18" y="140">subtotal, total</text>
+    <text class="field" x="18" y="165">is\_private, completed\_at</text>
+  </g>
+
+  <g transform="translate(710,410)">
+    <rect class="table" width="300" height="180" rx="18"/>
+    <rect class="headD" width="300" height="42" rx="18"/>
+    <rect class="headD" y="24" width="300" height="18"/>
+    <text class="header" x="150" y="28" text-anchor="middle">order\_items</text>
+    <text class="field" x="18" y="65">id (PK)</text>
+    <text class="field" x="18" y="90">order\_id (FK)</text>
+    <text class="field" x="18" y="115">product\_id (FK)</text>
+    <text class="field" x="18" y="140">seller\_id (FK - users)</text>
+    <text class="field" x="18" y="165">quantity, unit\_price, subtotal</text>
+  </g>
+
+  <g transform="translate(60,420)">
+    <rect class="table" width="240" height="130" rx="18"/>
+    <rect class="headD" width="240" height="42" rx="18"/>
+    <rect class="headD" y="24" width="240" height="18"/>
+    <text class="header" x="120" y="28" text-anchor="middle">carts</text>
+    <text class="field" x="18" y="65">user\_id (PK/FK)</text>
+    <text class="field" x="18" y="90">items JSONB</text>
+    <text class="field" x="18" y="115">updated\_at</text>
+  </g>
+
+  <g transform="translate(70,720)">
+    <rect class="table" width="260" height="170" rx="18"/>
+    <rect class="headE" width="260" height="42" rx="18"/>
+    <rect class="headE" y="24" width="260" height="18"/>
+    <text class="header" x="130" y="28" text-anchor="middle">posts</text>
+    <text class="field" x="18" y="65">id (PK)</text>
+    <text class="field" x="18" y="90">user\_id, media\_id</text>
+    <text class="field" x="18" y="115">caption, media\_type</text>
+    <text class="field" x="18" y="140">visibility, is\_private</text>
+    <text class="field" x="18" y="165">engagement metrics</text>
+  </g>
+
+  <g transform="translate(410,720)">
+    <rect class="table" width="260" height="150" rx="18"/>
+    <rect class="headE" width="260" height="42" rx="18"/>
+    <rect class="headE" y="24" width="260" height="18"/>
+    <text class="header" x="130" y="28" text-anchor="middle">user\_feeds</text>
+    <text class="field" x="18" y="65">id (PK)</text>
+    <text class="field" x="18" y="90">user\_id, post\_id, author\_id</text>
+    <text class="field" x="18" y="115">feed\_rank, is\_seen</text>
+    <text class="field" x="18" y="140">created\_at</text>
+  </g>
+
+  <g transform="translate(760,720)">
+    <rect class="table" width="300" height="180" rx="18"/>
+    <rect class="headE" width="300" height="42" rx="18"/>
+    <rect class="headE" y="24" width="300" height="18"/>
+    <text class="header" x="150" y="28" text-anchor="middle">content\_items</text>
+    <text class="field" x="18" y="65">id (PK)</text>
+    <text class="field" x="18" y="90">creator\_id (FK - users)</text>
+    <text class="field" x="18" y="115">content\_type: video / reel</text>
+    <text class="field" x="18" y="140">video\_url, thumbnail\_url</text>
+    <text class="field" x="18" y="165">views, likes, comments</text>
+  </g>
+
+  <g transform="translate(1140,720)">
+    <rect class="table" width="280" height="170" rx="18"/>
+    <rect class="headE" width="280" height="42" rx="18"/>
+    <rect class="headE" y="24" width="280" height="18"/>
+    <text class="header" x="140" y="28" text-anchor="middle">messages</text>
+    <text class="field" x="18" y="65">id (PK)</text>
+    <text class="field" x="18" y="90">conversation\_id</text>
+    <text class="field" x="18" y="115">sender\_id, product\_id</text>
+    <text class="field" x="18" y="140">message\_text, type</text>
+    <text class="field" x="18" y="165">created\_at, is\_read</text>
+  </g>
+
+  <path class="arrow" d="M320 205 L410 205"/>
+  <path class="arrow" d="M680 205 L770 205"/>
+  <path class="arrow" d="M680 220 L1120 220"/>
+  <path class="arrow" d="M1270 330 L1250 410"/>
+  <path class="arrow" d="M510 300 L510 410"/>
+  <path class="arrow" d="M640 490 L710 490"/>
+  <path class="arrow" d="M860 590 L860 720"/>
+  <path class="arrow" d="M200 290 L180 420"/>
+  <path class="arrow" d="M200 290 L200 720"/>
+  <path class="arrow" d="M540 300 L540 720"/>
+  <path class="arrow" d="M1240 330 L1280 720"/>
+
+  <text class="note" x="1160" y="570">Helpful vote relation</text>
+  <text class="note" x="640" y="395">Orders create purchase proof</text>
+  <text class="note" x="895" y="655">Linked products in content/reels/videos</text>
+  <text class="note" x="1090" y="950" text-anchor="middle">Review trust is enforced through the relation between users, orders, order_items, product_ratings, and review_helpful_votes.</text>
+</svg>

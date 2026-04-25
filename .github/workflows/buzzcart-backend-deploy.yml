@@ -1,0 +1,63 @@
+name: BuzzCart Backend Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'projects/buzzcart/backend/**'
+      - '.github/workflows/buzzcart-backend-deploy.yml'
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  GCP_PROJECT_ID: buzzcart-daeb6
+  GCP_REGION: us-east4
+  CLOUD_RUN_SERVICE: buzzcart-backend
+  CLOUD_SQL_INSTANCE: buzzcart-daeb6:us-east4:buzzcart-daeb6-instance
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Write Cloud Run env file
+        shell: bash
+        run: |
+          cat <<EOF > "$RUNNER_TEMP/buzzcart-cloudrun-env.yaml"
+          DATABASE_URL: "${{ secrets.BUZZCART_DATABASE_URL }}"
+          JWT_SECRET: "${{ secrets.BUZZCART_JWT_SECRET }}"
+          PORT: "8080"
+          REDIS_URL: "${{ secrets.BUZZCART_REDIS_URL }}"
+          ALLOWED_FRONTEND_ORIGINS: "${{ vars.BUZZCART_ALLOWED_FRONTEND_ORIGINS }}"
+          FIREBASE_PROJECT_ID: "buzzcart-daeb6"
+          FIREBASE_STORAGE_BUCKET: "gs://buzzcart-daeb6.firebasestorage.app"
+          FIREBASE_STORAGE_LOCATION: "us-east1"
+          FIREBASE_STORAGE_PUBLIC_BASE_URL: "https://firebasestorage.googleapis.com/v0/b"
+          EOF
+
+      - name: Deploy backend to Cloud Run
+        run: |
+          gcloud run deploy "$CLOUD_RUN_SERVICE" \
+            --project "$GCP_PROJECT_ID" \
+            --region "$GCP_REGION" \
+            --source projects/buzzcart/backend \
+            --allow-unauthenticated \
+            --add-cloudsql-instances "$CLOUD_SQL_INSTANCE" \
+            --env-vars-file "$RUNNER_TEMP/buzzcart-cloudrun-env.yaml"

@@ -1,0 +1,146 @@
+services:
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${BUZZCART_BACKEND_PORT:-8080}:8080"
+    env_file:
+      - ../backend/.env
+    environment:
+      PORT: 8080
+      REDIS_URL: ${BUZZCART_DOCKER_REDIS_URL:-redis://redis:6379/0}
+      ALLOWED_FRONTEND_ORIGINS: ${BUZZCART_ALLOWED_FRONTEND_ORIGINS:-http://localhost:3000,http://localhost:5000,http://localhost:8080,http://localhost:8081}
+    depends_on:
+      redis:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ../storage/media:/app/media
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${BUZZCART_FRONTEND_PORT:-8081}:80"
+    depends_on:
+      - backend
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "${BUZZCART_REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    ports:
+      - "${BUZZCART_OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    gpus: all
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+    profiles:
+      - chatbot
+
+  ollama-init:
+    image: ollama/ollama:latest
+    restart: "no"
+    entrypoint: ["/bin/sh", "-c"]
+    command: "ollama pull ${OLLAMA_MODEL:-mistral}"
+    depends_on:
+      ollama:
+        condition: service_healthy
+    volumes:
+      - ollama_data:/root/.ollama
+    gpus: all
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
+    profiles:
+      - chatbot
+
+  chatbot:
+    build:
+      context: ../chatbot
+      dockerfile: Dockerfile
+      args:
+        TORCH_WHEEL_CHANNEL: ${TORCH_WHEEL_CHANNEL:-cu128}
+    restart: unless-stopped
+    ports:
+      - "${BUZZCART_CHATBOT_PORT:-8001}:8001"
+    env_file:
+      - ../chatbot/.env
+    environment:
+      API_PORT: 8001
+      DATABASE_URL: ${CHATBOT_DATABASE_URL:-}
+      EMBEDDING_MODEL_NAME: BAAI/bge-m3
+      RERANKER_MODEL_NAME: BAAI/bge-reranker-v2-m3
+      MODEL_DEVICE: ${MODEL_DEVICE:-auto}
+      MODEL_DEVICE_INDEX: ${MODEL_DEVICE_INDEX:-0}
+      EMBEDDING_BATCH_SIZE: ${EMBEDDING_BATCH_SIZE:-32}
+      RERANK_BATCH_SIZE: ${RERANK_BATCH_SIZE:-24}
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-mistral}
+      VECTOR_STORE_DIR: /app/data/vector_store
+      DOCUMENTS_PATH: /app/data/documents
+      ALLOWED_EXTENSIONS: '[".pdf",".txt",".md",".docx",".html"]'
+      MODEL_CACHE_DIR: /app/models/cache
+      REDIS_URL: redis://redis:6379/0
+      BACKEND_API_URL: http://backend:8080
+      RETRIEVAL_CANDIDATE_POOL: 24
+      LEXICAL_SEARCH_LIMIT: 24
+      NEIGHBOR_WINDOW: 1
+      MAX_EVIDENCE_BLOCKS: 3
+      DIRECT_SEARCH_TOP_K: 14
+      DIRECT_MATCH_MIN_SCORE: 0.58
+      DOCUMENT_URL_REWRITE_FROM: '["localhost","127.0.0.1","10.0.2.2"]'
+      DOCUMENT_URL_REWRITE_TO: firebasestorage.googleapis.com
+      DEBUG: "true"
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
+    depends_on:
+      backend:
+        condition: service_started
+      ollama:
+        condition: service_healthy
+      ollama-init:
+        condition: service_completed_successfully
+    volumes:
+      - chatbot_documents:/app/data/documents
+      - chatbot_vector_store:/app/data/vector_store
+      - chatbot_model_cache:/app/models/cache
+    gpus: all
+    profiles:
+      - chatbot
+
+volumes:
+  redis_data:
+    driver: local
+  chatbot_documents:
+    driver: local
+  chatbot_vector_store:
+    driver: local
+  chatbot_model_cache:
+    driver: local
+  ollama_data:
+    driver: local

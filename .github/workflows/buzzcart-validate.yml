@@ -1,0 +1,52 @@
+name: BuzzCart Validate
+
+on:
+  push:
+    paths:
+      - 'projects/buzzcart/**'
+      - '.github/workflows/buzzcart-validate.yml'
+  pull_request:
+    paths:
+      - 'projects/buzzcart/**'
+      - '.github/workflows/buzzcart-validate.yml'
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: projects/buzzcart/backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: projects/buzzcart/backend/go.mod
+
+      - name: Run Go tests
+        run: go test ./...
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: projects/buzzcart/frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test

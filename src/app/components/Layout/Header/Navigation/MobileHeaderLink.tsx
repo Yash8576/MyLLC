@@ -3,7 +3,6 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { HeaderType } from '@/app/types/menu'
-import { Icon } from '@iconify/react/dist/iconify.js'
 
 const MobileHeaderLink = ({
   item,
@@ -16,7 +15,6 @@ const MobileHeaderLink = ({
   const pathname = usePathname()
 
   const scrollToTop = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    // Only scroll to top if clicking Home or root link
     if (item.href === '/' || item.href === '#') {
       if (pathname !== '/') {
         setNavbarOpen(false)
@@ -24,14 +22,10 @@ const MobileHeaderLink = ({
       }
 
       e.preventDefault()
-      
-      // Close mobile menu immediately
       setNavbarOpen(false)
-      
-      // Use native smooth scroll - instant, no delay, always smooth
       window.scrollTo({
         top: 0,
-        behavior: 'smooth'
+        behavior: 'smooth',
       })
     } else {
       setNavbarOpen(false)
@@ -42,15 +36,21 @@ const MobileHeaderLink = ({
     return (
       <div>
         <button
+          type='button'
           onClick={() => setIsOpen(!isOpen)}
-          className='w-full text-left text-black hover:text-primary text-lg font-medium transition-colors duration-300 py-3 flex items-center justify-between'>
+          className='w-full appearance-none border-0 bg-transparent p-0 text-left text-black hover:text-primary text-lg font-medium transition-colors duration-300 py-3 flex items-center justify-between'>
           {item.label}
-          <Icon
-            icon='solar:alt-arrow-down-linear'
-            className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
-            width={20}
-            height={20}
-          />
+          <svg
+            aria-hidden='true'
+            viewBox='0 0 16 16'
+            className={`h-5 w-5 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
+            fill='none'
+            stroke='currentColor'
+            strokeWidth='1.5'
+            strokeLinecap='round'
+            strokeLinejoin='round'>
+            <path d='M4 6l4 4 4-4' />
+          </svg>
         </button>
         {isOpen && (
           <div className='pl-4 pb-2'>

@@ -18,6 +18,7 @@ export const HeaderData: HeaderType[] = [
     submenu: [
       { label: 'Todo App', href: '/nexacore/todo' },
       { label: 'Digital Clock', href: '/nexacore/digitalclock' },
+      { label: 'BuzzCart', href: '/nexacore/BuzzCart' },
     ]
   },
   { label: 'Contact Us', href: '/#contact' },

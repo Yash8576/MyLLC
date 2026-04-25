@@ -5,6 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:pages": "bash ./scripts/build-cloudflare-pages.sh",
+    "build:buzzcart": "cmd /c flutter build web --release --base-href /nexacore/BuzzCart/ --dart-define=CHATBOT_ENABLED=false --dart-define=PRODUCTION=true --dart-define=API_BASE_URL=https://api.example.com/api --dart-define=WS_BASE_URL=wss://api.example.com/ws --dart-define=STORAGE_BASE_URL= && node ./scripts/sync-buzzcart-build.mjs",
+    "sync:buzzcart": "node ./scripts/sync-buzzcart-build.mjs",
     "start": "next start",
     "lint": "next lint"
   },

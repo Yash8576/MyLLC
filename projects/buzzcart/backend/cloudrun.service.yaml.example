@@ -1,0 +1,41 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: buzzcart-backend
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "0"
+        autoscaling.knative.dev/maxScale: "10"
+        run.googleapis.com/cloudsql-instances: buzzcart-daeb6:us-east4:buzzcart-daeb6-instance
+    spec:
+      containerConcurrency: 80
+      timeoutSeconds: 300
+      containers:
+        - image: us-east4-docker.pkg.dev/YOUR_GCP_PROJECT_ID/buzzcart/buzzcart-backend:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PORT
+              value: "8080"
+            - name: DATABASE_URL
+              value: postgres://buzzcart_app:replace-me@/buzzcart-daeb6-database?host=/cloudsql/buzzcart-daeb6:us-east4:buzzcart-daeb6-instance
+            - name: JWT_SECRET
+              value: replace-with-a-long-random-secret
+            - name: REDIS_URL
+              value: ""
+            - name: ALLOWED_FRONTEND_ORIGINS
+              value: https://your-frontend-domain.web.app,https://your-custom-domain.com
+            - name: FIREBASE_PROJECT_ID
+              value: buzzcart-daeb6
+            - name: FIREBASE_STORAGE_BUCKET
+              value: gs://buzzcart-daeb6.firebasestorage.app
+            - name: FIREBASE_STORAGE_LOCATION
+              value: us-east1
+            - name: FIREBASE_STORAGE_PUBLIC_BASE_URL
+              value: https://firebasestorage.googleapis.com/v0/b
+          resources:
+            limits:
+              cpu: "1"
+              memory: 512Mi

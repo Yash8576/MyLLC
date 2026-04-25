@@ -3,25 +3,21 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { HeaderType } from '@/app/types/menu'
-import { Icon } from '@iconify/react/dist/iconify.js'
 
 const HeaderLink = ({ item }: { item: HeaderType }) => {
   const [isOpen, setIsOpen] = useState(false)
   const pathname = usePathname()
 
   const scrollToTop = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    // Only scroll to top if clicking Home or root link
     if (item.href === '/' || item.href === '#') {
       if (pathname !== '/') {
         return
       }
 
       e.preventDefault()
-      
-      // Use native smooth scroll - instant, no delay, always smooth
       window.scrollTo({
         top: 0,
-        behavior: 'smooth'
+        behavior: 'smooth',
       })
     }
   }
@@ -32,14 +28,21 @@ const HeaderLink = ({ item }: { item: HeaderType }) => {
         className='relative group'
         onMouseEnter={() => setIsOpen(true)}
         onMouseLeave={() => setIsOpen(false)}>
-        <button className='text-black hover:text-primary text-base font-medium transition-colors duration-300 flex items-center gap-1 py-2'>
+        <button
+          type='button'
+          className='appearance-none border-0 bg-transparent p-0 text-black hover:text-primary text-base font-medium transition-colors duration-300 flex items-center gap-1 py-2'>
           {item.label}
-          <Icon
-            icon='solar:alt-arrow-down-linear'
-            className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
-            width={16}
-            height={16}
-          />
+          <svg
+            aria-hidden='true'
+            viewBox='0 0 16 16'
+            className={`h-4 w-4 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
+            fill='none'
+            stroke='currentColor'
+            strokeWidth='1.5'
+            strokeLinecap='round'
+            strokeLinejoin='round'>
+            <path d='M4 6l4 4 4-4' />
+          </svg>
         </button>
         {isOpen && (
           <div className='absolute top-full left-0 pt-2'>

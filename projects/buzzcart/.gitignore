@@ -1,0 +1,28 @@
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+PRIVATE_VALUES.local.md
+
+# Logs and local helpers
+cloud-sql-proxy*.log
+proxy-*.log
+tools/cloud-sql-proxy.exe
+stop
+
+# Flutter generated artifacts
+frontend/.dart_tool/
+frontend/build/
+frontend/.flutter-plugins-dependencies
+frontend/android/.gradle/
+frontend/android/.kotlin/
+frontend/android/build/
+frontend/android/local.properties
+frontend/ios/Flutter/ephemeral/
+frontend/linux/flutter/ephemeral/
+frontend/macos/Flutter/ephemeral/
+frontend/windows/flutter/ephemeral/
+
+# Local media output
+storage/media/*
+!storage/media/.gitkeep

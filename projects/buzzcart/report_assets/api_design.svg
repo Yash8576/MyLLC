@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1050" viewBox="0 0 1600 1050">
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .title { font: 700 30px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
+      .subtitle { font: 500 16px 'Segoe UI', Arial, sans-serif; fill: #475569; }
+      .gateway { fill: #dbeafe; stroke: #2563eb; stroke-width: 2.5; }
+      .groupA { fill: #dcfce7; stroke: #16a34a; stroke-width: 2; }
+      .groupB { fill: #fef3c7; stroke: #d97706; stroke-width: 2; }
+      .groupC { fill: #ede9fe; stroke: #7c3aed; stroke-width: 2; }
+      .groupD { fill: #fee2e2; stroke: #dc2626; stroke-width: 2; }
+      .head { font: 700 20px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
+      .text { font: 500 14px 'Segoe UI', Arial, sans-serif; fill: #334155; }
+      .arrow { stroke: #64748b; stroke-width: 2.5; fill: none; marker-end: url(#arrow); }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1600" height="1050"/>
+  <text class="title" x="800" y="52" text-anchor="middle">BuzzCart API Design</text>
+  <text class="subtitle" x="800" y="80" text-anchor="middle">Main route groups in the Go backend and the companion Python RAG service</text>
+
+  <rect class="gateway" x="590" y="120" width="420" height="110" rx="24"/>
+  <text class="head" x="800" y="165" text-anchor="middle">Go Backend Entry Point</text>
+  <text class="text" x="800" y="195" text-anchor="middle">Gin router + middleware + /health + /ws/messages + /api/* route groups</text>
+
+  <rect class="groupA" x="90" y="320" width="300" height="220" rx="22"/>
+  <text class="head" x="240" y="360" text-anchor="middle">Auth and Users</text>
+  <text class="text" x="120" y="400">/api/auth/register</text>
+  <text class="text" x="120" y="428">/api/auth/login</text>
+  <text class="text" x="120" y="456">/api/auth/me</text>
+  <text class="text" x="120" y="484">/api/auth/profile</text>
+  <text class="text" x="120" y="512">/api/users/:user_id</text>
+
+  <rect class="groupB" x="450" y="290" width="330" height="290" rx="22"/>
+  <text class="head" x="615" y="330" text-anchor="middle">Products and Reviews</text>
+  <text class="text" x="480" y="370">/api/products</text>
+  <text class="text" x="480" y="398">/api/products/:product_id</text>
+  <text class="text" x="480" y="426">/api/products/:product_id/reviews</text>
+  <text class="text" x="480" y="454">/api/products/:product_id/reviews/ranked</text>
+  <text class="text" x="480" y="482">/api/products/:product_id/reviews/preview</text>
+  <text class="text" x="480" y="510">/api/products/:product_id/buyers</text>
+  <text class="text" x="480" y="538">/api/reviews/:review_id/helpful</text>
+
+  <rect class="groupC" x="840" y="300" width="300" height="270" rx="22"/>
+  <text class="head" x="990" y="340" text-anchor="middle">Commerce and Uploads</text>
+  <text class="text" x="870" y="380">/api/cart</text>
+  <text class="text" x="870" y="408">/api/cart/add</text>
+  <text class="text" x="870" y="436">/api/cart/checkout</text>
+  <text class="text" x="870" y="464">/api/upload/image</text>
+  <text class="text" x="870" y="492">/api/upload/product-image</text>
+  <text class="text" x="870" y="520">/api/upload/product-document</text>
+
+  <rect class="groupD" x="1200" y="320" width="290" height="220" rx="22"/>
+  <text class="head" x="1345" y="360" text-anchor="middle">Social and Messaging</text>
+  <text class="text" x="1230" y="400">/api/feed/followers</text>
+  <text class="text" x="1230" y="428">/api/feed/discovery</text>
+  <text class="text" x="1230" y="456">/api/posts</text>
+  <text class="text" x="1230" y="484">/api/search</text>
+  <text class="text" x="1230" y="512">/api/messages/*</text>
+
+  <rect class="groupA" x="250" y="710" width="330" height="220" rx="22"/>
+  <text class="head" x="415" y="750" text-anchor="middle">Content APIs</text>
+  <text class="text" x="280" y="790">/api/videos</text>
+  <text class="text" x="280" y="818">/api/videos/:id/comments</text>
+  <text class="text" x="280" y="846">/api/reels</text>
+  <text class="text" x="280" y="874">/api/reels/:id/comments</text>
+
+  <rect class="groupC" x="860" y="690" width="480" height="250" rx="22"/>
+  <text class="head" x="1100" y="730" text-anchor="middle">Python RAG Service API</text>
+  <text class="text" x="890" y="770">GET  /api/v1/health</text>
+  <text class="text" x="890" y="798">POST /api/v1/chat/message</text>
+  <text class="text" x="890" y="826">POST /api/v1/documents/sync</text>
+  <text class="text" x="890" y="854">POST /api/v1/documents/upload</text>
+  <text class="text" x="890" y="882">GET  /api/v1/documents/\{product_id\}</text>
+  <text class="text" x="890" y="910">DELETE /api/v1/documents/\{product_id\}</text>
+
+  <path class="arrow" d="M800 230 L240 320"/>
+  <path class="arrow" d="M800 230 L615 290"/>
+  <path class="arrow" d="M800 230 L990 300"/>
+  <path class="arrow" d="M800 230 L1345 320"/>
+  <path class="arrow" d="M615 580 L415 710"/>
+  <path class="arrow" d="M990 570 L1100 690"/>
+  <path class="arrow" d="M1345 540 L1170 690"/>
+
+  <rect x="120" y="975" width="1360" height="40" rx="14" ry="14" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1.5"/>
+  <text class="text" x="800" y="1001" text-anchor="middle">The API is split between transactional/social features in Go and document-grounded product intelligence in the Python RAG service.</text>
+</svg>

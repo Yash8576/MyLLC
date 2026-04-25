@@ -1,55 +1,44 @@
-# Nexacore Landing Page
+# MyLLC Repo
 
-A modern landing page built with Next.js, TypeScript, and Tailwind CSS.
+This repository now hosts the main Next.js company site plus standalone product projects that are operated from the same repo.
 
-## Getting Started
+## Active Projects
 
-First, install the dependencies:
+- `src/` and `public/`: the main Next.js/Tailwind marketing site
+- `projects/buzzcart/`: BuzzCart social commerce app
+  - Flutter web frontend published under `/nexacore/BuzzCart/` on the same Cloudflare Pages site
+  - Go backend deployed to Cloud Run
+  - PostgreSQL on Cloud SQL
+  - Firebase Hosting plus Firebase Storage for the web app and media
+  - Redis optional
+  - Chatbot and Ollama intentionally disabled for production
+
+See [projects/README.md](/abs/path/c:/Users/dravi/Downloads/Developer/MyLLC/projects/README.md) for the project index.
+
+## Main Site
+
+Install dependencies and start the landing site:
 
 ```bash
 npm install
-```
-
-Then, run the development server:
-
-```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-## Project Structure
+## Repo Layout
 
-- `src/app` - Next.js app directory with pages and layouts
-- `src/app/components` - Reusable React components
-- `src/app/types` - TypeScript type definitions
-- `src/utils` - Utility functions
+- `src/app`: Next.js app routes, layouts, and components
+- `projects/`: standalone product projects integrated into this repo
+- `.github/workflows/`: repo CI and project-specific deployment workflows
 
-## Features
+## BuzzCart
 
-- Responsive design
-- Modern UI with Tailwind CSS
-- TypeScript for type safety
-- Modular component architecture
+BuzzCart lives at [projects/buzzcart](/abs/path/c:/Users/dravi/Downloads/Developer/MyLLC/projects/buzzcart). The repo includes:
 
-## Building for Production
+- GitHub Actions for BuzzCart validation and Cloud Run backend deploys
+- a Cloudflare Pages build path that publishes the Flutter frontend to `/nexacore/BuzzCart/`
+- Cloud Run env template in `projects/buzzcart/backend/cloudrun.env.example`
+- local Docker/dev scripts with chatbot kept opt-in only
 
-To build the production version:
-
-```bash
-npm run build
-```
-
-To start the production server:
-
-```bash
-npm start
-```
-
-## Deployment
-
-This project can be deployed on Raspberry Pi or any Node.js hosting platform.
-
-## License
-
-MIT
+Start with [projects/buzzcart/README.md](/abs/path/c:/Users/dravi/Downloads/Developer/MyLLC/projects/buzzcart/README.md) for setup and operations.

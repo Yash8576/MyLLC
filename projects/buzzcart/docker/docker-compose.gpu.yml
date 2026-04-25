@@ -1,0 +1,22 @@
+services:
+  ollama:
+    gpus: all
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
+
+  ollama-init:
+    gpus: all
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
+
+  chatbot:
+    build:
+      args:
+        TORCH_WHEEL_CHANNEL: ${TORCH_WHEEL_CHANNEL:-cu128}
+    gpus: all
+    environment:
+      MODEL_DEVICE: ${MODEL_DEVICE:-auto}
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility

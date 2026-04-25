@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="950" viewBox="0 0 1500 950">
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .title { font: 700 30px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
+      .subtitle { font: 500 16px 'Segoe UI', Arial, sans-serif; fill: #475569; }
+      .step { fill: #ffffff; stroke: #2563eb; stroke-width: 2.5; }
+      .decision { fill: #fef3c7; stroke: #d97706; stroke-width: 2.5; }
+      .end { fill: #dcfce7; stroke: #16a34a; stroke-width: 2.5; }
+      .text { font: 600 18px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
+      .sub { font: 500 14px 'Segoe UI', Arial, sans-serif; fill: #475569; }
+      .arrow { stroke: #475569; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+      .label { font: 600 14px 'Segoe UI', Arial, sans-serif; fill: #334155; }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#475569"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1500" height="950"/>
+  <text class="title" x="750" y="55" text-anchor="middle">BuzzCart User Flow</text>
+  <text class="subtitle" x="750" y="82" text-anchor="middle">Buyer journey from discovery to purchase, trusted review, and product-document assistance</text>
+
+  <rect class="step" x="110" y="150" rx="22" ry="22" width="220" height="90"/>
+  <text class="text" x="220" y="188" text-anchor="middle">1. Sign Up / Login</text>
+  <text class="sub" x="220" y="214" text-anchor="middle">Authentication and profile setup</text>
+
+  <rect class="step" x="400" y="150" rx="22" ry="22" width="260" height="90"/>
+  <text class="text" x="530" y="188" text-anchor="middle">2. Discover Products</text>
+  <text class="sub" x="530" y="214" text-anchor="middle">Home feed, reels, videos, shop</text>
+
+  <rect class="step" x="740" y="150" rx="22" ry="22" width="280" height="90"/>
+  <text class="text" x="880" y="188" text-anchor="middle">3. Open Product Detail</text>
+  <text class="sub" x="880" y="214" text-anchor="middle">Media, price, reviews, buyers, seller</text>
+
+  <polygon class="decision" points="1170,145 1310,195 1170,245 1030,195"/>
+  <text class="text" x="1170" y="188" text-anchor="middle">Need More</text>
+  <text class="text" x="1170" y="210" text-anchor="middle">Clarity?</text>
+
+  <rect class="step" x="1010" y="350" rx="22" ry="22" width="320" height="100"/>
+  <text class="text" x="1170" y="390" text-anchor="middle">4A. Ask Product Questions</text>
+  <text class="sub" x="1170" y="418" text-anchor="middle">RAG answers from uploaded product documents</text>
+
+  <rect class="step" x="660" y="350" rx="22" ry="22" width="280" height="100"/>
+  <text class="text" x="800" y="390" text-anchor="middle">4B. Evaluate Trust Signals</text>
+  <text class="sub" x="800" y="418" text-anchor="middle">Known-people reviews + verified buyers</text>
+
+  <rect class="step" x="400" y="560" rx="22" ry="22" width="260" height="95"/>
+  <text class="text" x="530" y="600" text-anchor="middle">5. Add to Cart</text>
+  <text class="sub" x="530" y="628" text-anchor="middle">Choose quantity and save item</text>
+
+  <rect class="step" x="740" y="560" rx="22" ry="22" width="280" height="95"/>
+  <text class="text" x="880" y="600" text-anchor="middle">6. Checkout</text>
+  <text class="sub" x="880" y="628" text-anchor="middle">Create order and reduce stock</text>
+
+  <polygon class="decision" points="1170,555 1310,607 1170,659 1030,607"/>
+  <text class="text" x="1170" y="600" text-anchor="middle">Order</text>
+  <text class="text" x="1170" y="622" text-anchor="middle">Completed?</text>
+
+  <rect class="step" x="660" y="760" rx="22" ry="22" width="280" height="95"/>
+  <text class="text" x="800" y="800" text-anchor="middle">7. Write Review</text>
+  <text class="sub" x="800" y="828" text-anchor="middle">Only real buyers can review</text>
+
+  <rect class="end" x="1010" y="760" rx="22" ry="22" width="320" height="95"/>
+  <text class="text" x="1170" y="800" text-anchor="middle">8. Trusted Social Proof</text>
+  <text class="sub" x="1170" y="828" text-anchor="middle">Review appears with verified + connection context</text>
+
+  <path class="arrow" d="M330 195 L400 195"/>
+  <path class="arrow" d="M660 195 L740 195"/>
+  <path class="arrow" d="M1020 195 L1030 195"/>
+  <path class="arrow" d="M1170 245 L1170 350"/>
+  <path class="arrow" d="M1080 195 L800 350"/>
+  <path class="arrow" d="M800 450 L800 560"/>
+  <path class="arrow" d="M660 607 L740 607"/>
+  <path class="arrow" d="M1020 607 L1030 607"/>
+  <path class="arrow" d="M1170 659 L1170 760"/>
+  <path class="arrow" d="M1030 607 L940 607"/>
+  <path class="arrow" d="M800 655 L800 760"/>
+  <path class="arrow" d="M940 807 L1010 807"/>
+
+  <text class="label" x="1195" y="300">Yes</text>
+  <text class="label" x="935" y="300">No</text>
+  <text class="label" x="940" y="590">Yes</text>
+  <text class="label" x="955" y="680">No: continue browsing</text>
+
+  <rect x="120" y="870" width="1260" height="50" rx="16" ry="16" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1.5"/>
+  <text class="sub" x="750" y="902" text-anchor="middle">Key insight: BuzzCart improves decisions before purchase through RAG, and after purchase through verified socially ranked reviews.</text>
+</svg>

@@ -24,6 +24,7 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+.logs/
 
 # local env files
 .env*.local
@@ -34,3 +35,34 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# source drop folders kept outside version control after integration
+/BuzzCart/
+/BuzzCart1/
+.tooling/
+/public/buzzcart/
+
+# monorepo project artifacts
+projects/**/.env
+projects/**/.env.*
+!projects/**/.env.example
+!projects/**/backend/.env.example
+!projects/**/chatbot/.env.example
+projects/**/PRIVATE_VALUES.local.md
+projects/**/cloud-sql-proxy*.log
+projects/**/proxy-*.log
+projects/**/tools/cloud-sql-proxy.exe
+projects/**/server.exe
+projects/**/frontend/.dart_tool/
+projects/**/frontend/build/
+projects/**/frontend/.flutter-plugins-dependencies
+projects/**/frontend/android/.gradle/
+projects/**/frontend/android/.kotlin/
+projects/**/frontend/android/build/
+projects/**/frontend/android/local.properties
+projects/**/frontend/ios/Flutter/ephemeral/
+projects/**/frontend/linux/flutter/ephemeral/
+projects/**/frontend/macos/Flutter/ephemeral/
+projects/**/frontend/windows/flutter/ephemeral/
+projects/**/storage/media/*
+!projects/**/storage/media/.gitkeep

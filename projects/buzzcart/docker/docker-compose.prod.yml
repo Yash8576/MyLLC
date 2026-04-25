@@ -1,0 +1,35 @@
+# This file is only for local smoke testing from the repo.
+# Actual production deployment is:
+# - backend on Cloud Run
+# - PostgreSQL on Cloud SQL
+# - frontend on Firebase Hosting
+# - Firebase Storage / GCS for media
+
+services:
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${BUZZCART_BACKEND_PORT:-8080}:8080"
+    env_file:
+      - ../backend/.env
+    environment:
+      PORT: 8080
+      REDIS_URL: ${BUZZCART_DOCKER_REDIS_URL:-}
+      ALLOWED_FRONTEND_ORIGINS: ${BUZZCART_ALLOWED_FRONTEND_ORIGINS:-http://localhost:8081}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ../storage/media:/app/media
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${BUZZCART_FRONTEND_PORT:-8081}:80"
+    depends_on:
+      - backend
