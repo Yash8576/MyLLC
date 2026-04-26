@@ -9,6 +9,8 @@ spec:
         autoscaling.knative.dev/minScale: "0"
         autoscaling.knative.dev/maxScale: "10"
         run.googleapis.com/cloudsql-instances: buzzcart-daeb6:us-east4:buzzcart-daeb6-instance
+        run.googleapis.com/vpc-access-connector: projects/YOUR_GCP_PROJECT_ID/locations/us-east4/connectors/YOUR_VPC_CONNECTOR
+        run.googleapis.com/vpc-access-egress: private-ranges-only
     spec:
       containerConcurrency: 80
       timeoutSeconds: 300
@@ -24,7 +26,7 @@ spec:
             - name: JWT_SECRET
               value: replace-with-a-long-random-secret
             - name: REDIS_URL
-              value: ""
+              value: redis://YOUR_MEMORYSTORE_PRIVATE_IP:6379/0
             - name: ALLOWED_FRONTEND_ORIGINS
               value: https://your-frontend-domain.web.app,https://your-custom-domain.com
             - name: FIREBASE_PROJECT_ID

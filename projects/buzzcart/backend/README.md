@@ -46,3 +46,27 @@ Copy-Item .\cloudrun.env.example .\cloudrun.env
 ```
 
 You can also use [cloudrun.service.yaml.example](./cloudrun.service.yaml.example) as a checked-in starting point if you prefer deploying from a built container image instead of `gcloud run deploy --source`.
+
+## Redis on Cloud Run
+
+Redis caching is already active in the backend whenever `REDIS_URL` is set successfully at startup.
+
+For Cloud Run, use Google Cloud Memorystore for Redis and set:
+
+```env
+REDIS_URL=redis://YOUR_MEMORYSTORE_PRIVATE_IP:6379/0
+```
+
+Cloud Run also needs private network access to reach Memorystore, so deploy with a VPC connector:
+
+```powershell
+.\scripts\deploy-cloud-run.ps1 `
+  -EnvFile ..\cloudrun.env `
+  -VpcConnector projects/YOUR_GCP_PROJECT_ID/locations/us-east4/connectors/YOUR_VPC_CONNECTOR
+```
+
+Notes:
+
+- Use the Memorystore private IP address, not a public hostname.
+- Keep `--vpc-egress private-ranges-only` unless you intentionally want broader egress.
+- If `REDIS_URL` is blank, the backend runs normally with caching disabled.

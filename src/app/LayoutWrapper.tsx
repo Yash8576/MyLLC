@@ -5,7 +5,8 @@ import Footer from '@/app/components/Layout/Footer'
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const isPortfolio = pathname === '/portfolio'
+  const isPortfolio =
+    pathname === '/portfolio' || pathname === '/founder/portfolio'
   const isNexacoreProject = pathname?.startsWith('/nexacore/')
   const isProjectApp =
     pathname === '/projects/todo' ||

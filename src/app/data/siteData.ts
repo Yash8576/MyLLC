@@ -8,7 +8,7 @@ export const HeaderData: HeaderType[] = [
     label: 'Founder',
     href: '/#founder',
     submenu: [
-      { label: 'Portfolio', href: '/portfolio' },
+      { label: 'Portfolio', href: '/founder/portfolio' },
       { label: 'Resume', href: '/founder/resume' },
     ],
   },

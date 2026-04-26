@@ -4,7 +4,9 @@ param(
     [string]$Region = "us-east4",
     [string]$ServiceName = "buzzcart-backend",
     [string]$CloudSqlInstance = "buzzcart-daeb6:us-east4:buzzcart-daeb6-instance",
-    [string]$EnvFile = "..\\cloudrun.env.example"
+    [string]$EnvFile = "..\\cloudrun.env.example",
+    [string]$VpcConnector = "",
+    [string]$VpcEgress = "private-ranges-only"
 )
 
 $ErrorActionPreference = "Stop"
@@ -46,7 +48,14 @@ $deployArgs = @(
     "--env-vars-file", $resolvedEnvFile
 )
 
-& gcloud @deployArgs
+if ($VpcConnector) {
+    $deployArgs += @("--vpc-connector", $VpcConnector)
+    if ($VpcEgress) {
+        $deployArgs += @("--vpc-egress", $VpcEgress)
+    }
+}
+
+& gcloud.cmd @deployArgs
 
 if ($LASTEXITCODE -ne 0) {
     throw "gcloud run deploy failed with exit code $LASTEXITCODE"
@@ -55,3 +64,6 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host ""
 Write-Host "Deployment complete. Verify the service health endpoint:"
 Write-Host "  gcloud run services describe $ServiceName --project $ProjectId --region $Region --format='value(status.url)'"
+if ($VpcConnector) {
+    Write-Host "Redis networking enabled through VPC connector: $VpcConnector"
+}
