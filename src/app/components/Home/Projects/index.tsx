@@ -3,13 +3,6 @@ import { ProjectData } from '@/app/data/siteData'
 import Link from 'next/link'
 
 const Projects = () => {
-  const openSourceProjects = ProjectData.filter(
-    (project) => project.category === 'Open Source'
-  )
-  const nexacoreOwnedProjects = ProjectData.filter(
-    (project) => project.category === 'Nexacore Owned'
-  )
-
   const renderProjectGrid = (projects: typeof ProjectData) => (
     <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8'>
       {projects.map((project, index) => {
@@ -62,19 +55,8 @@ const Projects = () => {
 
         <div className='space-y-12'>
           <div>
-            <h3 className='text-midnight_text mb-6'>Open Source</h3>
-            {renderProjectGrid(openSourceProjects)}
-          </div>
-
-          <div>
-            <h3 className='text-midnight_text mb-6'>Nexacore Owned</h3>
-            {nexacoreOwnedProjects.length > 0 ? (
-              renderProjectGrid(nexacoreOwnedProjects)
-            ) : (
-              <div className='bg-white rounded-xl p-6 text-black/60'>
-                More Nexacore owned projects are coming soon.
-              </div>
-            )}
+            <h3 className='text-midnight_text mb-6'>Featured Projects</h3>
+            {renderProjectGrid(ProjectData)}
           </div>
         </div>
       </div>

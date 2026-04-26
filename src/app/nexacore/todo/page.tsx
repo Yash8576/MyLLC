@@ -1,6 +1,7 @@
 'use client'
 import React, { useState, useEffect, useRef } from "react"
 import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
 import './TodoApp.css'
 import Login from './Login'
 import Signup from './Signup'
@@ -23,6 +24,16 @@ import {
 
 export default function TodoPage() {
     const fabulousSentence = "Todo Flow"
+    const pathname = usePathname()
+    const router = useRouter()
+    const isProjectsRoute = pathname?.startsWith('/projects/')
+
+    useEffect(() => {
+        if (pathname?.startsWith('/nexacore/')) {
+            router.replace('/projects/todo')
+        }
+    }, [pathname, router])
+
     const [user, setUser] = useState<string | null>(null)
     const [isLoginView, setIsLoginView] = useState(true)
     const [todos, setTodos] = useState<any[]>([])
@@ -242,6 +253,10 @@ export default function TodoPage() {
         }
     }
 
+    if (pathname?.startsWith('/nexacore/')) {
+        return null
+    }
+
     return (
         <div className={`app-wrapper ${theme}`}>
             
@@ -252,7 +267,7 @@ export default function TodoPage() {
                         <path d="M19 12H5"/>
                         <path d="M12 19l-7-7 7-7"/>
                     </svg>
-                    Back to Nexacore
+                    {isProjectsRoute ? 'Back to Projects' : 'Back to Nexacore'}
                 </Link>
                 <h1 className="app-title">{fabulousSentence}</h1>
                 <div className="top-actions">

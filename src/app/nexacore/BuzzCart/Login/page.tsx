@@ -1,9 +1,13 @@
+'use client'
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+
 export default function BuzzCartLoginRedirectPage() {
-  return (
-    <iframe
-      src='/nexacore/BuzzCart/index.html?initialRoute=%2FLogin'
-      title='BuzzCart Login'
-      className='fixed inset-0 h-screen w-screen border-0 bg-white'
-    />
-  )
+  const router = useRouter()
+
+  useEffect(() => {
+    router.replace('/projects/buzzcart/login')
+  }, [router])
+
+  return null
 }

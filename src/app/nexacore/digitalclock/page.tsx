@@ -1,10 +1,21 @@
 'use client'
 import { useState, useEffect } from "react"
 import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
 import DigitalClock from "./DigitalClock"
 import "./App.css"
 
 export default function DigitalClockPage() {
+  const pathname = usePathname()
+  const router = useRouter()
+  const isProjectsRoute = pathname?.startsWith('/projects/')
+
+  useEffect(() => {
+    if (pathname?.startsWith('/nexacore/')) {
+      router.replace('/projects/digitalclock')
+    }
+  }, [pathname, router])
+
   const [theme, setTheme] = useState('light')
   const [isHovering, setIsHovering] = useState(false)
   const [clockSize, setClockSize] = useState(60)
@@ -103,6 +114,7 @@ export default function DigitalClockPage() {
     cursor: 'pointer',
   }
 
+  if (pathname?.startsWith('/nexacore/')) return null
   if (!mounted) return null
 
   return ( 
@@ -162,7 +174,7 @@ export default function DigitalClockPage() {
             <path d="M19 12H5"/>
             <path d="M12 19l-7-7 7-7"/>
           </svg>
-          Back to Nexacore
+          {isProjectsRoute ? 'Back to Projects' : 'Back to Nexacore'}
         </Link>
         <div style={sizeControlStyle}>
           <span style={{ opacity: 0.8 }}>A</span>

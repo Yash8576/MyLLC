@@ -7,8 +7,14 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
   const pathname = usePathname()
   const isPortfolio = pathname === '/portfolio'
   const isNexacoreProject = pathname?.startsWith('/nexacore/')
+  const isProjectApp =
+    pathname === '/projects/todo' ||
+    pathname === '/projects/digitalclock' ||
+    pathname === '/projects/buzzcart' ||
+    pathname === '/projects/buzzcart/login' ||
+    pathname === '/projects/buzzcart/signup'
 
-  if (isPortfolio || isNexacoreProject) {
+  if (isPortfolio || isNexacoreProject || isProjectApp) {
     return <>{children}</>
   }
 
