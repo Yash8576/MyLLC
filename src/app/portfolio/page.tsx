@@ -6,7 +6,7 @@ const PortfolioPage = () => {
   const router = useRouter()
 
   useEffect(() => {
-    router.replace('/founder/portfolio')
+    router.replace('/yaswanth/portfolio')
   }, [router])
 
   return null

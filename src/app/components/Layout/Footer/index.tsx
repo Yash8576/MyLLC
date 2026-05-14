@@ -34,13 +34,13 @@ const Footer = () => {
                 className='hover:text-primary text-black text-3xl'>
                 <Icon icon='tabler:brand-linkedin' />
               </Link>
-              <Link
+              {/* <Link
                 href='https://twitter.com'
                 target='_blank'
                 rel='noopener noreferrer'
                 className='hover:text-primary text-black text-3xl'>
                 <Icon icon='tabler:brand-twitter' />
-              </Link>
+              </Link> */}
             </div>
           </div>
 

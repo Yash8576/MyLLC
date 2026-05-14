@@ -5,11 +5,11 @@ import { ProjectType } from '@/app/types/project'
 export const HeaderData: HeaderType[] = [
   { label: 'Home', href: '/' },
   {
-    label: 'Founder',
-    href: '/#founder',
+    label: 'Yaswanth',
+    href: '/#yaswanth',
     submenu: [
-      { label: 'Portfolio', href: '/founder/portfolio' },
-      { label: 'Resume', href: '/founder/resume' },
+      { label: 'Portfolio', href: '/yaswanth/portfolio' },
+      { label: 'Resume', href: '/yaswanth/resume' },
     ],
   },
   { 
@@ -21,7 +21,7 @@ export const HeaderData: HeaderType[] = [
       { label: 'Digital Clock', href: '/projects/digitalclock' },
     ]
   },
-  { label: 'Contact Us', href: '/#contact' },
+  { label: 'Contact Me', href: '/#contact' },
 ]
 
 export const ProjectData: ProjectType[] = [
@@ -57,7 +57,7 @@ export const FooterLinkData: FooterLinkType[] = [
     links: [
       { label: 'Home', href: '/' },
       { label: 'Projects', href: '/#projects' },
-      { label: 'Contact Us', href: '/#contact' },
+      { label: 'Contact Me', href: '/#contact' },
     ],
   },
 ]

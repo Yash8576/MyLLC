@@ -14,8 +14,8 @@ function Project() {
         <h1>Projects</h1>
         <div className="projects-grid">
             <div className="project">
-                <a href="https://github.com/Yash8576/BuzzCart" target="_blank" rel="noreferrer" className="project-image-link">
-                    <img src="/images/portfolio/mock01.png" className="project-thumbnail" alt="BuzzCart thumbnail"/>
+                <a href="https://nexacoreglobal.org/projects/buzzcart" target="_blank" rel="noreferrer" className="project-image-link">
+                    <img src="/images/portfolio/Buzzcart-image.png" className="project-thumbnail" alt="BuzzCart thumbnail"/>
                 </a>
                 <div className="project-info">
                     <a href="https://github.com/Yash8576/BuzzCart" target="_blank" rel="noreferrer">
@@ -35,7 +35,7 @@ function Project() {
             </div>
             <div className="project">
                 <a href="https://github.com/Yash8576/RideShareApp" target="_blank" rel="noreferrer" className="project-image-link">
-                    <img src="/images/portfolio/mock02.png" className="project-thumbnail" alt="RideShare App thumbnail"/>
+                    <img src="/images/portfolio/Rideshare.png" className="project-thumbnail" alt="RideShare App thumbnail"/>
                 </a>
                 <div className="project-info">
                     <a href="https://github.com/Yash8576/RideShareApp" target="_blank" rel="noreferrer">

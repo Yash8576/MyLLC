@@ -17,7 +17,7 @@ function PortfolioMain() {
             <a href="https://www.linkedin.com/in/yaswantravitejadammalapati/" target="_blank" rel="noreferrer"><LinkedInIcon/></a>
           </div>
           <h1>Yaswanth Ravi Teja Dammalapati</h1>
-          <p>Systems Engineer | AI/ML Developer</p>
+          <p>Software Engineer | AI/ML Developer</p>
 
           <div className="mobile_social_icons">
             <a href="https://github.com/Yash8576" target="_blank" rel="noreferrer"><GitHubIcon/></a>

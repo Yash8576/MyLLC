@@ -139,7 +139,7 @@ export default function PortfolioLayout({
                 {item.label}
               </button>
             ))}
-            <Link href="/founder/resume" className="portfolio-nav-link">
+            <Link href="/yaswanth/resume" className="portfolio-nav-link">
               Resume
             </Link>
           </nav>
@@ -213,7 +213,7 @@ export default function PortfolioLayout({
                   </button>
                 ))}
                 <Link
-                  href="/founder/resume"
+                  href="/yaswanth/resume"
                   className="portfolio-mobile-link"
                   onClick={() => setNavbarOpen(false)}
                 >

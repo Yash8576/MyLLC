@@ -61,7 +61,7 @@ const ContactForm = () => {
           (error: any) => {
             console.log('FAILED...', error)
             toast.error(
-              'Failed to send message. Please try again or contact us directly.',
+              'Failed to send message. Please try again or contact me directly.',
               {
                 position: 'bottom-right',
                 autoClose: 6000,
@@ -98,7 +98,7 @@ const ContactForm = () => {
       />
       <div className='container'>
         <div className='text-center mb-12'>
-          <h2 className='text-midnight_text mb-4'>Contact Us</h2>
+          <h2 className='text-midnight_text mb-4'>Contact Me</h2>
           <div className='w-20 h-1 bg-primary mx-auto mb-6'></div>
           <p className='text-black/70 text-lg max-w-3xl mx-auto'>
             Got a project waiting to be realized? Let&apos;s collaborate and

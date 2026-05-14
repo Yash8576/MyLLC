@@ -8,7 +8,7 @@ import Contact from '@/app/components/Portfolio/Contact'
 import PortfolioFooter from '@/app/components/Portfolio/PortfolioFooter'
 import FadeIn from '@/app/components/Portfolio/FadeIn'
 
-const FounderPortfolioPage: React.FC = () => {
+const YaswanthPortfolioPage: React.FC = () => {
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'smooth' })
   }, [])
@@ -37,4 +37,4 @@ const FounderPortfolioPage: React.FC = () => {
   )
 }
 
-export default FounderPortfolioPage
+export default YaswanthPortfolioPage
