@@ -56,7 +56,8 @@ class MessagesSocketService {
       final uri = Uri.parse('${AppConfig.wsBaseUrl}/messages').replace(
         queryParameters: {
           'token': token,
-          if (_activeConversationId != null && _activeConversationId!.isNotEmpty)
+          if (_activeConversationId != null &&
+              _activeConversationId!.isNotEmpty)
             'conversation_id': _activeConversationId,
         },
       );
@@ -81,6 +82,8 @@ class MessagesSocketService {
       );
       _isConnected = true;
       _reconnectAttempts = 0;
+      _eventsController
+          .add(const {'type': 'connection_state', 'connected': true});
 
       if (_activeConversationId != null && _activeConversationId!.isNotEmpty) {
         openConversation(_activeConversationId!);
@@ -129,8 +132,13 @@ class MessagesSocketService {
   }
 
   void _handleSocketClosed() {
+    final wasConnected = _isConnected;
     _isConnected = false;
     _channel = null;
+    if (wasConnected && !_eventsController.isClosed) {
+      _eventsController
+          .add(const {'type': 'connection_state', 'connected': false});
+    }
     if (_shouldReconnect && !_isDisposed) {
       _scheduleReconnect();
     }

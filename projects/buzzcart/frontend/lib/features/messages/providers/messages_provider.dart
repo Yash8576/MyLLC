@@ -399,6 +399,12 @@ class MessagesProvider extends ChangeNotifier {
 
   void _handleSocketEvent(Map<String, dynamic> event) {
     switch (event['type']) {
+      case 'connection_state':
+        final connected = event['connected'] as bool? ?? false;
+        if (connected) {
+          unawaited(_handleSocketReconnected());
+        }
+        break;
       case 'message_created':
         final message = ChatMessageModel.fromJson(
           event['message'] as Map<String, dynamic>,
@@ -452,6 +458,51 @@ class MessagesProvider extends ChangeNotifier {
         }
         notifyListeners();
         break;
+    }
+  }
+
+  Future<void> _handleSocketReconnected() async {
+    if (!_isAuthenticated) {
+      return;
+    }
+
+    final conversationId = _selectedConversationId;
+    if (conversationId != null && conversationId.isNotEmpty) {
+      await _refreshConversationThread(conversationId);
+      if (_isMessagesScreenVisible &&
+          _selectedConversationId == conversationId) {
+        _socketService.openConversation(conversationId);
+        _startPresenceHeartbeat(conversationId);
+      }
+    }
+
+    try {
+      _conversations = await _apiService.getConversations();
+    } catch (_) {
+      // Keep existing UI state if background resync fails.
+    }
+
+    notifyListeners();
+  }
+
+  Future<void> _refreshConversationThread(String conversationId) async {
+    try {
+      final thread = await _apiService.getConversationThread(conversationId);
+      _messagesByConversation[conversationId] = thread.messages;
+      _selectedParticipant = thread.participant;
+      _upsertConversation(
+        ConversationModel(
+          id: thread.conversationId,
+          participant: thread.participant,
+          lastMessage: thread.messages.isNotEmpty ? thread.messages.last : null,
+          unreadCount: 0,
+          updatedAt: thread.messages.isNotEmpty
+              ? thread.messages.last.createdAt
+              : DateTime.now().toIso8601String(),
+        ),
+      );
+    } catch (_) {
+      // Best-effort recovery after reconnect.
     }
   }
 
