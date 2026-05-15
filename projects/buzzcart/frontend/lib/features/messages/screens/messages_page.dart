@@ -524,7 +524,7 @@ class _ChatThread extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       provider.isOtherUserActiveInChat
-                          ? 'Active in this chat'
+                          ? '👀'
                           : (provider.isOtherUserTyping
                               ? 'Typing...'
                               : 'Connection'),
