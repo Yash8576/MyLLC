@@ -1,1 +1,7 @@
-/nexacore/BuzzCart/* /nexacore/BuzzCart/index.html 200
+# BuzzCart is embedded through exported Next.js wrapper routes such as:
+# /projects/buzzcart
+# /projects/buzzcart/login
+# /projects/buzzcart/signup
+#
+# Do not add a wildcard rewrite for /nexacore/BuzzCart/* here.
+# Cloudflare Pages detects that rule as an infinite loop and ignores it.

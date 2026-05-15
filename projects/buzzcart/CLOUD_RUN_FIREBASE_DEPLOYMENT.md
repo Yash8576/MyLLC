@@ -162,7 +162,7 @@ flutter build web \
 From the repo root, the Cloudflare Pages build should run:
 
 ```bash
-npm run build:pages
+npm run build
 ```
 
 That script:
@@ -174,7 +174,7 @@ That script:
 Cloudflare Pages settings should use:
 
 ```text
-Build command: npm run build:pages
+Build command: npm run build
 Build output directory: out
 ```
 

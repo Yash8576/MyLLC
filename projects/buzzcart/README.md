@@ -17,6 +17,7 @@ Cloud Run is the cleanest fit for the backend in this repo because BuzzCart alre
 
 - Repo path: `projects/buzzcart`
 - Cloudflare Pages build script: `scripts/build-cloudflare-pages.sh`
+- Default repo build command for Cloudflare Pages: `npm run build`
 - BuzzCart asset sync script: `scripts/sync-buzzcart-build.mjs`
 - SPA redirect rule: `public/_redirects`
 - Cloud Run env template: `backend/cloudrun.env.example`
