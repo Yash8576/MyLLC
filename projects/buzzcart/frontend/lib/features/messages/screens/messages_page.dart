@@ -583,7 +583,7 @@ class _ChatThread extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 const Text(
-                  'They are in this chat right now',
+                  '👀',
                   style: TextStyle(fontSize: 12),
                 ),
               ],
