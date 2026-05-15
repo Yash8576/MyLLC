@@ -250,6 +250,7 @@ class MessagesProvider extends ChangeNotifier {
               orElse: () => null,
             )
             ?.participant;
+    _markConversationAsReadLocally(conversationId);
     _isLoadingThread = true;
     notifyListeners();
 
@@ -265,16 +266,10 @@ class MessagesProvider extends ChangeNotifier {
       final thread = await _apiService.getConversationThread(conversationId);
       _messagesByConversation[conversationId] = thread.messages;
       _selectedParticipant = thread.participant;
-      _upsertConversation(
-        ConversationModel(
-          id: thread.conversationId,
-          participant: thread.participant,
-          lastMessage: thread.messages.isNotEmpty ? thread.messages.last : null,
-          unreadCount: 0,
-          updatedAt: thread.messages.isNotEmpty
-              ? thread.messages.last.createdAt
-              : DateTime.now().toIso8601String(),
-        ),
+      _mergeConversationFromThread(
+        thread,
+        unreadCount: 0,
+        moveToTop: false,
       );
       await _connectSocket(conversationId: conversationId);
       _activateConversationPresenceIfVisible(conversationId);
@@ -490,16 +485,10 @@ class MessagesProvider extends ChangeNotifier {
       final thread = await _apiService.getConversationThread(conversationId);
       _messagesByConversation[conversationId] = thread.messages;
       _selectedParticipant = thread.participant;
-      _upsertConversation(
-        ConversationModel(
-          id: thread.conversationId,
-          participant: thread.participant,
-          lastMessage: thread.messages.isNotEmpty ? thread.messages.last : null,
-          unreadCount: 0,
-          updatedAt: thread.messages.isNotEmpty
-              ? thread.messages.last.createdAt
-              : DateTime.now().toIso8601String(),
-        ),
+      _mergeConversationFromThread(
+        thread,
+        unreadCount: 0,
+        moveToTop: false,
       );
     } catch (_) {
       // Best-effort recovery after reconnect.
@@ -561,6 +550,61 @@ class MessagesProvider extends ChangeNotifier {
       conversation,
       ..._conversations.where((item) => item.id != conversation.id),
     ];
+  }
+
+  void _replaceConversationPreservingOrder(ConversationModel conversation) {
+    final index = _conversations.indexWhere((item) => item.id == conversation.id);
+    if (index == -1) {
+      _conversations = [..._conversations, conversation];
+      return;
+    }
+
+    final next = List<ConversationModel>.from(_conversations);
+    next[index] = conversation;
+    _conversations = next;
+  }
+
+  void _markConversationAsReadLocally(String conversationId) {
+    final existing = _conversations.cast<ConversationModel?>().firstWhere(
+          (conversation) => conversation?.id == conversationId,
+          orElse: () => null,
+        );
+    if (existing == null || existing.unreadCount == 0) {
+      return;
+    }
+
+    _replaceConversationPreservingOrder(
+      existing.copyWith(unreadCount: 0),
+    );
+  }
+
+  void _mergeConversationFromThread(
+    ConversationThreadModel thread, {
+    required int unreadCount,
+    required bool moveToTop,
+  }) {
+    final existing = _conversations.cast<ConversationModel?>().firstWhere(
+          (conversation) => conversation?.id == thread.conversationId,
+          orElse: () => null,
+        );
+
+    final updatedConversation = ConversationModel(
+      id: thread.conversationId,
+      participant: thread.participant,
+      lastMessage: thread.messages.isNotEmpty ? thread.messages.last : null,
+      unreadCount: unreadCount,
+      updatedAt: existing?.updatedAt ??
+          (thread.messages.isNotEmpty
+              ? thread.messages.last.createdAt
+              : DateTime.now().toIso8601String()),
+    );
+
+    if (moveToTop || existing == null) {
+      _upsertConversation(updatedConversation);
+      return;
+    }
+
+    _replaceConversationPreservingOrder(updatedConversation);
   }
 
   String? _findConversationIdForParticipant(String participantId) {
