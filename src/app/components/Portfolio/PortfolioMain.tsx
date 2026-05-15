@@ -9,7 +9,7 @@ function PortfolioMain() {
     <div className="container">
       <div className="about-section">
         <div className="image-wrapper">
-          <img src="/images/portfolio/Yaswanth-Profile-Picture.png" alt="Avatar" />
+          <img src="/images/portfolio/Yaswanth-Profile-Picture-v2.png" alt="Avatar" />
         </div>
         <div className="content">
           <div className="social_icons">
