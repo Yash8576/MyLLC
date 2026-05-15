@@ -186,13 +186,15 @@ BUZZCART_WS_BASE_URL=wss://api.your-domain.com/ws
 BUZZCART_STORAGE_BASE_URL=
 ```
 
-The repository also includes `public/_redirects` with:
+BuzzCart is exposed through the exported Next.js wrapper routes:
 
 ```text
-/nexacore/BuzzCart/* /nexacore/BuzzCart/index.html 200
+/projects/buzzcart
+/projects/buzzcart/login
+/projects/buzzcart/signup
 ```
 
-That keeps Flutter SPA deep links working on Cloudflare Pages.
+Those wrapper routes load the Flutter app without relying on a Cloudflare wildcard rewrite for `/nexacore/BuzzCart/*`.
 
 ## 7. Chatbot status
 
