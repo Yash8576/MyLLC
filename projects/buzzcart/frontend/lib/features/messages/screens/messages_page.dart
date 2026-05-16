@@ -935,24 +935,82 @@ class _TypingBubbleState extends State<_TypingBubble>
       alignment: Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: Theme.of(context).dividerColor),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
+        child: Stack(
+          clipBehavior: Clip.none,
           children: [
-            _TypingDot(animation: _controller, delay: 0),
-            const SizedBox(width: 4),
-            _TypingDot(animation: _controller, delay: 0.18),
-            const SizedBox(width: 4),
-            _TypingDot(animation: _controller, delay: 0.36),
+            Container(
+              margin: const EdgeInsets.only(left: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: Theme.of(context).dividerColor),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _TypingDot(animation: _controller, delay: 0),
+                  const SizedBox(width: 5),
+                  _TypingDot(animation: _controller, delay: 0.18),
+                  const SizedBox(width: 5),
+                  _TypingDot(animation: _controller, delay: 0.36),
+                ],
+              ),
+            ),
+            Positioned(
+              left: 0,
+              bottom: 6,
+              child: CustomPaint(
+                size: const Size(20, 18),
+                painter: _TypingBubbleTailPainter(
+                  fillColor: Theme.of(context).cardColor,
+                  borderColor: Theme.of(context).dividerColor,
+                ),
+              ),
+            ),
           ],
         ),
       ),
     );
+  }
+}
+
+class _TypingBubbleTailPainter extends CustomPainter {
+  final Color fillColor;
+  final Color borderColor;
+
+  const _TypingBubbleTailPainter({
+    required this.fillColor,
+    required this.borderColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..moveTo(size.width, 0)
+      ..quadraticBezierTo(size.width * 0.35, size.height * 0.1, size.width * 0.2, size.height * 0.5)
+      ..quadraticBezierTo(size.width * 0.02, size.height * 0.8, size.width * 0.08, size.height)
+      ..quadraticBezierTo(size.width * 0.55, size.height * 0.88, size.width * 0.78, size.height * 0.55)
+      ..quadraticBezierTo(size.width * 0.95, size.height * 0.3, size.width, 0)
+      ..close();
+
+    final fillPaint = Paint()
+      ..color = fillColor
+      ..style = PaintingStyle.fill;
+
+    final borderPaint = Paint()
+      ..color = borderColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+
+    canvas.drawPath(path, fillPaint);
+    canvas.drawPath(path, borderPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _TypingBubbleTailPainter oldDelegate) {
+    return oldDelegate.fillColor != fillColor ||
+        oldDelegate.borderColor != borderColor;
   }
 }
 
