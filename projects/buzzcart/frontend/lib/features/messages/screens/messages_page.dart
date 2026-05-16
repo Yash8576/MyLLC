@@ -933,83 +933,33 @@ class _TypingBubbleState extends State<_TypingBubble>
   Widget build(BuildContext context) {
     final bubbleColor = Theme.of(context).cardColor;
     final borderColor = Theme.of(context).dividerColor;
-    final pageColor = Theme.of(context).scaffoldBackgroundColor;
 
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
-        child: SizedBox(
-          height: 54,
-          child: Stack(
-            clipBehavior: Clip.none,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+          decoration: BoxDecoration(
+            color: bubbleColor,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: borderColor),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                margin: const EdgeInsets.only(left: 10),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                decoration: BoxDecoration(
-                  color: bubbleColor,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(22),
-                    topRight: Radius.circular(22),
-                    bottomRight: Radius.circular(22),
-                    bottomLeft: Radius.circular(8),
-                  ),
-                  border: Border.all(color: borderColor),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _TypingDot(animation: _controller, delay: 0),
-                    const SizedBox(width: 5),
-                    _TypingDot(animation: _controller, delay: 0.18),
-                    const SizedBox(width: 5),
-                    _TypingDot(animation: _controller, delay: 0.36),
-                  ],
-                ),
-              ),
-              Positioned(
-                left: 0,
-                bottom: 0,
-                child: Container(
-                  width: 18,
-                  height: 18,
-                  decoration: BoxDecoration(
-                    color: bubbleColor,
-                    border: Border.all(color: borderColor),
-                    borderRadius: const BorderRadius.only(
-                      bottomLeft: Radius.circular(18),
-                      bottomRight: Radius.circular(16),
-                      topLeft: Radius.circular(16),
-                      topRight: Radius.circular(4),
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 6,
-                bottom: -1,
-                child: Container(
-                  width: 16,
-                  height: 16,
-                  decoration: BoxDecoration(
-                    color: pageColor,
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(14),
-                      bottomLeft: Radius.circular(14),
-                      bottomRight: Radius.circular(14),
-                    ),
-                  ),
-                ),
-              ),
+              _TypingDot(animation: _controller, delay: 0),
+              const SizedBox(width: 5),
+              _TypingDot(animation: _controller, delay: 0.18),
+              const SizedBox(width: 5),
+              _TypingDot(animation: _controller, delay: 0.36),
             ],
           ),
         ),
