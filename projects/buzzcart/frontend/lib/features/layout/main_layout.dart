@@ -607,30 +607,34 @@ class _MainLayoutState extends State<MainLayout> with WidgetsBindingObserver {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final currentIndex = widget.navigationShell.currentIndex;
 
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(
-            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+    return SafeArea(
+      top: false,
+      minimum: const EdgeInsets.only(bottom: 8),
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border(
+            top: BorderSide(
+              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+            ),
           ),
         ),
-      ),
-      child: BottomNavigationBar(
-        currentIndex: currentIndex,
-        onTap: (index) {
-          _navigateTo(_navItems[index].path);
-        },
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: AppColors.electricBlue,
-        unselectedItemColor: isDark
-            ? AppColors.darkMutedForeground
-            : AppColors.lightMutedForeground,
-        items: _navItems
-            .map((item) => BottomNavigationBarItem(
-                  icon: Icon(item.icon),
-                  label: item.label,
-                ))
-            .toList(),
+        child: BottomNavigationBar(
+          currentIndex: currentIndex,
+          onTap: (index) {
+            _navigateTo(_navItems[index].path);
+          },
+          type: BottomNavigationBarType.fixed,
+          selectedItemColor: AppColors.electricBlue,
+          unselectedItemColor: isDark
+              ? AppColors.darkMutedForeground
+              : AppColors.lightMutedForeground,
+          items: _navItems
+              .map((item) => BottomNavigationBarItem(
+                    icon: Icon(item.icon),
+                    label: item.label,
+                  ))
+              .toList(),
+        ),
       ),
     );
   }

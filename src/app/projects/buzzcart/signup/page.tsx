@@ -3,7 +3,7 @@ export default function BuzzCartSignupPage() {
     <iframe
       src='/nexacore/BuzzCart/index.html?initialRoute=%2FSignup'
       title='BuzzCart Signup'
-      className='fixed inset-0 h-screen w-screen border-0 bg-white'
+      className='fixed inset-0 h-[100dvh] w-screen border-0 bg-white'
     />
   )
 }
