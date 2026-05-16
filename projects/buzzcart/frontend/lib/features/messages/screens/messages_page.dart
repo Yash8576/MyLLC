@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -902,8 +903,31 @@ class _DraftPreviewCard extends StatelessWidget {
   }
 }
 
-class _TypingBubble extends StatelessWidget {
+class _TypingBubble extends StatefulWidget {
   const _TypingBubble();
+
+  @override
+  State<_TypingBubble> createState() => _TypingBubbleState();
+}
+
+class _TypingBubbleState extends State<_TypingBubble>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -917,14 +941,14 @@ class _TypingBubble extends StatelessWidget {
           borderRadius: BorderRadius.circular(22),
           border: Border.all(color: Theme.of(context).dividerColor),
         ),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _TypingDot(),
-            SizedBox(width: 4),
-            _TypingDot(),
-            SizedBox(width: 4),
-            _TypingDot(),
+            _TypingDot(animation: _controller, delay: 0),
+            const SizedBox(width: 4),
+            _TypingDot(animation: _controller, delay: 0.18),
+            const SizedBox(width: 4),
+            _TypingDot(animation: _controller, delay: 0.36),
           ],
         ),
       ),
@@ -933,16 +957,41 @@ class _TypingBubble extends StatelessWidget {
 }
 
 class _TypingDot extends StatelessWidget {
-  const _TypingDot();
+  final Animation<double> animation;
+  final double delay;
+
+  const _TypingDot({
+    required this.animation,
+    required this.delay,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 8,
-      height: 8,
-      decoration: BoxDecoration(
-        color: Theme.of(context).hintColor,
-        shape: BoxShape.circle,
+    final dotColor = Theme.of(context).hintColor;
+
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (context, child) {
+        final phase = (animation.value - delay).remainder(1.0);
+        final wave = math.sin(phase * 2 * math.pi);
+        final lift = wave > 0 ? wave * 4 : 0.0;
+        final opacity = 0.45 + ((wave + 1) / 2) * 0.55;
+
+        return Transform.translate(
+          offset: Offset(0, -lift),
+          child: Opacity(
+            opacity: opacity.clamp(0.0, 1.0),
+            child: child,
+          ),
+        );
+      },
+      child: Container(
+        width: 8,
+        height: 8,
+        decoration: BoxDecoration(
+          color: dotColor,
+          shape: BoxShape.circle,
+        ),
       ),
     );
   }
