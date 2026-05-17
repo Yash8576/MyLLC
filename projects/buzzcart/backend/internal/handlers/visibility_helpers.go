@@ -11,6 +11,7 @@ const (
 	contentBucketVideos    = "videos"
 	contentBucketReels     = "reels"
 	contentBucketPurchases = "purchases"
+	preferenceActiveStatus = "active_status"
 )
 
 func defaultVisibilityPreferences(mode string) map[string]bool {
@@ -19,6 +20,7 @@ func defaultVisibilityPreferences(mode string) map[string]bool {
 		contentBucketVideos:    true,
 		contentBucketReels:     true,
 		contentBucketPurchases: true,
+		preferenceActiveStatus: true,
 	}
 
 	if strings.ToLower(mode) == "private" {

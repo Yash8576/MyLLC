@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/providers/theme_provider.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../messages/providers/messages_provider.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -23,12 +24,14 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _pendingVisibilitySave = false;
   Timer? _visibilitySaveDebounce;
   bool _isHibernated = false;
+  bool _showActiveStatus = true;
   String _visibilityMode = 'public';
   Map<String, bool> _visibilityPreferences = const {
     'photos': true,
     'videos': true,
     'reels': true,
     'purchases': true,
+    'active_status': true,
   };
 
   @override
@@ -55,22 +58,27 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _syncVisibilityState(dynamic user) {
-    final visibilityMode = (user.visibilityMode as String?)?.toLowerCase() ?? 'public';
-    final preferences = Map<String, bool>.from(user.visibilityPreferences as Map<String, bool>);
+    final visibilityMode =
+        (user.visibilityMode as String?)?.toLowerCase() ?? 'public';
+    final preferences =
+        Map<String, bool>.from(user.visibilityPreferences as Map<String, bool>);
 
     setState(() {
       _isHibernated = (user.status as String?)?.toLowerCase() == 'inactive';
+      _showActiveStatus = (user.showActiveStatus as bool?) ?? true;
       _visibilityMode = user.isSeller ? 'custom' : visibilityMode;
       _visibilityPreferences = {
         'photos': preferences['photos'] ?? true,
         'videos': preferences['videos'] ?? true,
         'reels': preferences['reels'] ?? true,
         'purchases': preferences['purchases'] ?? true,
+        'active_status': preferences['active_status'] ?? true,
       };
     });
   }
 
-  Future<void> _updateSellerHibernate(bool value, AuthProvider authProvider) async {
+  Future<void> _updateSellerHibernate(
+      bool value, AuthProvider authProvider) async {
     if (_isSaving) {
       return;
     }
@@ -125,7 +133,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
     setState(() => _isSaving = true);
     try {
-        final visibilityMode = user.isSeller ? 'custom' : _visibilityMode;
+      final visibilityMode = user.isSeller ? 'custom' : _visibilityMode;
       final privacyProfile = visibilityMode == 'private' ? 'PRIVATE' : 'PUBLIC';
       final visibilityPreferences = visibilityMode == 'custom'
           ? _visibilityPreferences
@@ -134,12 +142,14 @@ class _SettingsPageState extends State<SettingsPage> {
               'videos': visibilityMode == 'public',
               'reels': visibilityMode == 'public',
               'purchases': visibilityMode == 'public',
+              'active_status': _showActiveStatus,
             };
 
       await authProvider.updateProfile({
         'privacy_profile': privacyProfile,
         'visibility_mode': visibilityMode,
         'visibility_preferences': visibilityPreferences,
+        'show_active_status': _showActiveStatus,
       });
 
       if (!mounted) return;
@@ -188,7 +198,8 @@ class _SettingsPageState extends State<SettingsPage> {
     _scheduleVisibilityAutoSave(authProvider);
   }
 
-  void _updateBucketVisibility(String bucket, bool value, AuthProvider authProvider) {
+  void _updateBucketVisibility(
+      String bucket, bool value, AuthProvider authProvider) {
     if ((_visibilityPreferences[bucket] ?? true) == value) {
       return;
     }
@@ -199,6 +210,22 @@ class _SettingsPageState extends State<SettingsPage> {
         bucket: value,
       };
     });
+    _scheduleVisibilityAutoSave(authProvider);
+  }
+
+  void _updateActiveStatus(bool value, AuthProvider authProvider) {
+    if (_showActiveStatus == value) {
+      return;
+    }
+
+    setState(() {
+      _showActiveStatus = value;
+      _visibilityPreferences = {
+        ..._visibilityPreferences,
+        'active_status': value,
+      };
+    });
+    context.read<MessagesProvider>().refreshAppPresence();
     _scheduleVisibilityAutoSave(authProvider);
   }
 
@@ -252,8 +279,10 @@ class _SettingsPageState extends State<SettingsPage> {
                             child: _ThemeButton(
                               label: 'Light',
                               icon: Icons.light_mode,
-                              selected: themeProvider.themeMode == ThemeMode.light,
-                              onTap: () => themeProvider.setThemeMode(ThemeMode.light),
+                              selected:
+                                  themeProvider.themeMode == ThemeMode.light,
+                              onTap: () =>
+                                  themeProvider.setThemeMode(ThemeMode.light),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -261,8 +290,10 @@ class _SettingsPageState extends State<SettingsPage> {
                             child: _ThemeButton(
                               label: 'Dark',
                               icon: Icons.dark_mode,
-                              selected: themeProvider.themeMode == ThemeMode.dark,
-                              onTap: () => themeProvider.setThemeMode(ThemeMode.dark),
+                              selected:
+                                  themeProvider.themeMode == ThemeMode.dark,
+                              onTap: () =>
+                                  themeProvider.setThemeMode(ThemeMode.dark),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -270,8 +301,10 @@ class _SettingsPageState extends State<SettingsPage> {
                             child: _ThemeButton(
                               label: 'System',
                               icon: Icons.settings_brightness,
-                              selected: themeProvider.themeMode == ThemeMode.system,
-                              onTap: () => themeProvider.setThemeMode(ThemeMode.system),
+                              selected:
+                                  themeProvider.themeMode == ThemeMode.system,
+                              onTap: () =>
+                                  themeProvider.setThemeMode(ThemeMode.system),
                             ),
                           ),
                         ],
@@ -310,25 +343,29 @@ class _SettingsPageState extends State<SettingsPage> {
                   title: const Text('Push Notifications'),
                   subtitle: const Text('Receive push notifications'),
                   value: _pushNotifications,
-                  onChanged: (value) => setState(() => _pushNotifications = value),
+                  onChanged: (value) =>
+                      setState(() => _pushNotifications = value),
                 ),
                 SwitchListTile(
                   title: const Text('Email Notifications'),
                   subtitle: const Text('Receive email updates'),
                   value: _emailNotifications,
-                  onChanged: (value) => setState(() => _emailNotifications = value),
+                  onChanged: (value) =>
+                      setState(() => _emailNotifications = value),
                 ),
                 SwitchListTile(
                   title: const Text('Messages'),
                   subtitle: const Text('Notifications for new messages'),
                   value: _messagesNotifications,
-                  onChanged: (value) => setState(() => _messagesNotifications = value),
+                  onChanged: (value) =>
+                      setState(() => _messagesNotifications = value),
                 ),
                 SwitchListTile(
                   title: const Text('Orders'),
                   subtitle: const Text('Order updates and tracking'),
                   value: _ordersNotifications,
-                  onChanged: (value) => setState(() => _ordersNotifications = value),
+                  onChanged: (value) =>
+                      setState(() => _ordersNotifications = value),
                 ),
               ],
             ),
@@ -366,6 +403,16 @@ class _SettingsPageState extends State<SettingsPage> {
                         ),
                   ),
                 ),
+                SwitchListTile(
+                  title: const Text('Show Active Status'),
+                  subtitle: const Text(
+                    'Let connections see when you are active in the app',
+                  ),
+                  value: _showActiveStatus,
+                  onChanged: _isSaving
+                      ? null
+                      : (value) => _updateActiveStatus(value, authProvider),
+                ),
                 if (authProvider.isSeller)
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -379,11 +426,13 @@ class _SettingsPageState extends State<SettingsPage> {
                 if (authProvider.isSeller)
                   SwitchListTile(
                     title: const Text('Hibernate Account'),
-                    subtitle: const Text('Hide your profile and content until you turn this off'),
+                    subtitle: const Text(
+                        'Hide your profile and content until you turn this off'),
                     value: _isHibernated,
                     onChanged: _isSaving
                         ? null
-                        : (value) => _updateSellerHibernate(value, authProvider),
+                        : (value) =>
+                            _updateSellerHibernate(value, authProvider),
                   ),
                 if (!authProvider.isSeller)
                   RadioGroup<String>(
@@ -398,17 +447,20 @@ class _SettingsPageState extends State<SettingsPage> {
                       children: [
                         RadioListTile<String>(
                           title: Text('Public'),
-                          subtitle: Text('Anyone can view your profile and content'),
+                          subtitle:
+                              Text('Anyone can view your profile and content'),
                           value: 'public',
                         ),
                         RadioListTile<String>(
                           title: Text('Private'),
-                          subtitle: Text('Only followers can view your account'),
+                          subtitle:
+                              Text('Only followers can view your account'),
                           value: 'private',
                         ),
                         RadioListTile<String>(
                           title: Text('Custom'),
-                          subtitle: Text('Choose what stays public and what stays private'),
+                          subtitle: Text(
+                              'Choose what stays public and what stays private'),
                           value: 'custom',
                         ),
                       ],
@@ -420,25 +472,29 @@ class _SettingsPageState extends State<SettingsPage> {
                     title: const Text('Photos'),
                     subtitle: const Text('Show your photo gallery'),
                     value: _visibilityPreferences['photos'] ?? true,
-                    onChanged: (value) => _updateBucketVisibility('photos', value, authProvider),
+                    onChanged: (value) =>
+                        _updateBucketVisibility('photos', value, authProvider),
                   ),
                   SwitchListTile(
                     title: const Text('Videos'),
                     subtitle: const Text('Show your video gallery'),
                     value: _visibilityPreferences['videos'] ?? true,
-                    onChanged: (value) => _updateBucketVisibility('videos', value, authProvider),
+                    onChanged: (value) =>
+                        _updateBucketVisibility('videos', value, authProvider),
                   ),
                   SwitchListTile(
                     title: const Text('Reels'),
                     subtitle: const Text('Show your reels'),
                     value: _visibilityPreferences['reels'] ?? true,
-                    onChanged: (value) => _updateBucketVisibility('reels', value, authProvider),
+                    onChanged: (value) =>
+                        _updateBucketVisibility('reels', value, authProvider),
                   ),
                   SwitchListTile(
                     title: const Text('Purchases'),
                     subtitle: const Text('Show your purchases tab'),
                     value: _visibilityPreferences['purchases'] ?? true,
-                    onChanged: (value) => _updateBucketVisibility('purchases', value, authProvider),
+                    onChanged: (value) => _updateBucketVisibility(
+                        'purchases', value, authProvider),
                   ),
                 ],
                 Padding(
@@ -503,7 +559,8 @@ class _SettingsPageState extends State<SettingsPage> {
                       context: context,
                       applicationName: 'BuzzCart',
                       applicationVersion: '1.0.0',
-                      applicationLegalese: '© 2024 BuzzCart. All rights reserved.',
+                      applicationLegalese:
+                          '© 2024 BuzzCart. All rights reserved.',
                     );
                   },
                 ),
@@ -519,7 +576,7 @@ class _SettingsPageState extends State<SettingsPage> {
               onPressed: () async {
                 final navigator = Navigator.of(context);
                 final scaffoldMessenger = ScaffoldMessenger.of(context);
-                
+
                 final confirmed = await showDialog<bool>(
                   context: context,
                   builder: (context) => AlertDialog(

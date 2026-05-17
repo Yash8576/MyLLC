@@ -74,6 +74,7 @@ type User struct {
 	PrivacyProfile        PrivacyProfile  `json:"privacy_profile" db:"privacy_profile"`
 	VisibilityMode        string          `json:"visibility_mode" db:"visibility_mode"`
 	VisibilityPreferences map[string]bool `json:"visibility_preferences" db:"visibility_preferences"`
+	ShowActiveStatus      bool            `json:"show_active_status" db:"-"`
 	FollowersCount        int             `json:"followers_count" db:"followers_count"`
 	FollowingCount        int             `json:"following_count" db:"following_count"`
 	IsFollowing           bool            `json:"is_following" db:"-"`
@@ -148,6 +149,7 @@ type ProfileUpdate struct {
 	PrivacyProfile        *PrivacyProfile `json:"privacy_profile,omitempty"`
 	VisibilityMode        *string         `json:"visibility_mode,omitempty"`
 	VisibilityPreferences map[string]bool `json:"visibility_preferences,omitempty"`
+	ShowActiveStatus      *bool           `json:"show_active_status,omitempty"`
 }
 
 type TokenResponse struct {

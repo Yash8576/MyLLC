@@ -7,7 +7,7 @@ import '../../../core/services/api_service.dart';
 import '../services/messages_socket_service.dart';
 
 class MessagesProvider extends ChangeNotifier {
-  static const Duration _presenceFreshness = Duration(seconds: 7);
+  static const Duration _presenceFreshness = Duration(seconds: 30);
 
   final ApiService _apiService;
   late final MessagesSocketService _socketService;
@@ -18,6 +18,8 @@ class MessagesProvider extends ChangeNotifier {
   bool _isAuthenticated = false;
   bool _didLoadInitialData = false;
   bool _isMessagesScreenVisible = false;
+  bool _isAppVisible = true;
+  bool _showActiveStatus = true;
 
   List<ConversationModel> _conversations = [];
   List<MessageConnectionModel> _connections = [];
@@ -27,6 +29,7 @@ class MessagesProvider extends ChangeNotifier {
   final Map<String, Set<String>> _activeUsersByConversation = {};
   final Map<String, Map<String, DateTime>> _activePresenceSeenAtByConversation =
       {};
+  final Map<String, DateTime> _activeUsersSeenAt = {};
   Timer? _presenceHeartbeatTimer;
 
   String? _selectedConversationId;
@@ -77,12 +80,18 @@ class MessagesProvider extends ChangeNotifier {
 
   bool get isOtherUserActiveInChat {
     final participant = _selectedParticipant;
-    final conversationId = _selectedConversationId;
-    if (participant == null || conversationId == null) {
+    if (participant == null) {
       return false;
     }
-    final lastSeen =
-        _activePresenceSeenAtByConversation[conversationId]?[participant.id];
+    final lastSeen = _activeUsersSeenAt[participant.id];
+    if (lastSeen == null) {
+      return false;
+    }
+    return DateTime.now().difference(lastSeen) <= _presenceFreshness;
+  }
+
+  bool isParticipantActive(String participantId) {
+    final lastSeen = _activeUsersSeenAt[participantId];
     if (lastSeen == null) {
       return false;
     }
@@ -117,9 +126,12 @@ class MessagesProvider extends ChangeNotifier {
   }) {
     final authChanged =
         _isAuthenticated != isAuthenticated || _currentUser?.id != user?.id;
+    final activeStatusChanged =
+        _showActiveStatus != (user?.showActiveStatus ?? true);
 
     _isAuthenticated = isAuthenticated;
     _currentUser = user;
+    _showActiveStatus = user?.showActiveStatus ?? true;
 
     if (!isAuthenticated || user == null) {
       _didLoadInitialData = false;
@@ -131,6 +143,7 @@ class MessagesProvider extends ChangeNotifier {
       _clearTypingExpiryTimers();
       _activeUsersByConversation.clear();
       _activePresenceSeenAtByConversation.clear();
+      _activeUsersSeenAt.clear();
       _stopPresenceHeartbeat();
       _selectedConversationId = null;
       _selectedParticipant = null;
@@ -142,7 +155,30 @@ class MessagesProvider extends ChangeNotifier {
 
     if (authChanged) {
       _connectSocket();
+      return;
     }
+
+    if (activeStatusChanged) {
+      _pushAppPresenceState();
+    }
+  }
+
+  void setAppVisibility(bool isVisible) {
+    if (_isAppVisible == isVisible) {
+      return;
+    }
+
+    _isAppVisible = isVisible;
+    _pushAppPresenceState();
+
+    if (!isVisible) {
+      _activeUsersSeenAt.clear();
+      notifyListeners();
+    }
+  }
+
+  void refreshAppPresence() {
+    _pushAppPresenceState();
   }
 
   Future<void> initialize({MessagesRouteIntent? intent}) async {
@@ -385,6 +421,13 @@ class MessagesProvider extends ChangeNotifier {
     _socketSubscription ??= _socketService.events.listen(_handleSocketEvent);
   }
 
+  void _pushAppPresenceState() {
+    if (!_isAuthenticated) {
+      return;
+    }
+    _socketService.setAppState(_isAppVisible && _showActiveStatus);
+  }
+
   void _disconnectSocket() {
     _stopPresenceHeartbeat();
     _socketSubscription?.cancel();
@@ -397,6 +440,7 @@ class MessagesProvider extends ChangeNotifier {
       case 'connection_state':
         final connected = event['connected'] as bool? ?? false;
         if (connected) {
+          _pushAppPresenceState();
           unawaited(_handleSocketReconnected());
         }
         break;
@@ -450,6 +494,19 @@ class MessagesProvider extends ChangeNotifier {
         }
         if (activeUsers.isEmpty) {
           _activePresenceSeenAtByConversation.remove(conversationId);
+        }
+        notifyListeners();
+        break;
+      case 'app_presence':
+        final userId = event['user_id'] as String?;
+        final isActive = event['is_active'] as bool? ?? false;
+        if (userId == null || userId == _currentUser?.id) {
+          return;
+        }
+        if (isActive) {
+          _activeUsersSeenAt[userId] = DateTime.now();
+        } else {
+          _activeUsersSeenAt.remove(userId);
         }
         notifyListeners();
         break;
@@ -696,6 +753,14 @@ class MessagesProvider extends ChangeNotifier {
   void _pruneStalePresence() {
     final now = DateTime.now();
     var changed = false;
+
+    _activeUsersSeenAt.removeWhere((_, lastSeen) {
+      final stale = now.difference(lastSeen) > _presenceFreshness;
+      if (stale) {
+        changed = true;
+      }
+      return stale;
+    });
 
     final emptyConversations = <String>[];
     _activePresenceSeenAtByConversation.forEach((conversationId, userTimes) {

@@ -380,8 +380,9 @@ class _ConversationList extends StatelessWidget {
                         name: conversation.participant.name,
                         avatar: conversation.participant.avatar,
                       ),
-                      if (provider.selectedConversationId == conversation.id &&
-                          provider.isOtherUserActiveInChat)
+                      if (provider.isParticipantActive(
+                        conversation.participant.id,
+                      ))
                         Positioned(
                           right: -1,
                           bottom: -1,
@@ -526,9 +527,7 @@ class _ChatThread extends StatelessWidget {
                     Text(
                       provider.isOtherUserActiveInChat
                           ? '👀'
-                          : (provider.isOtherUserTyping
-                              ? 'Typing...'
-                              : 'Connection'),
+                          : (provider.isOtherUserTyping ? 'Typing...' : 'Away'),
                       style: TextStyle(
                         color: provider.isOtherUserActiveInChat
                             ? AppColors.successGreen

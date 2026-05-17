@@ -27,7 +27,7 @@ const (
 	loginLockoutDuration   = 1 * time.Minute
 	loginRateLimitTTL      = 30 * time.Minute
 	defaultVisibilityMode  = "public"
-	defaultVisibilityPrefs = `{"photos": true, "videos": true, "reels": true, "purchases": true}`
+	defaultVisibilityPrefs = `{"photos": true, "videos": true, "reels": true, "purchases": true, "active_status": true}`
 )
 
 type loginAttemptState struct {
@@ -223,6 +223,7 @@ func Register(db *sql.DB) gin.HandlerFunc {
 			PrivacyProfile:        req.PrivacyProfile,
 			VisibilityMode:        string(req.PrivacyProfile),
 			VisibilityPreferences: defaultVisibilityPreferences(string(req.PrivacyProfile)),
+			ShowActiveStatus:      true,
 			FollowersCount:        0,
 			FollowingCount:        0,
 			CreatedAt:             time.Now(),
@@ -336,6 +337,7 @@ func Login(db *sql.DB) gin.HandlerFunc {
 		}
 
 		user.VisibilityPreferences = parseVisibilityPreferences(visibilityPreferencesJSON, user.VisibilityMode)
+		user.ShowActiveStatus = user.VisibilityPreferences[preferenceActiveStatus]
 		resolveUserMediaURLs(&user)
 		// Verify password
 		if !utils.VerifyPassword(req.Password, user.Password) {
@@ -384,6 +386,7 @@ func GetMe(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 		user.VisibilityPreferences = parseVisibilityPreferences(visibilityPreferencesJSON, user.VisibilityMode)
+		user.ShowActiveStatus = user.VisibilityPreferences[preferenceActiveStatus]
 		resolveUserMediaURLs(&user)
 
 		c.JSON(http.StatusOK, user)
@@ -424,6 +427,7 @@ func UpdateProfile(db *sql.DB) gin.HandlerFunc {
 			current.PhoneNumber = &currentPhoneNumber.String
 		}
 		current.VisibilityPreferences = parseVisibilityPreferences(visibilityPreferencesJSON, current.VisibilityMode)
+		current.ShowActiveStatus = current.VisibilityPreferences[preferenceActiveStatus]
 
 		updatedName := current.Name
 		updatedBio := current.Bio
@@ -453,6 +457,12 @@ func UpdateProfile(db *sql.DB) gin.HandlerFunc {
 		}
 		if req.VisibilityPreferences != nil {
 			updatedPreferences = normalizeVisibilityPreferences(updatedVisibilityMode, req.VisibilityPreferences)
+		}
+		if req.ShowActiveStatus != nil {
+			if updatedPreferences == nil {
+				updatedPreferences = defaultVisibilityPreferences(updatedVisibilityMode)
+			}
+			updatedPreferences[preferenceActiveStatus] = *req.ShowActiveStatus
 		}
 
 		if current.AccountType == models.AccountTypeSeller {
@@ -515,6 +525,7 @@ func UpdateProfile(db *sql.DB) gin.HandlerFunc {
 		}
 
 		user.VisibilityPreferences = parseVisibilityPreferences(updatedVisibilityPreferencesJSON, user.VisibilityMode)
+		user.ShowActiveStatus = user.VisibilityPreferences[preferenceActiveStatus]
 		resolveUserMediaURLs(&user)
 
 		c.JSON(http.StatusOK, user)
@@ -542,6 +553,7 @@ func GetUser(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 		user.VisibilityPreferences = parseVisibilityPreferences(visibilityPreferencesJSON, user.VisibilityMode)
+		user.ShowActiveStatus = user.VisibilityPreferences[preferenceActiveStatus]
 		resolveUserMediaURLs(&user)
 
 		if user.Status != models.StatusActive && viewerID != userID {

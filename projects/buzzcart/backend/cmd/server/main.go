@@ -55,7 +55,7 @@ func main() {
 
 	// Create router with custom recovery
 	router := gin.New()
-	messageHub := handlers.NewMessageHub()
+	messageHub := handlers.NewMessageHub(db)
 
 	// Add middleware
 	router.Use(middleware.Recovery())               // Custom panic recovery

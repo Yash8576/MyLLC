@@ -15,11 +15,13 @@ import (
 )
 
 type MessageHub struct {
+	db                  *sql.DB
 	mu                  sync.RWMutex
 	clients             map[*messageSocketClient]struct{}
 	userClients         map[string]map[*messageSocketClient]struct{}
 	conversationViewers map[string]map[string]int
 	conversationMembers map[string][]string
+	activeUsers         map[string]int
 	presenceTTL         time.Duration
 }
 
@@ -30,6 +32,7 @@ type messageSocketClient struct {
 	send               chan []byte
 	activeConversation string
 	lastPresencePing   time.Time
+	isAppActive        bool
 	closeConnOnce      sync.Once
 	closeSendOnce      sync.Once
 }
@@ -38,15 +41,18 @@ type messageSocketInbound struct {
 	Type           string `json:"type"`
 	ConversationID string `json:"conversation_id,omitempty"`
 	IsTyping       bool   `json:"is_typing,omitempty"`
+	IsActive       bool   `json:"is_active,omitempty"`
 }
 
-func NewMessageHub() *MessageHub {
+func NewMessageHub(db *sql.DB) *MessageHub {
 	hub := &MessageHub{
+		db:                  db,
 		clients:             make(map[*messageSocketClient]struct{}),
 		userClients:         make(map[string]map[*messageSocketClient]struct{}),
 		conversationViewers: make(map[string]map[string]int),
 		conversationMembers: make(map[string][]string),
-		presenceTTL:         12 * time.Second,
+		activeUsers:         make(map[string]int),
+		presenceTTL:         40 * time.Second,
 	}
 	go hub.presenceCleanupLoop()
 	return hub
@@ -64,6 +70,8 @@ func (h *MessageHub) Register(client *messageSocketClient) {
 }
 
 func (h *MessageHub) Unregister(client *messageSocketClient) {
+	h.setAppActive(client, false)
+
 	h.mu.Lock()
 	oldConversationID := client.activeConversation
 	h.removeActiveConversationLocked(client)
@@ -97,6 +105,56 @@ func (h *MessageHub) PublishTyping(conversationID, userID string, userIDs []stri
 		"user_id":         userID,
 		"is_typing":       isTyping,
 	})
+}
+
+func (h *MessageHub) setAppActive(client *messageSocketClient, isActive bool) {
+	if h == nil || h.db == nil {
+		return
+	}
+
+	if isActive && !canShareActiveStatus(h.db, client.userID) {
+		isActive = false
+	}
+
+	shouldBroadcast := false
+	recipients := []string{}
+	effectiveActive := false
+
+	h.mu.Lock()
+	previouslyActive := client.isAppActive
+	if previouslyActive == isActive {
+		if isActive {
+			client.lastPresencePing = time.Now()
+		}
+		effectiveActive = h.activeUsers[client.userID] > 0
+		h.mu.Unlock()
+		return
+	}
+
+	client.isAppActive = isActive
+	if isActive {
+		client.lastPresencePing = time.Now()
+		h.activeUsers[client.userID]++
+	} else {
+		client.lastPresencePing = time.Time{}
+		if h.activeUsers[client.userID] > 1 {
+			h.activeUsers[client.userID]--
+		} else {
+			delete(h.activeUsers, client.userID)
+		}
+	}
+	effectiveActive = h.activeUsers[client.userID] > 0
+	shouldBroadcast = true
+	h.mu.Unlock()
+
+	if shouldBroadcast {
+		recipients = getActiveStatusRecipients(h.db, client.userID)
+		h.broadcastToUsers(recipients, map[string]any{
+			"type":      "app_presence",
+			"user_id":   client.userID,
+			"is_active": effectiveActive,
+		})
+	}
 }
 
 func (h *MessageHub) SetActiveConversation(client *messageSocketClient, conversationID string, participants []string) {
@@ -338,6 +396,11 @@ func handleSocketInbound(db *sql.DB, hub *MessageHub, client *messageSocketClien
 			"type":        "pong",
 			"server_time": time.Now().UTC().Format(time.RFC3339),
 		})
+		if client.isAppActive {
+			hub.setAppActive(client, true)
+		}
+	case "app_state":
+		hub.setAppActive(client, inbound.IsActive)
 	}
 }
 
@@ -353,19 +416,26 @@ func (h *MessageHub) presenceCleanupLoop() {
 func (h *MessageHub) cleanupExpiredPresence() {
 	now := time.Now()
 	affectedConversations := make(map[string]struct{})
+	expiredClients := make([]*messageSocketClient, 0)
 
 	h.mu.Lock()
 	for client := range h.clients {
-		if client.activeConversation == "" || client.lastPresencePing.IsZero() {
+		if !client.isAppActive || client.lastPresencePing.IsZero() {
 			continue
 		}
 		if now.Sub(client.lastPresencePing) <= h.presenceTTL {
 			continue
 		}
-		affectedConversations[client.activeConversation] = struct{}{}
-		h.removeActiveConversationLocked(client)
+		if client.activeConversation != "" {
+			affectedConversations[client.activeConversation] = struct{}{}
+		}
+		expiredClients = append(expiredClients, client)
 	}
 	h.mu.Unlock()
+
+	for _, client := range expiredClients {
+		h.setAppActive(client, false)
+	}
 
 	for conversationID := range affectedConversations {
 		h.broadcastConversationPresence(conversationID)
@@ -402,6 +472,56 @@ func uniqueNonEmptyStrings(values []string) []string {
 		result = append(result, value)
 	}
 	return result
+}
+
+func canShareActiveStatus(db *sql.DB, userID string) bool {
+	var status string
+	var visibilityPreferencesRaw string
+	err := db.QueryRow(
+		`SELECT
+			COALESCE(status::text, 'active'),
+			COALESCE(visibility_preferences::text, '{"photos": true, "videos": true, "reels": true, "purchases": true, "active_status": true}')
+		 FROM users
+		 WHERE id = $1`,
+		userID,
+	).Scan(&status, &visibilityPreferencesRaw)
+	if err != nil {
+		return false
+	}
+	if !strings.EqualFold(status, "active") {
+		return false
+	}
+
+	preferences := parseVisibilityPreferences(visibilityPreferencesRaw, "custom")
+	return preferences[preferenceActiveStatus]
+}
+
+func getActiveStatusRecipients(db *sql.DB, userID string) []string {
+	rows, err := db.Query(
+		`SELECT DISTINCT
+			CASE
+				WHEN participant_1_id = $1 THEN participant_2_id
+				ELSE participant_1_id
+			END AS other_user_id
+		 FROM conversations
+		 WHERE participant_1_id = $1 OR participant_2_id = $1`,
+		userID,
+	)
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+
+	recipients := make([]string, 0)
+	for rows.Next() {
+		var recipientID string
+		if err := rows.Scan(&recipientID); err != nil {
+			continue
+		}
+		recipients = append(recipients, recipientID)
+	}
+
+	return uniqueNonEmptyStrings(recipients)
 }
 
 func authenticateSocketUser(c *gin.Context, jwtSecret string) (string, error) {

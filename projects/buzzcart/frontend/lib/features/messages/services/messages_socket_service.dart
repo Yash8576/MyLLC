@@ -132,6 +132,13 @@ class MessagesSocketService {
     });
   }
 
+  void setAppState(bool isActive) {
+    _enqueueOrSend({
+      'type': 'app_state',
+      'is_active': isActive,
+    });
+  }
+
   void _enqueueOrSend(Map<String, dynamic> payload) {
     if (!_isConnected || _channel == null || !_didReceiveWelcome) {
       _queuePayload(payload);

@@ -16,6 +16,7 @@ class UserModel {
   final String privacyProfile; // 'PUBLIC' or 'PRIVATE'
   final String visibilityMode; // 'public', 'private', or 'custom'
   final Map<String, bool> visibilityPreferences;
+  final bool showActiveStatus;
   final bool isFollowing;
   final bool isFollowedBy;
   final bool isConnection;
@@ -42,7 +43,9 @@ class UserModel {
       'videos': true,
       'reels': true,
       'purchases': true,
+      'active_status': true,
     },
+    this.showActiveStatus = true,
     this.isFollowing = false,
     this.isFollowedBy = false,
     this.isConnection = false,
@@ -68,6 +71,7 @@ class UserModel {
       'videos': true,
       'reels': true,
       'purchases': true,
+      'active_status': true,
     };
     if (visibilityPreferencesJson is Map) {
       for (final entry in visibilityPreferencesJson.entries) {
@@ -95,6 +99,9 @@ class UserModel {
       visibilityMode:
           (json['visibility_mode'] as String? ?? 'public').toLowerCase(),
       visibilityPreferences: preferences,
+      showActiveStatus: json['show_active_status'] as bool? ??
+          preferences['active_status'] ??
+          true,
       isFollowing: json['is_following'] as bool? ?? false,
       isFollowedBy: json['is_followed_by'] as bool? ?? false,
       isConnection: json['is_connection'] as bool? ?? false,
@@ -120,6 +127,7 @@ class UserModel {
     String? privacyProfile,
     String? visibilityMode,
     Map<String, bool>? visibilityPreferences,
+    bool? showActiveStatus,
     bool? isFollowing,
     bool? isFollowedBy,
     bool? isConnection,
@@ -143,6 +151,7 @@ class UserModel {
       visibilityMode: visibilityMode ?? this.visibilityMode,
       visibilityPreferences:
           visibilityPreferences ?? this.visibilityPreferences,
+      showActiveStatus: showActiveStatus ?? this.showActiveStatus,
       isFollowing: isFollowing ?? this.isFollowing,
       isFollowedBy: isFollowedBy ?? this.isFollowedBy,
       isConnection: isConnection ?? this.isConnection,
@@ -168,6 +177,7 @@ class UserModel {
       'privacy_profile': privacyProfile,
       'visibility_mode': visibilityMode,
       'visibility_preferences': visibilityPreferences,
+      'show_active_status': showActiveStatus,
       'is_following': isFollowing,
       'is_followed_by': isFollowedBy,
       'is_connection': isConnection,

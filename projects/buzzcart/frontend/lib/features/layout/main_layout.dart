@@ -49,6 +49,7 @@ class _MainLayoutState extends State<MainLayout> with WidgetsBindingObserver {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       unawaited(_updateActivity());
+      context.read<MessagesProvider>().setAppVisibility(true);
     });
     _initializeCart();
   }
@@ -72,7 +73,9 @@ class _MainLayoutState extends State<MainLayout> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
+    final isAppVisible = state == AppLifecycleState.resumed;
+    context.read<MessagesProvider>().setAppVisibility(isAppVisible);
+    if (isAppVisible) {
       _updateActivity();
     }
   }
