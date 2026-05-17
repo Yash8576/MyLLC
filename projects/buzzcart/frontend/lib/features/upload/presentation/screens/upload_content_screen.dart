@@ -1157,7 +1157,7 @@ class _UploadContentScreenState extends State<UploadContentScreen> {
                     hintText: provider.selectedMediaType == 'video'
                         ? 'Write a description for your video...'
                         : 'Write a caption for your post...',
-                    border: OutlineInputBorder(),
+                    border: const OutlineInputBorder(),
                     alignLabelWithHint: true,
                   ),
                 ),

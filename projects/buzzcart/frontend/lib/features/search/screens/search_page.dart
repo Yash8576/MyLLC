@@ -266,12 +266,12 @@ class _SearchPageState extends State<SearchPage>
                   decoration: BoxDecoration(
                     color: selected
                         ? AppColors.electricBlue
-                        : Colors.white.withOpacity(0.06),
+                        : Colors.white.withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(999),
                     border: Border.all(
                       color: selected
                           ? AppColors.electricBlue
-                          : Colors.white.withOpacity(0.10),
+                          : Colors.white.withValues(alpha: 0.10),
                     ),
                   ),
                   child: FittedBox(
