@@ -553,7 +553,8 @@ class MessagesProvider extends ChangeNotifier {
   }
 
   void _replaceConversationPreservingOrder(ConversationModel conversation) {
-    final index = _conversations.indexWhere((item) => item.id == conversation.id);
+    final index =
+        _conversations.indexWhere((item) => item.id == conversation.id);
     if (index == -1) {
       _conversations = [..._conversations, conversation];
       return;

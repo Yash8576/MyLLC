@@ -19,6 +19,7 @@ type MessageHub struct {
 	clients             map[*messageSocketClient]struct{}
 	userClients         map[string]map[*messageSocketClient]struct{}
 	conversationViewers map[string]map[string]int
+	conversationMembers map[string][]string
 	presenceTTL         time.Duration
 }
 
@@ -44,6 +45,7 @@ func NewMessageHub() *MessageHub {
 		clients:             make(map[*messageSocketClient]struct{}),
 		userClients:         make(map[string]map[*messageSocketClient]struct{}),
 		conversationViewers: make(map[string]map[string]int),
+		conversationMembers: make(map[string][]string),
 		presenceTTL:         12 * time.Second,
 	}
 	go hub.presenceCleanupLoop()
@@ -97,12 +99,15 @@ func (h *MessageHub) PublishTyping(conversationID, userID string, userIDs []stri
 	})
 }
 
-func (h *MessageHub) SetActiveConversation(client *messageSocketClient, conversationID string) {
+func (h *MessageHub) SetActiveConversation(client *messageSocketClient, conversationID string, participants []string) {
 	h.mu.Lock()
 	oldConversationID := client.activeConversation
 	now := time.Now()
 	if oldConversationID == conversationID {
 		client.lastPresencePing = now
+		if conversationID != "" && len(participants) > 0 {
+			h.conversationMembers[conversationID] = uniqueNonEmptyStrings(participants)
+		}
 		h.mu.Unlock()
 		h.broadcastConversationPresence(conversationID)
 		return
@@ -111,6 +116,9 @@ func (h *MessageHub) SetActiveConversation(client *messageSocketClient, conversa
 	h.removeActiveConversationLocked(client)
 
 	if conversationID != "" {
+		if len(participants) > 0 {
+			h.conversationMembers[conversationID] = uniqueNonEmptyStrings(participants)
+		}
 		if h.conversationViewers[conversationID] == nil {
 			h.conversationViewers[conversationID] = make(map[string]int)
 		}
@@ -133,13 +141,18 @@ func (h *MessageHub) SetActiveConversation(client *messageSocketClient, conversa
 func (h *MessageHub) broadcastConversationPresence(conversationID string) {
 	h.mu.RLock()
 	viewerCounts := h.conversationViewers[conversationID]
+	recipients := append([]string(nil), h.conversationMembers[conversationID]...)
 	activeUserIDs := make([]string, 0, len(viewerCounts))
 	for userID := range viewerCounts {
 		activeUserIDs = append(activeUserIDs, userID)
 	}
 	h.mu.RUnlock()
 
-	h.broadcastToUsers(activeUserIDs, map[string]any{
+	if len(recipients) == 0 {
+		recipients = activeUserIDs
+	}
+
+	h.broadcastToUsers(recipients, map[string]any{
 		"type":            "conversation_presence",
 		"conversation_id": conversationID,
 		"active_user_ids": activeUserIDs,
@@ -191,6 +204,7 @@ func (h *MessageHub) removeActiveConversationLocked(client *messageSocketClient)
 		}
 		if len(viewers) == 0 {
 			delete(h.conversationViewers, client.activeConversation)
+			delete(h.conversationMembers, client.activeConversation)
 		}
 	}
 	client.activeConversation = ""
@@ -217,6 +231,19 @@ func (c *messageSocketClient) writeLoop() {
 	}
 }
 
+func (c *messageSocketClient) sendJSON(payload any) {
+	encoded, err := json.Marshal(payload)
+	if err != nil {
+		return
+	}
+
+	select {
+	case c.send <- encoded:
+	default:
+		go c.close()
+	}
+}
+
 func MessagesSocket(db *sql.DB, jwtSecret string, hub *MessageHub) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, err := authenticateSocketUser(c, jwtSecret)
@@ -236,6 +263,7 @@ func MessagesSocket(db *sql.DB, jwtSecret string, hub *MessageHub) gin.HandlerFu
 					userID: userID,
 					send:   make(chan []byte, 32),
 				}
+				_ = ws.SetDeadline(time.Now().Add(45 * time.Second))
 				hub.Register(client)
 				defer hub.Unregister(client)
 				defer client.close()
@@ -244,7 +272,19 @@ func MessagesSocket(db *sql.DB, jwtSecret string, hub *MessageHub) gin.HandlerFu
 
 				initialConversationID := strings.TrimSpace(c.Query("conversation_id"))
 				if initialConversationID != "" && canAccessConversation(db, userID, initialConversationID) {
-					hub.SetActiveConversation(client, initialConversationID)
+					participants, err := getConversationParticipants(db, initialConversationID)
+					if err == nil {
+						hub.SetActiveConversation(client, initialConversationID, participants)
+					}
+				}
+				client.sendJSON(map[string]any{
+					"type":                  "welcome",
+					"user_id":               userID,
+					"heartbeat_interval_ms": 15000,
+					"server_time":           time.Now().UTC().Format(time.RFC3339),
+				})
+				if client.activeConversation != "" {
+					hub.broadcastConversationPresence(client.activeConversation)
 				}
 
 				for {
@@ -252,6 +292,7 @@ func MessagesSocket(db *sql.DB, jwtSecret string, hub *MessageHub) gin.HandlerFu
 					if err := websocket.Message.Receive(ws, &raw); err != nil {
 						return
 					}
+					_ = ws.SetDeadline(time.Now().Add(45 * time.Second))
 
 					var inbound messageSocketInbound
 					if err := json.Unmarshal([]byte(raw), &inbound); err != nil {
@@ -273,11 +314,15 @@ func handleSocketInbound(db *sql.DB, hub *MessageHub, client *messageSocketClien
 	switch strings.TrimSpace(inbound.Type) {
 	case "open_conversation":
 		if conversationID != "" && canAccessConversation(db, client.userID, conversationID) {
-			hub.SetActiveConversation(client, conversationID)
+			participants, err := getConversationParticipants(db, conversationID)
+			if err != nil {
+				return
+			}
+			hub.SetActiveConversation(client, conversationID, participants)
 		}
 	case "close_conversation":
 		if conversationID == "" || client.activeConversation == conversationID {
-			hub.SetActiveConversation(client, "")
+			hub.SetActiveConversation(client, "", nil)
 		}
 	case "typing":
 		if conversationID == "" || !canAccessConversation(db, client.userID, conversationID) {
@@ -288,6 +333,11 @@ func handleSocketInbound(db *sql.DB, hub *MessageHub, client *messageSocketClien
 			return
 		}
 		hub.PublishTyping(conversationID, client.userID, participants, inbound.IsTyping)
+	case "ping":
+		client.sendJSON(map[string]any{
+			"type":        "pong",
+			"server_time": time.Now().UTC().Format(time.RFC3339),
+		})
 	}
 }
 
@@ -335,6 +385,23 @@ func canAccessConversation(db *sql.DB, userID, conversationID string) bool {
 		userID,
 	).Scan(&exists)
 	return err == nil && exists
+}
+
+func uniqueNonEmptyStrings(values []string) []string {
+	seen := make(map[string]struct{}, len(values))
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		if _, exists := seen[value]; exists {
+			continue
+		}
+		seen[value] = struct{}{}
+		result = append(result, value)
+	}
+	return result
 }
 
 func authenticateSocketUser(c *gin.Context, jwtSecret string) (string, error) {
