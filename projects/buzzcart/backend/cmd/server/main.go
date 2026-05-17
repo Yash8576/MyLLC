@@ -108,7 +108,7 @@ func main() {
 		})
 	})
 
-	router.GET("/ws/messages", handlers.MessagesSocket(db, cfg.JWTSecret, messageHub))
+	router.GET("/ws/messages", handlers.MessagesSocket(db, cfg.JWTSecret, cfg.AllowedOrigins, messageHub))
 
 	// API routes
 	api := router.Group("/api")

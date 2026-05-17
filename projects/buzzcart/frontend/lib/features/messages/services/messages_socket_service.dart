@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -8,27 +9,31 @@ import '../../../core/config/app_config.dart';
 import '../../../core/services/api_service.dart';
 
 class MessagesSocketService {
+  static const Duration _connectTimeout = Duration(seconds: 10);
   static const Duration _defaultHeartbeatInterval = Duration(seconds: 15);
-  static const Duration _pongTimeout = Duration(seconds: 40);
+  static const Duration _pongTimeout = Duration(seconds: 15);
+  static const int _maxQueuedMessages = 64;
 
   final ApiService _apiService;
   final StreamController<Map<String, dynamic>> _eventsController =
       StreamController<Map<String, dynamic>>.broadcast();
+  final List<Map<String, dynamic>> _pendingMessages = <Map<String, dynamic>>[];
+  final Random _random = Random();
 
   WebSocketChannel? _channel;
   StreamSubscription? _subscription;
   Timer? _reconnectTimer;
   Timer? _heartbeatTimer;
+  Timer? _pongTimeoutTimer;
+  Timer? _welcomeTimeoutTimer;
   bool _isConnected = false;
   bool _isConnecting = false;
   bool _shouldReconnect = true;
   bool _isDisposed = false;
+  bool _didReceiveWelcome = false;
   int _reconnectAttempts = 0;
   String? _activeConversationId;
-  bool _didReceiveWelcome = false;
-  DateTime? _lastPongAt;
   Duration _heartbeatInterval = _defaultHeartbeatInterval;
-  final List<Map<String, dynamic>> _pendingOutbound = <Map<String, dynamic>>[];
 
   MessagesSocketService(this._apiService);
 
@@ -48,19 +53,16 @@ class MessagesSocketService {
       if (_activeConversationId != null &&
           _activeConversationId!.isNotEmpty &&
           _isConnected) {
-        _enqueueOrSend({
-          'type': 'open_conversation',
-          'conversation_id': _activeConversationId!,
-        });
+        openConversation(_activeConversationId!);
       }
       return;
     }
 
     _reconnectTimer?.cancel();
-    _heartbeatTimer?.cancel();
     _isConnecting = true;
     _shouldReconnect = true;
     _didReceiveWelcome = false;
+
     try {
       final token = await _apiService.getAuthToken();
       if (token == null || token.isEmpty) {
@@ -78,28 +80,29 @@ class MessagesSocketService {
       );
 
       final channel = WebSocketChannel.connect(uri);
-      await channel.ready;
       _channel = channel;
+      _subscription?.cancel();
       _subscription = channel.stream.listen(
-        (event) {
-          if (event is String) {
-            final decoded = jsonDecode(event);
-            if (decoded is Map<String, dynamic>) {
-              _handleInboundEvent(decoded);
-            }
-          }
-        },
-        onDone: _handleSocketClosed,
+        (event) => _handleSocketData(channel, event),
+        onDone: () => _handleSocketClosed(channel),
         onError: (Object error, StackTrace stackTrace) {
           debugPrint('Messages socket error: $error');
-          _handleSocketClosed();
+          _handleSocketClosed(channel);
         },
         cancelOnError: true,
       );
-      _reconnectAttempts = 0;
+
+      await channel.ready.timeout(_connectTimeout);
+      _welcomeTimeoutTimer?.cancel();
+      _welcomeTimeoutTimer = Timer(_connectTimeout, () {
+        if (!_didReceiveWelcome && identical(channel, _channel)) {
+          debugPrint('Messages socket welcome handshake timed out');
+          _handleSocketClosed(channel);
+        }
+      });
     } catch (error) {
       debugPrint('Failed to connect messages socket: $error');
-      _resetSocketState();
+      _cleanupConnectionState();
       _scheduleReconnect();
     } finally {
       _isConnecting = false;
@@ -108,7 +111,7 @@ class MessagesSocketService {
 
   void openConversation(String conversationId) {
     _activeConversationId = conversationId;
-    _enqueueOrSend({
+    _send({
       'type': 'open_conversation',
       'conversation_id': conversationId,
     });
@@ -118,14 +121,14 @@ class MessagesSocketService {
     if (_activeConversationId == conversationId) {
       _activeConversationId = null;
     }
-    _enqueueOrSend({
+    _send({
       'type': 'close_conversation',
       'conversation_id': conversationId,
     });
   }
 
   void setTyping(String conversationId, bool isTyping) {
-    _enqueueOrSend({
+    _send({
       'type': 'typing',
       'conversation_id': conversationId,
       'is_typing': isTyping,
@@ -133,18 +136,101 @@ class MessagesSocketService {
   }
 
   void setAppState(bool isActive) {
-    _enqueueOrSend({
+    _send({
       'type': 'app_state',
       'is_active': isActive,
     });
   }
 
-  void _enqueueOrSend(Map<String, dynamic> payload) {
-    if (!_isConnected || _channel == null || !_didReceiveWelcome) {
-      _queuePayload(payload);
+  void _handleSocketData(WebSocketChannel channel, dynamic event) {
+    if (!identical(channel, _channel) || event is! String) {
       return;
     }
-    _sendNow(payload);
+
+    try {
+      final decoded = jsonDecode(event);
+      if (decoded is! Map<String, dynamic>) {
+        return;
+      }
+
+      final type = decoded['type'] as String?;
+      switch (type) {
+        case 'welcome':
+          _markConnected(decoded);
+          return;
+        case 'pong':
+          _clearPongTimeout();
+          return;
+        default:
+          _eventsController.add(decoded);
+      }
+    } catch (error) {
+      debugPrint('Failed to decode messages socket payload: $error');
+    }
+  }
+
+  void _markConnected(Map<String, dynamic> event) {
+    if (_isDisposed || _didReceiveWelcome) {
+      return;
+    }
+
+    _didReceiveWelcome = true;
+    _isConnected = true;
+    _reconnectAttempts = 0;
+
+    final intervalMs = event['heartbeat_interval_ms'];
+    if (intervalMs is int && intervalMs > 0) {
+      _heartbeatInterval = Duration(milliseconds: intervalMs);
+    } else {
+      _heartbeatInterval = _defaultHeartbeatInterval;
+    }
+
+    _welcomeTimeoutTimer?.cancel();
+    _welcomeTimeoutTimer = null;
+    _startHeartbeat();
+    _flushPendingMessages();
+
+    if (!_eventsController.isClosed) {
+      _eventsController
+          .add(const {'type': 'connection_state', 'connected': true});
+    }
+  }
+
+  void _startHeartbeat() {
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = Timer.periodic(_heartbeatInterval, (_) {
+      if (!_isConnected || _channel == null) {
+        return;
+      }
+
+      _sendNow(const {'type': 'ping'});
+      _pongTimeoutTimer?.cancel();
+      _pongTimeoutTimer = Timer(_pongTimeout, () {
+        debugPrint('Messages socket heartbeat timed out');
+        _handleSocketClosed(_channel);
+      });
+    });
+  }
+
+  void _clearPongTimeout() {
+    _pongTimeoutTimer?.cancel();
+    _pongTimeoutTimer = null;
+  }
+
+  void _send(Map<String, dynamic> payload) {
+    if (_isDisposed) {
+      return;
+    }
+
+    if (_isConnected && _channel != null) {
+      _sendNow(payload);
+      return;
+    }
+
+    _queuePayload(payload);
+    if (!_isConnecting && _shouldReconnect) {
+      _scheduleReconnect(immediate: true);
+    }
   }
 
   void _queuePayload(Map<String, dynamic> payload) {
@@ -152,140 +238,116 @@ class MessagesSocketService {
     final conversationId = payload['conversation_id'];
 
     if (type == 'typing' && conversationId is String) {
-      _pendingOutbound.removeWhere(
+      _pendingMessages.removeWhere(
         (item) =>
             item['type'] == 'typing' &&
             item['conversation_id'] == conversationId,
       );
     }
     if (type == 'open_conversation' && conversationId is String) {
-      _pendingOutbound.removeWhere(
+      _pendingMessages.removeWhere(
         (item) =>
             item['type'] == 'open_conversation' &&
             item['conversation_id'] == conversationId,
       );
     }
-
-    _pendingOutbound.add(Map<String, dynamic>.from(payload));
-    if (_pendingOutbound.length > 50) {
-      _pendingOutbound.removeAt(0);
+    if (type == 'app_state') {
+      _pendingMessages.removeWhere((item) => item['type'] == 'app_state');
     }
+
+    if (_pendingMessages.length >= _maxQueuedMessages) {
+      _pendingMessages.removeAt(0);
+    }
+    _pendingMessages.add(Map<String, dynamic>.from(payload));
   }
 
   void _sendNow(Map<String, dynamic> payload) {
-    _channel!.sink.add(jsonEncode(payload));
-  }
-
-  void _handleInboundEvent(Map<String, dynamic> event) {
-    switch (event['type']) {
-      case 'welcome':
-        _didReceiveWelcome = true;
-        _isConnected = true;
-        _lastPongAt = DateTime.now();
-        final intervalMs = event['heartbeat_interval_ms'];
-        if (intervalMs is int && intervalMs > 0) {
-          _heartbeatInterval = Duration(milliseconds: intervalMs);
-        } else {
-          _heartbeatInterval = _defaultHeartbeatInterval;
-        }
-        _startHeartbeat();
-        _eventsController
-            .add(const {'type': 'connection_state', 'connected': true});
-        _flushPendingOutbound();
-        return;
-      case 'pong':
-        _lastPongAt = DateTime.now();
-        return;
-    }
-
-    _eventsController.add(event);
-  }
-
-  void _flushPendingOutbound() {
-    if (!_isConnected || _channel == null || !_didReceiveWelcome) {
+    final channel = _channel;
+    if (channel == null) {
       return;
     }
 
-    if (_activeConversationId != null && _activeConversationId!.isNotEmpty) {
-      _sendNow({
-        'type': 'open_conversation',
-        'conversation_id': _activeConversationId!,
-      });
+    try {
+      channel.sink.add(jsonEncode(payload));
+    } catch (error) {
+      debugPrint('Failed to send messages socket payload: $error');
+      _handleSocketClosed(channel);
+    }
+  }
+
+  void _flushPendingMessages() {
+    if (!_isConnected || _channel == null || _pendingMessages.isEmpty) {
+      return;
     }
 
-    final pending = List<Map<String, dynamic>>.from(_pendingOutbound);
-    _pendingOutbound.clear();
+    final pending = List<Map<String, dynamic>>.from(_pendingMessages);
+    _pendingMessages.clear();
     for (final payload in pending) {
       _sendNow(payload);
     }
   }
 
-  void _startHeartbeat() {
-    _heartbeatTimer?.cancel();
-    _heartbeatTimer = Timer.periodic(_heartbeatInterval, (_) {
-      final now = DateTime.now();
-      final lastPongAt = _lastPongAt;
-      if (lastPongAt != null && now.difference(lastPongAt) > _pongTimeout) {
-        _forceReconnect();
-        return;
-      }
+  void _handleSocketClosed(WebSocketChannel? channel) {
+    if (channel != null && !identical(channel, _channel)) {
+      return;
+    }
 
-      if (_channel == null || !_didReceiveWelcome) {
-        return;
-      }
-
-      _sendNow({
-        'type': 'ping',
-        'sent_at': now.toUtc().toIso8601String(),
-      });
-    });
-  }
-
-  void _forceReconnect() {
-    _subscription?.cancel();
-    _subscription = null;
-    _channel?.sink.close();
-    _handleSocketClosed();
-  }
-
-  void _resetSocketState() {
-    _heartbeatTimer?.cancel();
-    _heartbeatTimer = null;
-    _isConnected = false;
-    _didReceiveWelcome = false;
-    _lastPongAt = null;
-    _heartbeatInterval = _defaultHeartbeatInterval;
-    _channel = null;
-  }
-
-  void _handleSocketClosed() {
     final wasConnected = _isConnected;
-    _resetSocketState();
+    _cleanupConnectionState();
+
     if (wasConnected && !_eventsController.isClosed) {
       _eventsController
           .add(const {'type': 'connection_state', 'connected': false});
     }
+
     if (_shouldReconnect && !_isDisposed) {
       _scheduleReconnect();
     }
   }
 
-  void _scheduleReconnect() {
+  void _cleanupConnectionState() {
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = null;
+    _clearPongTimeout();
+    _welcomeTimeoutTimer?.cancel();
+    _welcomeTimeoutTimer = null;
+    _didReceiveWelcome = false;
+    _isConnected = false;
+    _heartbeatInterval = _defaultHeartbeatInterval;
+
+    final subscription = _subscription;
+    _subscription = null;
+    unawaited(subscription?.cancel());
+
+    final channel = _channel;
+    _channel = null;
+    unawaited(channel?.sink.close());
+  }
+
+  void _scheduleReconnect({bool immediate = false}) {
     if (_isDisposed || !_shouldReconnect || _isConnected || _isConnecting) {
       return;
     }
 
     _reconnectTimer?.cancel();
-    final attempt = _reconnectAttempts + 1;
-    final cappedAttempt = attempt.clamp(1, 6);
-    final jitterMs = DateTime.now().millisecondsSinceEpoch % 1000;
-    final delayMs = (1000 * (1 << (cappedAttempt - 1))) + jitterMs;
-    _reconnectAttempts = attempt.clamp(0, 10);
-    _reconnectTimer = Timer(Duration(milliseconds: delayMs), () {
+    final delay =
+        immediate ? Duration.zero : _nextReconnectDelay(_reconnectAttempts);
+    _reconnectAttempts = (_reconnectAttempts + 1).clamp(0, 10);
+    _reconnectTimer = Timer(delay, () {
       if (!_isDisposed) {
-        connect(conversationId: _activeConversationId);
+        unawaited(connect(conversationId: _activeConversationId));
       }
     });
+  }
+
+  Duration _nextReconnectDelay(int attempt) {
+    final cappedAttempt = attempt.clamp(0, 6);
+    final baseSeconds = 1 << cappedAttempt;
+    final jitterMillis = _random.nextInt(750);
+    return Duration(
+      seconds: baseSeconds,
+      milliseconds: jitterMillis,
+    );
   }
 
   Future<void> disconnect() async {
@@ -294,15 +356,27 @@ class MessagesSocketService {
     _reconnectTimer = null;
     _heartbeatTimer?.cancel();
     _heartbeatTimer = null;
-    await _subscription?.cancel();
+    _clearPongTimeout();
+    _welcomeTimeoutTimer?.cancel();
+    _welcomeTimeoutTimer = null;
+    _pendingMessages.clear();
+
+    final subscription = _subscription;
+    final channel = _channel;
     _subscription = null;
-    await _channel?.sink.close();
-    _resetSocketState();
+    _channel = null;
+    _isConnected = false;
+    _isConnecting = false;
+    _didReceiveWelcome = false;
+    _heartbeatInterval = _defaultHeartbeatInterval;
+
+    await subscription?.cancel();
+    await channel?.sink.close();
   }
 
   void dispose() {
     _isDisposed = true;
-    disconnect();
+    unawaited(disconnect());
     _eventsController.close();
   }
 }

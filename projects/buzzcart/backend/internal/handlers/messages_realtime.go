@@ -11,7 +11,16 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"golang.org/x/net/websocket"
+	"github.com/gorilla/websocket"
+)
+
+const (
+	messageSocketWriteWait           = 10 * time.Second
+	messageSocketPongWait            = 75 * time.Second
+	messageSocketPingPeriod          = 25 * time.Second
+	messageSocketHandshakeWait       = 10 * time.Second
+	messageSocketMaxMessageSize      = 8 * 1024
+	messageSocketHeartbeatIntervalMS = 15000
 )
 
 type MessageHub struct {
@@ -116,18 +125,17 @@ func (h *MessageHub) setAppActive(client *messageSocketClient, isActive bool) {
 		isActive = false
 	}
 
-	shouldBroadcast := false
-	recipients := []string{}
-	effectiveActive := false
-
 	h.mu.Lock()
 	previouslyActive := client.isAppActive
 	if previouslyActive == isActive {
 		if isActive {
 			client.lastPresencePing = time.Now()
 		}
-		effectiveActive = h.activeUsers[client.userID] > 0
+		effectiveActive := h.activeUsers[client.userID] > 0
 		h.mu.Unlock()
+		if isActive && effectiveActive {
+			return
+		}
 		return
 	}
 
@@ -143,18 +151,15 @@ func (h *MessageHub) setAppActive(client *messageSocketClient, isActive bool) {
 			delete(h.activeUsers, client.userID)
 		}
 	}
-	effectiveActive = h.activeUsers[client.userID] > 0
-	shouldBroadcast = true
+	effectiveActive := h.activeUsers[client.userID] > 0
 	h.mu.Unlock()
 
-	if shouldBroadcast {
-		recipients = getActiveStatusRecipients(h.db, client.userID)
-		h.broadcastToUsers(recipients, map[string]any{
-			"type":      "app_presence",
-			"user_id":   client.userID,
-			"is_active": effectiveActive,
-		})
-	}
+	recipients := getActiveStatusRecipients(h.db, client.userID)
+	h.broadcastToUsers(recipients, map[string]any{
+		"type":      "app_presence",
+		"user_id":   client.userID,
+		"is_active": effectiveActive,
+	})
 }
 
 func (h *MessageHub) SetActiveConversation(client *messageSocketClient, conversationID string, participants []string) {
@@ -281,14 +286,6 @@ func (c *messageSocketClient) closeSend() {
 	})
 }
 
-func (c *messageSocketClient) writeLoop() {
-	for payload := range c.send {
-		if err := websocket.Message.Send(c.conn, string(payload)); err != nil {
-			return
-		}
-	}
-}
-
 func (c *messageSocketClient) sendJSON(payload any) {
 	encoded, err := json.Marshal(payload)
 	if err != nil {
@@ -302,7 +299,66 @@ func (c *messageSocketClient) sendJSON(payload any) {
 	}
 }
 
-func MessagesSocket(db *sql.DB, jwtSecret string, hub *MessageHub) gin.HandlerFunc {
+func (c *messageSocketClient) readLoop(db *sql.DB) {
+	c.conn.SetReadLimit(messageSocketMaxMessageSize)
+	_ = c.conn.SetReadDeadline(time.Now().Add(messageSocketPongWait))
+	c.conn.SetPongHandler(func(string) error {
+		return c.conn.SetReadDeadline(time.Now().Add(messageSocketPongWait))
+	})
+
+	for {
+		_, payload, err := c.conn.ReadMessage()
+		if err != nil {
+			return
+		}
+
+		_ = c.conn.SetReadDeadline(time.Now().Add(messageSocketPongWait))
+
+		var inbound messageSocketInbound
+		if err := json.Unmarshal(payload, &inbound); err != nil {
+			continue
+		}
+
+		handleSocketInbound(db, c.hub, c, inbound)
+	}
+}
+
+func (c *messageSocketClient) writeLoop() {
+	ticker := time.NewTicker(messageSocketPingPeriod)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case payload, ok := <-c.send:
+			_ = c.conn.SetWriteDeadline(time.Now().Add(messageSocketWriteWait))
+			if !ok {
+				_ = c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				return
+			}
+			if err := c.conn.WriteMessage(websocket.TextMessage, payload); err != nil {
+				return
+			}
+		case <-ticker.C:
+			_ = c.conn.SetWriteDeadline(time.Now().Add(messageSocketWriteWait))
+			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				return
+			}
+		}
+	}
+}
+
+func MessagesSocket(db *sql.DB, jwtSecret string, allowedOrigins []string, hub *MessageHub) gin.HandlerFunc {
+	allowAllOrigins, allowedOriginSet := buildAllowedOriginSet(allowedOrigins)
+	upgrader := websocket.Upgrader{
+		HandshakeTimeout: messageSocketHandshakeWait,
+		ReadBufferSize:   1024,
+		WriteBufferSize:  1024,
+		CheckOrigin: func(r *http.Request) bool {
+			return isWebSocketOriginAllowed(r, allowAllOrigins, allowedOriginSet)
+		},
+		EnableCompression: false,
+	}
+
 	return func(c *gin.Context) {
 		userID, err := authenticateSocketUser(c, jwtSecret)
 		if err != nil {
@@ -310,59 +366,44 @@ func MessagesSocket(db *sql.DB, jwtSecret string, hub *MessageHub) gin.HandlerFu
 			return
 		}
 
-		server := websocket.Server{
-			Handshake: func(config *websocket.Config, request *http.Request) error {
-				return nil
-			},
-			Handler: websocket.Handler(func(ws *websocket.Conn) {
-				client := &messageSocketClient{
-					conn:   ws,
-					hub:    hub,
-					userID: userID,
-					send:   make(chan []byte, 32),
-				}
-				_ = ws.SetDeadline(time.Now().Add(45 * time.Second))
-				hub.Register(client)
-				defer hub.Unregister(client)
-				defer client.close()
+		initialConversationID := strings.TrimSpace(c.Query("conversation_id"))
 
-				go client.writeLoop()
-
-				initialConversationID := strings.TrimSpace(c.Query("conversation_id"))
-				if initialConversationID != "" && canAccessConversation(db, userID, initialConversationID) {
-					participants, err := getConversationParticipants(db, initialConversationID)
-					if err == nil {
-						hub.SetActiveConversation(client, initialConversationID, participants)
-					}
-				}
-				client.sendJSON(map[string]any{
-					"type":                  "welcome",
-					"user_id":               userID,
-					"heartbeat_interval_ms": 15000,
-					"server_time":           time.Now().UTC().Format(time.RFC3339),
-				})
-				if client.activeConversation != "" {
-					hub.broadcastConversationPresence(client.activeConversation)
-				}
-
-				for {
-					var raw string
-					if err := websocket.Message.Receive(ws, &raw); err != nil {
-						return
-					}
-					_ = ws.SetDeadline(time.Now().Add(45 * time.Second))
-
-					var inbound messageSocketInbound
-					if err := json.Unmarshal([]byte(raw), &inbound); err != nil {
-						continue
-					}
-
-					handleSocketInbound(db, hub, client, inbound)
-				}
-			}),
+		ws, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+		if err != nil {
+			return
 		}
 
-		server.ServeHTTP(c.Writer, c.Request)
+		client := &messageSocketClient{
+			conn:   ws,
+			hub:    hub,
+			userID: userID,
+			send:   make(chan []byte, 32),
+		}
+		hub.Register(client)
+		defer hub.Unregister(client)
+		defer client.close()
+
+		go client.writeLoop()
+
+		if initialConversationID != "" && canAccessConversation(db, userID, initialConversationID) {
+			participants, err := getConversationParticipants(db, initialConversationID)
+			if err == nil {
+				hub.SetActiveConversation(client, initialConversationID, participants)
+			}
+		}
+
+		client.sendJSON(map[string]any{
+			"type":                  "welcome",
+			"user_id":               userID,
+			"heartbeat_interval_ms": messageSocketHeartbeatIntervalMS,
+			"server_time":           time.Now().UTC().Format(time.RFC3339),
+		})
+
+		if client.activeConversation != "" {
+			hub.broadcastConversationPresence(client.activeConversation)
+		}
+
+		client.readLoop(db)
 	}
 }
 
@@ -370,6 +411,14 @@ func handleSocketInbound(db *sql.DB, hub *MessageHub, client *messageSocketClien
 	conversationID := strings.TrimSpace(inbound.ConversationID)
 
 	switch strings.TrimSpace(inbound.Type) {
+	case "ping":
+		client.sendJSON(map[string]any{
+			"type":        "pong",
+			"server_time": time.Now().UTC().Format(time.RFC3339),
+		})
+		if client.isAppActive {
+			hub.setAppActive(client, true)
+		}
 	case "open_conversation":
 		if conversationID != "" && canAccessConversation(db, client.userID, conversationID) {
 			participants, err := getConversationParticipants(db, conversationID)
@@ -391,14 +440,6 @@ func handleSocketInbound(db *sql.DB, hub *MessageHub, client *messageSocketClien
 			return
 		}
 		hub.PublishTyping(conversationID, client.userID, participants, inbound.IsTyping)
-	case "ping":
-		client.sendJSON(map[string]any{
-			"type":        "pong",
-			"server_time": time.Now().UTC().Format(time.RFC3339),
-		})
-		if client.isAppActive {
-			hub.setAppActive(client, true)
-		}
 	case "app_state":
 		hub.setAppActive(client, inbound.IsActive)
 	}
@@ -440,6 +481,37 @@ func (h *MessageHub) cleanupExpiredPresence() {
 	for conversationID := range affectedConversations {
 		h.broadcastConversationPresence(conversationID)
 	}
+}
+
+func buildAllowedOriginSet(allowedOrigins []string) (bool, map[string]struct{}) {
+	allowAllOrigins := len(allowedOrigins) == 0
+	allowedOriginSet := make(map[string]struct{}, len(allowedOrigins))
+
+	for _, origin := range allowedOrigins {
+		trimmed := strings.TrimSpace(origin)
+		if trimmed == "" {
+			continue
+		}
+		if trimmed == "*" {
+			allowAllOrigins = true
+			continue
+		}
+		allowedOriginSet[trimmed] = struct{}{}
+	}
+
+	return allowAllOrigins, allowedOriginSet
+}
+
+func isWebSocketOriginAllowed(request *http.Request, allowAllOrigins bool, allowedOriginSet map[string]struct{}) bool {
+	origin := strings.TrimSpace(request.Header.Get("Origin"))
+	if origin == "" {
+		return true
+	}
+	if allowAllOrigins {
+		return true
+	}
+	_, ok := allowedOriginSet[origin]
+	return ok
 }
 
 func canAccessConversation(db *sql.DB, userID, conversationID string) bool {
