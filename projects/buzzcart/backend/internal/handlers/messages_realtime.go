@@ -398,6 +398,7 @@ func MessagesSocket(db *sql.DB, jwtSecret string, allowedOrigins []string, hub *
 			"heartbeat_interval_ms": messageSocketHeartbeatIntervalMS,
 			"server_time":           time.Now().UTC().Format(time.RFC3339),
 		})
+		hub.sendInitialAppPresence(client)
 
 		if client.activeConversation != "" {
 			hub.broadcastConversationPresence(client.activeConversation)
@@ -569,14 +570,33 @@ func canShareActiveStatus(db *sql.DB, userID string) bool {
 }
 
 func getActiveStatusRecipients(db *sql.DB, userID string) []string {
+	return getActiveStatusPeerIDs(db, userID)
+}
+
+func getActiveStatusPeerIDs(db *sql.DB, userID string) []string {
 	rows, err := db.Query(
-		`SELECT DISTINCT
-			CASE
-				WHEN participant_1_id = $1 THEN participant_2_id
-				ELSE participant_1_id
-			END AS other_user_id
-		 FROM conversations
-		 WHERE participant_1_id = $1 OR participant_2_id = $1`,
+		`SELECT DISTINCT other_user_id
+		 FROM (
+			SELECT
+				CASE
+					WHEN conv.participant_1_id = $1 THEN conv.participant_2_id
+					ELSE conv.participant_1_id
+				END AS other_user_id
+			FROM conversations conv
+			WHERE conv.participant_1_id = $1 OR conv.participant_2_id = $1
+
+			UNION
+
+			SELECT u.id AS other_user_id
+			FROM users u
+			JOIN user_follows outgoing
+				ON outgoing.following_id = u.id
+				AND outgoing.follower_id = $1
+			JOIN user_follows incoming
+				ON incoming.follower_id = u.id
+				AND incoming.following_id = $1
+			WHERE u.id <> $1
+		) peers`,
 		userID,
 	)
 	if err != nil {
@@ -594,6 +614,31 @@ func getActiveStatusRecipients(db *sql.DB, userID string) []string {
 	}
 
 	return uniqueNonEmptyStrings(recipients)
+}
+
+func (h *MessageHub) sendInitialAppPresence(client *messageSocketClient) {
+	if h == nil || h.db == nil || client == nil {
+		return
+	}
+
+	peerIDs := getActiveStatusPeerIDs(h.db, client.userID)
+	if len(peerIDs) == 0 {
+		return
+	}
+
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	for _, peerID := range peerIDs {
+		if h.activeUsers[peerID] <= 0 {
+			continue
+		}
+		client.sendJSON(map[string]any{
+			"type":      "app_presence",
+			"user_id":   peerID,
+			"is_active": true,
+		})
+	}
 }
 
 func authenticateSocketUser(c *gin.Context, jwtSecret string) (string, error) {
