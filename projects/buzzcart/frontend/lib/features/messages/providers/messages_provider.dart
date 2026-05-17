@@ -80,10 +80,12 @@ class MessagesProvider extends ChangeNotifier {
 
   bool get isOtherUserActiveInChat {
     final participant = _selectedParticipant;
-    if (participant == null) {
+    final conversationId = _selectedConversationId;
+    if (participant == null || conversationId == null) {
       return false;
     }
-    final lastSeen = _activeUsersSeenAt[participant.id];
+    final lastSeen =
+        _activePresenceSeenAtByConversation[conversationId]?[participant.id];
     if (lastSeen == null) {
       return false;
     }

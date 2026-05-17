@@ -513,29 +513,12 @@ class _ChatThread extends StatelessWidget {
               _UserAvatar(name: participant.name, avatar: participant.avatar),
               const SizedBox(width: 12),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      participant.name,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      provider.isOtherUserActiveInChat
-                          ? '👀'
-                          : (provider.isOtherUserTyping ? 'Typing...' : 'Away'),
-                      style: TextStyle(
-                        color: provider.isOtherUserActiveInChat
-                            ? AppColors.successGreen
-                            : Theme.of(context).hintColor,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  participant.name,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],
@@ -583,7 +566,7 @@ class _ChatThread extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 const Text(
-                  '👀',
+                  'In this chat',
                   style: TextStyle(fontSize: 12),
                 ),
               ],
