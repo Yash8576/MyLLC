@@ -7,6 +7,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/providers/cart_provider.dart';
 import '../../core/utils/url_helper.dart';
+import '../../core/utils/app_visibility_listener.dart';
 import '../../features/messages/providers/messages_provider.dart';
 
 class MainLayout extends StatefulWidget {
@@ -26,6 +27,7 @@ class MainLayout extends StatefulWidget {
 class _MainLayoutState extends State<MainLayout> with WidgetsBindingObserver {
   static const FlutterSecureStorage _storage = FlutterSecureStorage();
   bool _hasInitializedCart = false;
+  late final AppVisibilityListener _appVisibilityListener;
 
   final List<_NavItem> _navItems = [
     _NavItem(path: '/', icon: Icons.home, label: 'Home'),
@@ -45,11 +47,13 @@ class _MainLayoutState extends State<MainLayout> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    _appVisibilityListener = AppVisibilityListener();
     WidgetsBinding.instance.addObserver(this);
+    _appVisibilityListener.start(_handleVisibilitySignal);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       unawaited(_updateActivity());
-      context.read<MessagesProvider>().setAppVisibility(true);
+      _syncAppVisibility(true, forceRefresh: true);
     });
     _initializeCart();
   }
@@ -67,16 +71,31 @@ class _MainLayoutState extends State<MainLayout> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _appVisibilityListener.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    final isAppVisible = state == AppLifecycleState.resumed;
-    context.read<MessagesProvider>().setAppVisibility(isAppVisible);
-    if (isAppVisible) {
-      _updateActivity();
+    _syncAppVisibility(state == AppLifecycleState.resumed);
+  }
+
+  void _handleVisibilitySignal(bool isVisible) {
+    if (!mounted) {
+      return;
+    }
+    _syncAppVisibility(isVisible, forceRefresh: isVisible);
+  }
+
+  void _syncAppVisibility(bool isVisible, {bool forceRefresh = false}) {
+    final messagesProvider = context.read<MessagesProvider>();
+    messagesProvider.setAppVisibility(isVisible);
+    if (isVisible) {
+      unawaited(_updateActivity());
+      if (forceRefresh) {
+        messagesProvider.refreshAppPresence();
+      }
     }
   }
 
