@@ -342,6 +342,10 @@ export default function NexAlgoPage() {
   const [statusPromptProblemId, setStatusPromptProblemId] = useState<number | null>(null)
   const [editorDraft, setEditorDraft] = useState<QuestionEditorDraft>(createEmptyQuestionDraft())
   const menuPanelRef = useRef<HTMLDivElement>(null)
+  const problemListRef = useRef<HTMLDivElement>(null)
+  const detailPaneRef = useRef<HTMLElement>(null)
+  const [problemListScrolling, setProblemListScrolling] = useState(false)
+  const [detailPaneScrolling, setDetailPaneScrolling] = useState(false)
 
   useEffect(() => {
     const stored = window.localStorage.getItem(LANGUAGE_STORAGE_KEY) as LanguageKey | null
@@ -488,6 +492,87 @@ export default function NexAlgoPage() {
     document.addEventListener('mousedown', handleMouseDown)
     return () => document.removeEventListener('mousedown', handleMouseDown)
   }, [menuOpen])
+
+  useEffect(() => {
+    const problemList = problemListRef.current
+    const detailPane = detailPaneRef.current
+    let problemListTimer: number | null = null
+    let detailPaneTimer: number | null = null
+
+    const bindScrollIndicator = (
+      element: HTMLElement | null,
+      setScrolling: React.Dispatch<React.SetStateAction<boolean>>,
+      getTimer: () => number | null,
+      setTimer: (timer: number | null) => void,
+    ) => {
+      if (!element) return () => {}
+
+      const showIndicator = () => {
+        if (element.scrollHeight <= element.clientHeight) return
+        setScrolling(true)
+        const activeTimer = getTimer()
+        if (activeTimer) window.clearTimeout(activeTimer)
+        setTimer(window.setTimeout(() => setScrolling(false), 1000))
+      }
+
+      const scheduleHide = () => {
+        const activeTimer = getTimer()
+        if (activeTimer) window.clearTimeout(activeTimer)
+        setTimer(window.setTimeout(() => setScrolling(false), 1000))
+      }
+
+      const handleKeydown = (event: KeyboardEvent) => {
+        if (
+          ['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', 'Space'].includes(
+            event.code,
+          )
+        ) {
+          showIndicator()
+        }
+      }
+
+      element.addEventListener('scroll', showIndicator, { passive: true })
+      element.addEventListener('wheel', showIndicator, { passive: true })
+      element.addEventListener('touchmove', showIndicator, { passive: true })
+      element.addEventListener('mouseenter', showIndicator)
+      element.addEventListener('mouseleave', scheduleHide)
+      element.addEventListener('keydown', handleKeydown)
+
+      return () => {
+        element.removeEventListener('scroll', showIndicator)
+        element.removeEventListener('wheel', showIndicator)
+        element.removeEventListener('touchmove', showIndicator)
+        element.removeEventListener('mouseenter', showIndicator)
+        element.removeEventListener('mouseleave', scheduleHide)
+        element.removeEventListener('keydown', handleKeydown)
+      }
+    }
+
+    const cleanupProblemList = bindScrollIndicator(
+      problemList,
+      setProblemListScrolling,
+      () => problemListTimer,
+      (timer) => {
+        problemListTimer = timer
+      },
+    )
+
+    const cleanupDetailPane = bindScrollIndicator(
+      detailPane,
+      setDetailPaneScrolling,
+      () => detailPaneTimer,
+      (timer) => {
+        detailPaneTimer = timer
+      },
+    )
+
+    return () => {
+      cleanupProblemList()
+      cleanupDetailPane()
+      if (problemListTimer) window.clearTimeout(problemListTimer)
+      if (detailPaneTimer) window.clearTimeout(detailPaneTimer)
+    }
+  }, [problemsPaneMode, selectedProblemId])
 
   const isAdmin = !!userEmail && (config.adminEmails ?? []).includes(userEmail)
   const isEditor =
@@ -1130,7 +1215,11 @@ export default function NexAlgoPage() {
                 </div>
               </div>
 
-            <div className='nexalgo-problem-list'>
+            <div
+              ref={problemListRef}
+              className={`nexalgo-problem-list ${
+                problemListScrolling ? 'nexalgo-scroll-active' : ''
+              }`}>
               {visibleProblems.map((problem) => {
                 const status = statusForProblem(progressMap, problem.id)
                 const companyList =
@@ -1191,7 +1280,11 @@ export default function NexAlgoPage() {
           </section>
 
           {problemsPaneMode !== 'expanded' ? (
-          <section className='nexalgo-detail-pane'>
+          <section
+            ref={detailPaneRef}
+            className={`nexalgo-detail-pane ${
+              detailPaneScrolling ? 'nexalgo-scroll-active' : ''
+            }`}>
             {mergedProblem ? (
               <>
                 <div className='nexalgo-detail-title-row'>

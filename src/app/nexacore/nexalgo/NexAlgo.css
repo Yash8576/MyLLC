@@ -109,7 +109,7 @@
 
 .nexalgo-main {
   display: grid;
-  grid-template-columns: auto minmax(320px, 420px) minmax(0, 1fr);
+  grid-template-columns: auto auto minmax(0, 1fr);
   gap: 1rem;
   padding: 1rem;
   height: calc(100vh - 88px);
@@ -269,12 +269,15 @@
   min-height: 0;
   overflow: hidden;
   transition:
+    width 0.25s ease,
+    padding 0.25s ease,
     transform 0.25s ease,
     opacity 0.25s ease,
     box-shadow 0.25s ease;
 }
 
 .nexalgo-list-pane {
+  width: 420px;
   background: linear-gradient(180deg, #fbfcff 0%, #f4f7ff 100%);
 }
 
@@ -419,6 +422,44 @@
   overflow-y: auto;
   padding-top: 0.45rem;
   padding-right: 0.35rem;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.25s ease;
+}
+
+.nexalgo-problem-list::-webkit-scrollbar,
+.nexalgo-detail-pane::-webkit-scrollbar {
+  width: 8px;
+}
+
+.nexalgo-problem-list::-webkit-scrollbar-thumb,
+.nexalgo-detail-pane::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 999px;
+}
+
+.nexalgo-problem-list::-webkit-scrollbar-track,
+.nexalgo-detail-pane::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.nexalgo-problem-list.nexalgo-scroll-active,
+.nexalgo-detail-pane.nexalgo-scroll-active,
+.nexalgo-problem-list:hover,
+.nexalgo-detail-pane:hover,
+.nexalgo-problem-list:focus-within,
+.nexalgo-detail-pane:focus-within {
+  scrollbar-color: rgba(101, 86, 255, 0.38) transparent;
+}
+
+.nexalgo-problem-list.nexalgo-scroll-active::-webkit-scrollbar-thumb,
+.nexalgo-detail-pane.nexalgo-scroll-active::-webkit-scrollbar-thumb,
+.nexalgo-problem-list:hover::-webkit-scrollbar-thumb,
+.nexalgo-detail-pane:hover::-webkit-scrollbar-thumb,
+.nexalgo-problem-list:focus-within::-webkit-scrollbar-thumb,
+.nexalgo-detail-pane:focus-within::-webkit-scrollbar-thumb {
+  background: rgba(101, 86, 255, 0.38);
 }
 
 .nexalgo-problem-card {
@@ -462,7 +503,13 @@
 }
 
 .nexalgo-list-pane-minimized {
+  width: 86px;
   padding: 1rem 0.7rem;
+}
+
+.nexalgo-main-expanded .nexalgo-list-pane {
+  width: 100%;
+  min-width: 420px;
 }
 
 .nexalgo-list-pane-minimized .nexalgo-pane-head {
@@ -694,6 +741,10 @@
 .nexalgo-detail-pane {
   overflow-y: auto;
   padding-right: 1rem;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.25s ease;
 }
 
 .nexalgo-section {
