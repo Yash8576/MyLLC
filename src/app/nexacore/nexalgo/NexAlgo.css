@@ -281,6 +281,10 @@
   background: linear-gradient(180deg, #fbfcff 0%, #f4f7ff 100%);
 }
 
+.nexalgo-detail-pane {
+  padding: 0;
+}
+
 .nexalgo-pane-head {
   display: flex;
   align-items: flex-start;
@@ -373,6 +377,41 @@
   border: 1px solid rgba(101, 86, 255, 0.12);
   background: #f6faff;
   color: #222c44;
+}
+
+.nexalgo-difficulty-easy {
+  color: #16803c;
+  font-weight: 700;
+}
+
+.nexalgo-difficulty-medium {
+  color: #d97706;
+  font-weight: 700;
+}
+
+.nexalgo-difficulty-hard {
+  color: #c53030;
+  font-weight: 700;
+}
+
+.nexalgo-status-unvisited {
+  color: #6b7280;
+  font-weight: 700;
+}
+
+.nexalgo-status-visited {
+  color: #2563eb;
+  font-weight: 700;
+}
+
+.nexalgo-status-attempted {
+  color: #d97706;
+  font-weight: 700;
+}
+
+.nexalgo-status-solved {
+  color: #16803c;
+  font-weight: 700;
 }
 
 .nexalgo-chip-grid {
@@ -662,11 +701,54 @@
   margin-bottom: 0.6rem;
 }
 
+.nexalgo-detail-sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: grid;
+  gap: 0.85rem;
+  margin-bottom: 0;
+  margin-top: 0;
+  padding: 1rem 1.3rem 0.95rem;
+  background: linear-gradient(180deg, rgba(244, 247, 255, 1) 0%, rgba(244, 247, 255, 0.98) 84%, rgba(244, 247, 255, 0.92) 100%);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 18px rgba(244, 247, 255, 0.96);
+}
+
+.nexalgo-detail-anchor-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.nexalgo-detail-anchor-btn {
+  border: 1px solid rgba(101, 86, 255, 0.14);
+  border-radius: 999px;
+  padding: 0.5rem 0.85rem;
+  background: rgba(255, 255, 255, 0.92);
+  color: #4c47b8;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 10px 18px rgba(101, 86, 255, 0.08);
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.nexalgo-detail-anchor-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(101, 86, 255, 0.28);
+  background: #ffffff;
+}
+
 .nexalgo-detail-status-block {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
   gap: 0.65rem;
-  flex-shrink: 0;
 }
 
 .nexalgo-status-pill {
@@ -683,11 +765,28 @@
   box-shadow: none;
 }
 
-.nexalgo-status-pill.unvisited,
-.nexalgo-status-pill.visited,
-.nexalgo-status-pill.attempted,
+.nexalgo-status-pill.unvisited {
+  color: #6b7280;
+  background: rgba(107, 114, 128, 0.12);
+  border-color: rgba(107, 114, 128, 0.2);
+}
+
+.nexalgo-status-pill.visited {
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.12);
+  border-color: rgba(37, 99, 235, 0.2);
+}
+
+.nexalgo-status-pill.attempted {
+  color: #d97706;
+  background: rgba(217, 119, 6, 0.12);
+  border-color: rgba(217, 119, 6, 0.2);
+}
+
 .nexalgo-status-pill.solved {
-  color: #6556ff;
+  color: #16803c;
+  background: rgba(22, 128, 60, 0.12);
+  border-color: rgba(22, 128, 60, 0.2);
 }
 
 .nexalgo-detail-actions,
@@ -739,12 +838,22 @@
 }
 
 .nexalgo-detail-pane {
+  position: relative;
   overflow-y: auto;
-  padding-right: 1rem;
+  padding-right: 0;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
   transition: scrollbar-color 0.25s ease;
+}
+
+.nexalgo-detail-body {
+  padding: 1.3rem;
+}
+
+.nexalgo-detail-tail-spacer {
+  width: 100%;
+  flex: 0 0 auto;
 }
 
 .nexalgo-section {
@@ -756,6 +865,45 @@
 
 .nexalgo-section h3 {
   margin-bottom: 0.7rem;
+}
+
+.nexalgo-section-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: none;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.nexalgo-section-toggle h3 {
+  margin-bottom: 0;
+}
+
+.nexalgo-section-toggle-icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: #6556ff;
+  background: rgba(101, 86, 255, 0.08);
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.nexalgo-section-toggle-icon svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.nexalgo-section-toggle-icon.expanded {
+  transform: rotate(180deg);
+  background: rgba(101, 86, 255, 0.14);
 }
 
 .nexalgo-section p {
@@ -773,6 +921,10 @@
   flex-wrap: wrap;
   gap: 0.45rem;
   margin-top: 0.75rem;
+}
+
+.nexalgo-problem-card .nexalgo-meta-line:first-of-type {
+  display: none;
 }
 
 .nexalgo-code-tabs {

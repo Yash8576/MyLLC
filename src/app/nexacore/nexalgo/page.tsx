@@ -24,6 +24,15 @@ type LanguageKey = 'python' | 'java' | 'cpp'
 type NavMode = 'number' | 'company' | 'topic'
 type ProblemStatus = 'unvisited' | 'visited' | 'attempted' | 'solved'
 type ProblemsPaneMode = 'normal' | 'expanded' | 'minimized'
+type DetailSectionKey =
+  | 'solve'
+  | 'hints'
+  | 'topics'
+  | 'intuition'
+  | 'code'
+  | 'walkthrough'
+  | 'complexity'
+  | 'companies'
 
 type SeedProblem = {
   id: number
@@ -112,12 +121,38 @@ const STATUS_LABELS: Record<ProblemStatus, string> = {
 const PROBLEMS_PER_PAGE = 50
 const RETURN_PROMPT_KEY = 'nexalgoPendingReturnProblem'
 const LANGUAGE_STORAGE_KEY = 'nexalgoDefaultLanguage'
+const DETAIL_SECTION_LABELS: Array<{ key: DetailSectionKey; label: string }> = [
+  { key: 'solve', label: 'Solve' },
+  { key: 'hints', label: 'Hints' },
+  { key: 'topics', label: 'Topics' },
+  { key: 'intuition', label: 'Intuition' },
+  { key: 'code', label: 'Code' },
+  { key: 'walkthrough', label: 'Code walkthrough' },
+  { key: 'complexity', label: 'Complexity analysis' },
+  { key: 'companies', label: 'Companies' },
+]
 
 function statusForProblem(
   progressMap: Record<string, ProblemProgress>,
   problemId: number,
 ): ProblemStatus {
   return progressMap[String(problemId)]?.status ?? 'unvisited'
+}
+
+function difficultyToneClass(difficulty: string) {
+  const normalized = difficulty.trim().toLowerCase()
+  if (normalized === 'easy') return 'nexalgo-difficulty-easy'
+  if (normalized === 'medium') return 'nexalgo-difficulty-medium'
+  if (normalized === 'hard') return 'nexalgo-difficulty-hard'
+  return ''
+}
+
+function statusToneClass(status: ProblemStatus) {
+  if (status === 'unvisited') return 'nexalgo-status-unvisited'
+  if (status === 'visited') return 'nexalgo-status-visited'
+  if (status === 'attempted') return 'nexalgo-status-attempted'
+  if (status === 'solved') return 'nexalgo-status-solved'
+  return ''
 }
 
 function escapeCode(text: string) {
@@ -344,8 +379,21 @@ export default function NexAlgoPage() {
   const menuPanelRef = useRef<HTMLDivElement>(null)
   const problemListRef = useRef<HTMLDivElement>(null)
   const detailPaneRef = useRef<HTMLElement>(null)
+  const detailStickyHeaderRef = useRef<HTMLDivElement>(null)
+  const detailSectionRefs = useRef<Record<DetailSectionKey, HTMLElement | null>>({
+    solve: null,
+    hints: null,
+    topics: null,
+    intuition: null,
+    code: null,
+    walkthrough: null,
+    complexity: null,
+    companies: null,
+  })
   const [problemListScrolling, setProblemListScrolling] = useState(false)
   const [detailPaneScrolling, setDetailPaneScrolling] = useState(false)
+  const [topicsExpanded, setTopicsExpanded] = useState(false)
+  const [detailTailSpacerHeight, setDetailTailSpacerHeight] = useState(0)
 
   useEffect(() => {
     const stored = window.localStorage.getItem(LANGUAGE_STORAGE_KEY) as LanguageKey | null
@@ -367,6 +415,70 @@ export default function NexAlgoPage() {
 
     return () => unsubscribe()
   }, [])
+
+  useEffect(() => {
+    setTopicsExpanded(false)
+  }, [selectedProblemId])
+
+  useEffect(() => {
+    function updateDetailTailSpacer() {
+      const pane = detailPaneRef.current
+      const stickyHeader = detailStickyHeaderRef.current
+      if (!pane || !stickyHeader) return
+
+      const nextHeight = Math.max(
+        120,
+        pane.clientHeight - stickyHeader.offsetHeight - 64,
+      )
+      setDetailTailSpacerHeight(nextHeight)
+    }
+
+    updateDetailTailSpacer()
+    window.addEventListener('resize', updateDetailTailSpacer)
+
+    return () => window.removeEventListener('resize', updateDetailTailSpacer)
+  }, [selectedProblemId, topicsExpanded, selectedLanguage, statusMenuOpen])
+
+  function performDetailSectionScroll(section: DetailSectionKey) {
+    const pane = detailPaneRef.current
+    if (!pane) return
+
+    if (section === 'solve') {
+      pane.scrollTo({
+        top: 0,
+        behavior: 'smooth',
+      })
+      return
+    }
+
+    const target = detailSectionRefs.current[section]
+    if (!target) return
+
+    const paneRect = pane.getBoundingClientRect()
+    const targetRect = target.getBoundingClientRect()
+    const stickyHeaderHeight = detailStickyHeaderRef.current?.offsetHeight ?? 0
+    const nextTop =
+      pane.scrollTop + (targetRect.top - paneRect.top) - stickyHeaderHeight - 12
+
+    pane.scrollTo({
+      top: Math.max(0, nextTop),
+      behavior: 'smooth',
+    })
+  }
+
+  function scrollToDetailSection(section: DetailSectionKey) {
+    if (section === 'topics' && !topicsExpanded) {
+      setTopicsExpanded(true)
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          performDetailSectionScroll('topics')
+        })
+      })
+      return
+    }
+
+    performDetailSectionScroll(section)
+  }
 
   useEffect(() => {
     if (!userEmail) {
@@ -1248,6 +1360,12 @@ export default function NexAlgoPage() {
                           {problem.topics.slice(0, 2).join(', ')} • {problem.difficulty} •{' '}
                           {STATUS_LABELS[status]}
                         </p>
+                        <p className='nexalgo-meta-line nexalgo-problem-card-status'>
+                          <span className={difficultyToneClass(problem.difficulty)}>
+                            {problem.difficulty}
+                          </span>{' '}
+                          - <span className={statusToneClass(status)}>{STATUS_LABELS[status]}</span>
+                        </p>
                         <p className='nexalgo-meta-line'>{companyList}</p>
                       </>
                     )}
@@ -1287,15 +1405,28 @@ export default function NexAlgoPage() {
             }`}>
             {mergedProblem ? (
               <>
-                <div className='nexalgo-detail-title-row'>
-                  <div>
-                    <h2>
-                      {mergedProblem.id}. {mergedProblem.title}
-                    </h2>
+                <div ref={detailStickyHeaderRef} className='nexalgo-detail-sticky-header'>
+                  <div className='nexalgo-detail-anchor-bar'>
+                    {DETAIL_SECTION_LABELS.map((section) => (
+                      <button
+                        type='button'
+                        key={section.key}
+                        className='nexalgo-detail-anchor-btn'
+                        onClick={() => scrollToDetailSection(section.key)}>
+                        {section.label}
+                      </button>
+                    ))}
                   </div>
                   <div
                     className='nexalgo-detail-status-block'
                     onMouseLeave={() => setStatusMenuOpen(false)}>
+                    <span
+                      className={`nexalgo-status-pill ${statusForProblem(
+                        progressMap,
+                        mergedProblem.id,
+                      )}`}>
+                      {STATUS_LABELS[statusForProblem(progressMap, mergedProblem.id)]}
+                    </span>
                     <div className='nexalgo-status-menu'>
                       <button
                         type='button'
@@ -1332,29 +1463,35 @@ export default function NexAlgoPage() {
                         </div>
                       ) : null}
                     </div>
-                    <span
-                      className={`nexalgo-status-pill ${statusForProblem(
-                        progressMap,
-                        mergedProblem.id,
-                      )}`}>
-                      {STATUS_LABELS[statusForProblem(progressMap, mergedProblem.id)]}
-                    </span>
                   </div>
                 </div>
 
-                {isEditor ? (
-                  <div className='nexalgo-detail-actions'>
-                    <button
-                      type='button'
-                      className='nexalgo-save-btn'
-                      onClick={() => openQuestionEditor('edit')}>
-                      Edit question
-                    </button>
+                <div className='nexalgo-detail-body'>
+                  <div className='nexalgo-detail-title-row'>
+                    <div>
+                      <h2>
+                        {mergedProblem.id}. {mergedProblem.title}
+                      </h2>
+                    </div>
                   </div>
-                ) : null}
+
+                  {isEditor ? (
+                    <div className='nexalgo-detail-actions'>
+                      <button
+                        type='button'
+                        className='nexalgo-save-btn'
+                        onClick={() => openQuestionEditor('edit')}>
+                        Edit question
+                      </button>
+                    </div>
+                  ) : null}
 
                   <div className='nexalgo-detail-sections'>
-                    <section className='nexalgo-section'>
+                    <section
+                      ref={(node) => {
+                        detailSectionRefs.current.solve = node
+                      }}
+                      className='nexalgo-section'>
                     <h3>Solve</h3>
                     <div className='nexalgo-solve-grid'>
                       {solveLinks.map((solveLink) => (
@@ -1405,7 +1542,11 @@ export default function NexAlgoPage() {
                       </button>
                     </section>
 
-                  <section className='nexalgo-section'>
+                  <section
+                    ref={(node) => {
+                      detailSectionRefs.current.hints = node
+                    }}
+                    className='nexalgo-section'>
                     <h3>Hints</h3>
                     {mergedProblem.hints.length > 0 ? (
                       <ul>
@@ -1418,27 +1559,65 @@ export default function NexAlgoPage() {
                       )}
                   </section>
 
-                  <section className='nexalgo-section'>
-                    <h3>Topics</h3>
-                    <div className='nexalgo-topic-row'>
-                      {mergedProblem.topics.map((topic) => (
-                        <button
-                          type='button'
-                          key={topic}
-                          className='nexalgo-chip nexalgo-chip-button'
-                          onClick={() => jumpToFilter('topic', topic)}>
-                          {topic}
-                        </button>
-                      ))}
-                    </div>
+                  <section
+                    ref={(node) => {
+                      detailSectionRefs.current.topics = node
+                    }}
+                    className='nexalgo-section'>
+                    <button
+                      type='button'
+                      className='nexalgo-section-toggle'
+                      onClick={() => setTopicsExpanded((current) => !current)}
+                      aria-expanded={topicsExpanded}>
+                      <h3>Topics</h3>
+                      <span
+                        className={`nexalgo-section-toggle-icon ${
+                          topicsExpanded ? 'expanded' : ''
+                        }`}
+                        aria-hidden='true'>
+                        <svg
+                          viewBox='0 0 24 24'
+                          fill='none'
+                          xmlns='http://www.w3.org/2000/svg'>
+                          <path
+                            d='M6 9L12 15L18 9'
+                            stroke='currentColor'
+                            strokeWidth='2'
+                            strokeLinecap='round'
+                            strokeLinejoin='round'
+                          />
+                        </svg>
+                      </span>
+                    </button>
+                    {topicsExpanded ? (
+                      <div className='nexalgo-topic-row'>
+                        {mergedProblem.topics.map((topic) => (
+                          <button
+                            type='button'
+                            key={topic}
+                            className='nexalgo-chip nexalgo-chip-button'
+                            onClick={() => jumpToFilter('topic', topic)}>
+                            {topic}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
                   </section>
 
-                  <section className='nexalgo-section'>
+                  <section
+                    ref={(node) => {
+                      detailSectionRefs.current.intuition = node
+                    }}
+                    className='nexalgo-section'>
                     <h3>Intuition</h3>
                     <p>{mergedProblem.intuition || 'Editor intuition coming soon.'}</p>
                   </section>
 
-                  <section className='nexalgo-section'>
+                  <section
+                    ref={(node) => {
+                      detailSectionRefs.current.code = node
+                    }}
+                    className='nexalgo-section'>
                     <h3>Code</h3>
                     <div className='nexalgo-code-tabs'>
                       {LANGUAGE_OPTIONS.map((option) => (
@@ -1460,17 +1639,29 @@ export default function NexAlgoPage() {
                     />
                   </section>
 
-                  <section className='nexalgo-section'>
+                  <section
+                    ref={(node) => {
+                      detailSectionRefs.current.walkthrough = node
+                    }}
+                    className='nexalgo-section'>
                     <h3>Code walk through</h3>
                     <p>{mergedProblem.walkthrough || 'Editor walkthrough coming soon.'}</p>
                   </section>
 
-                  <section className='nexalgo-section'>
+                  <section
+                    ref={(node) => {
+                      detailSectionRefs.current.complexity = node
+                    }}
+                    className='nexalgo-section'>
                     <h3>Complexity analysis</h3>
                     <p>{mergedProblem.complexity || 'Editor complexity notes coming soon.'}</p>
                   </section>
 
-                  <section className='nexalgo-section'>
+                  <section
+                    ref={(node) => {
+                      detailSectionRefs.current.companies = node
+                    }}
+                    className='nexalgo-section'>
                     <h3>Companies</h3>
                     <div className='nexalgo-company-row'>
                       {(mergedProblem.companies.length > 0
@@ -1487,6 +1678,12 @@ export default function NexAlgoPage() {
                       ))}
                     </div>
                   </section>
+                  <div
+                    className='nexalgo-detail-tail-spacer'
+                    aria-hidden='true'
+                    style={{ height: `${detailTailSpacerHeight}px` }}
+                  />
+                </div>
                 </div>
 
               </>
