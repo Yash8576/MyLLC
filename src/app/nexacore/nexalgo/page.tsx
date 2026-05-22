@@ -1108,19 +1108,19 @@ export default function NexAlgoPage() {
                     onClick={() => setProblemsPaneMode('normal')}>
                     Minimize
                   </button>
-                ) : (
-                  <>
-                    <button
-                      type='button'
-                      className='nexalgo-pane-toggle'
-                      onClick={() => setProblemsPaneMode('minimized')}>
-                      Minimize
-                    </button>
-                    <button
-                      type='button'
-                      className='nexalgo-pane-toggle'
-                      onClick={() => setProblemsPaneMode('expanded')}>
-                      Expand
+                  ) : (
+                    <>
+                      <button
+                        type='button'
+                        className='nexalgo-pane-toggle'
+                        onClick={() => setProblemsPaneMode('expanded')}>
+                        Expand
+                      </button>
+                      <button
+                        type='button'
+                        className='nexalgo-pane-toggle'
+                        onClick={() => setProblemsPaneMode('minimized')}>
+                        Minimize
                       </button>
                     </>
                   )}

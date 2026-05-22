@@ -41,6 +41,7 @@ next-env.d.ts
 /BuzzCart1/
 .tooling/
 /public/buzzcart/
+/.codex-main-publish/
 
 # monorepo project artifacts
 projects/**/.env

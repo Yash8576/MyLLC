@@ -114,6 +114,7 @@
   padding: 1rem;
   height: calc(100vh - 88px);
   overflow: hidden;
+  transition: grid-template-columns 0.25s ease;
 }
 
 .nexalgo-main-expanded {
@@ -267,6 +268,10 @@
   padding: 1.3rem;
   min-height: 0;
   overflow: hidden;
+  transition:
+    transform 0.25s ease,
+    opacity 0.25s ease,
+    box-shadow 0.25s ease;
 }
 
 .nexalgo-list-pane {
