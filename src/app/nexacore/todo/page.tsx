@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import './TodoApp.css'
 import Login from './Login'
 import Signup from './Signup'
-import { auth, db } from './firebase'
+import { auth, db } from '../shared/firebase'
 import { 
     onAuthStateChanged, 
     signOut 

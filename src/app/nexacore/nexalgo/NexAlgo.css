@@ -1,0 +1,1144 @@
+.nexalgo-shell {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(101, 86, 255, 0.08), transparent 34%),
+    linear-gradient(180deg, #ffffff 0%, #f6faff 50%, #ffffff 100%);
+  color: #222c44;
+}
+
+.nexalgo-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  backdrop-filter: blur(18px);
+  background: rgba(255, 255, 255, 0.94);
+  border-bottom: 1px solid rgba(101, 86, 255, 0.1);
+}
+
+.nexalgo-topbar-left,
+.nexalgo-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.nexalgo-topbar-left {
+  justify-content: flex-start;
+}
+
+.nexalgo-topbar-right {
+  justify-content: flex-end;
+}
+
+.nexalgo-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  border-radius: 999px;
+  background: rgba(101, 86, 255, 0.08);
+  border: 1px solid rgba(101, 86, 255, 0.16);
+  color: #6556ff;
+  text-decoration: none;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.nexalgo-back-link:hover {
+  transform: translateX(-2px);
+  background: rgba(101, 86, 255, 0.14);
+}
+
+.nexalgo-brand {
+  text-align: center;
+}
+
+.nexalgo-brand h1 {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #222c44;
+}
+
+.nexalgo-brand p {
+  margin: 0.15rem 0 0;
+  color: #6556ff;
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.nexalgo-hamburger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  border: 1px solid rgba(101, 86, 255, 0.14);
+  background: #ffffff;
+  color: #6556ff;
+  cursor: pointer;
+  box-shadow: 0 16px 30px rgba(26, 33, 188, 0.08);
+}
+
+.nexalgo-hamburger span,
+.nexalgo-hamburger span::before,
+.nexalgo-hamburger span::after {
+  display: block;
+  width: 18px;
+  height: 2px;
+  background: currentColor;
+  border-radius: 999px;
+  content: '';
+}
+
+.nexalgo-hamburger span::before {
+  transform: translateY(-6px);
+}
+
+.nexalgo-hamburger span::after {
+  transform: translateY(4px);
+}
+
+.nexalgo-main {
+  display: grid;
+  grid-template-columns: auto minmax(320px, 420px) minmax(0, 1fr);
+  gap: 1rem;
+  padding: 1rem;
+  height: calc(100vh - 88px);
+  overflow: hidden;
+}
+
+.nexalgo-main-expanded {
+  grid-template-columns: auto minmax(420px, 1fr);
+}
+
+.nexalgo-main-minimized {
+  grid-template-columns: auto 86px minmax(0, 1fr);
+}
+
+.nexalgo-sidebar,
+.nexalgo-list-pane,
+.nexalgo-detail-pane,
+.nexalgo-auth-card,
+.nexalgo-menu-panel,
+.nexalgo-modal-card {
+  border: 1px solid rgba(101, 86, 255, 0.1);
+  background: #ffffff;
+  box-shadow: 0 24px 50px rgba(26, 33, 188, 0.08);
+}
+
+.nexalgo-sidebar {
+  width: 86px;
+  padding: 1rem 0.8rem;
+  border-radius: 24px;
+  transition: width 0.25s ease;
+  align-self: stretch;
+}
+
+.nexalgo-sidebar.expanded {
+  width: 220px;
+}
+
+.nexalgo-sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.nexalgo-sidebar:not(.expanded) .nexalgo-sidebar-header {
+  justify-content: center;
+}
+
+.nexalgo-sidebar.expanded .nexalgo-sidebar-header {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.nexalgo-sidebar-header button,
+.nexalgo-chip-grid button,
+.nexalgo-pagination button,
+.nexalgo-auth-switch,
+.nexalgo-inline-btn,
+.nexalgo-save-btn,
+.nexalgo-secondary-btn,
+.nexalgo-danger-btn,
+.nexalgo-status-action,
+.nexalgo-link-btn {
+  cursor: pointer;
+}
+
+.nexalgo-icon-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  border-radius: 14px;
+  border: 1px solid rgba(101, 86, 255, 0.2);
+  background: linear-gradient(180deg, #ffffff 0%, #eef3ff 100%);
+  color: #6556ff;
+  padding: 0 0.9rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+  box-shadow: 0 10px 22px rgba(101, 86, 255, 0.08);
+}
+
+.nexalgo-sidebar:not(.expanded) .nexalgo-icon-toggle {
+  padding: 0 0.55rem;
+  font-size: 0.72rem;
+}
+
+.nexalgo-sidebar.expanded .nexalgo-icon-toggle {
+  width: auto;
+  min-width: 104px;
+  padding: 0 0.9rem;
+}
+
+.nexalgo-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.nexalgo-nav button {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  padding: 0.9rem 0.85rem;
+  border-radius: 18px;
+  border: 1px solid rgba(101, 86, 255, 0.08);
+  background: #ffffff;
+  color: #222c44;
+  text-align: left;
+}
+
+.nexalgo-nav button.active {
+  background: rgba(101, 86, 255, 0.08);
+  border-color: rgba(101, 86, 255, 0.2);
+  color: #6556ff;
+}
+
+.nexalgo-nav-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.nexalgo-sidebar:not(.expanded) .nexalgo-nav button {
+  justify-content: center;
+  padding-inline: 0.5rem;
+}
+
+.nexalgo-sidebar:not(.expanded) .nexalgo-nav-icon {
+  min-width: 0;
+  width: 100%;
+}
+
+.nexalgo-nav-icon svg {
+  width: 1.2rem;
+  height: 1.2rem;
+  display: block;
+}
+
+.nexalgo-list-pane,
+.nexalgo-detail-pane {
+  display: flex;
+  flex-direction: column;
+  border-radius: 28px;
+  padding: 1.3rem;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.nexalgo-list-pane {
+  background: linear-gradient(180deg, #fbfcff 0%, #f4f7ff 100%);
+}
+
+.nexalgo-pane-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.nexalgo-pane-head > div:first-child {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.nexalgo-pane-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.55rem;
+  justify-content: flex-start;
+  flex-shrink: 0;
+}
+
+.nexalgo-pane-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(101, 86, 255, 0.2);
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffffff 0%, #eef3ff 100%);
+  color: #6556ff;
+  padding: 0.58rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 0 10px 22px rgba(101, 86, 255, 0.08);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.nexalgo-pane-toggle:hover,
+.nexalgo-secondary-btn:hover,
+.nexalgo-link-btn:hover,
+.nexalgo-icon-toggle:hover {
+  transform: translateY(-1px);
+  border-color: rgba(101, 86, 255, 0.3);
+  box-shadow: 0 14px 28px rgba(101, 86, 255, 0.12);
+}
+
+.nexalgo-pane-head h2,
+.nexalgo-detail-title-row h2,
+.nexalgo-auth-card h2,
+.nexalgo-menu-panel h3,
+.nexalgo-section h3,
+.nexalgo-editor h3 {
+  margin: 0;
+}
+
+.nexalgo-pane-head p,
+.nexalgo-muted,
+.nexalgo-meta-line,
+.nexalgo-status-row,
+.nexalgo-section p,
+.nexalgo-section li,
+.nexalgo-detail-subcopy {
+  color: rgba(34, 44, 68, 0.72);
+}
+
+.nexalgo-pane-filter {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 0;
+}
+
+.nexalgo-filter-label {
+  color: rgba(34, 44, 68, 0.72);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.nexalgo-pane-filter select {
+  width: min(260px, 100%);
+  padding: 0.7rem 0.9rem;
+  border-radius: 16px;
+  border: 1px solid rgba(101, 86, 255, 0.12);
+  background: #f6faff;
+  color: #222c44;
+}
+
+.nexalgo-chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-bottom: 1rem;
+}
+
+.nexalgo-chip-grid button,
+.nexalgo-chip {
+  padding: 0.5rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(101, 86, 255, 0.1);
+  background: #f6faff;
+  color: #6556ff;
+  font-size: 0.85rem;
+}
+
+.nexalgo-chip-button {
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.nexalgo-chip-button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(101, 86, 255, 0.24);
+  background: rgba(101, 86, 255, 0.12);
+  box-shadow: 0 10px 20px rgba(101, 86, 255, 0.08);
+}
+
+.nexalgo-chip-grid button.active {
+  background: rgba(101, 86, 255, 0.12);
+  border-color: rgba(101, 86, 255, 0.22);
+}
+
+.nexalgo-problem-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-top: 0.45rem;
+  padding-right: 0.35rem;
+}
+
+.nexalgo-problem-card {
+  width: 100%;
+  padding: 1rem 1rem 1rem 1.05rem;
+  border-radius: 22px;
+  border: 1px solid rgba(101, 86, 255, 0.18);
+  background: rgba(255, 255, 255, 0.96);
+  color: #222c44;
+  text-align: left;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+  box-shadow: 0 10px 24px rgba(101, 86, 255, 0.06);
+}
+
+.nexalgo-problem-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(101, 86, 255, 0.28);
+  background: #ffffff;
+  box-shadow: 0 18px 34px rgba(101, 86, 255, 0.12);
+}
+
+.nexalgo-problem-card.active {
+  transform: translateY(-1px);
+  border-color: rgba(101, 86, 255, 0.42);
+  background: linear-gradient(180deg, rgba(101, 86, 255, 0.1) 0%, rgba(255, 255, 255, 0.98) 100%);
+  box-shadow: 0 18px 34px rgba(101, 86, 255, 0.16);
+}
+
+.nexalgo-problem-card h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.nexalgo-problem-card p {
+  margin: 0;
+}
+
+.nexalgo-list-pane-minimized {
+  padding: 1rem 0.7rem;
+}
+
+.nexalgo-list-pane-minimized .nexalgo-pane-head {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.nexalgo-list-pane-minimized .nexalgo-pane-head h2 {
+  font-size: 0.95rem;
+  line-height: 1.15;
+}
+
+.nexalgo-list-pane-minimized .nexalgo-detail-subcopy,
+.nexalgo-list-pane-minimized .nexalgo-status-pill {
+  display: none;
+}
+
+.nexalgo-list-pane-minimized .nexalgo-pane-controls {
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
+.nexalgo-list-pane-normal .nexalgo-pane-toggle {
+  min-width: 120px;
+  text-align: center;
+}
+
+.nexalgo-items-pill {
+  align-self: flex-end;
+}
+
+.nexalgo-list-pane-normal .nexalgo-pane-head h2 {
+  font-size: 2.4rem;
+  line-height: 1.05;
+}
+
+.nexalgo-list-pane-minimized .nexalgo-problem-list {
+  padding-right: 0;
+  align-items: center;
+}
+
+.nexalgo-problem-card-minimized {
+  width: 100%;
+  min-height: 60px;
+  padding: 0.85rem 0.25rem;
+  text-align: center;
+  border-radius: 18px;
+}
+
+.nexalgo-problem-card-minimized:hover,
+.nexalgo-problem-card-minimized.active {
+  transform: none;
+}
+
+.nexalgo-problem-number-only {
+  display: block;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #6556ff;
+}
+
+.nexalgo-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.nexalgo-pagination button,
+.nexalgo-inline-btn,
+.nexalgo-save-btn,
+.nexalgo-secondary-btn,
+.nexalgo-danger-btn,
+.nexalgo-status-action,
+.nexalgo-link-btn,
+.nexalgo-auth-card button {
+  border: none;
+  border-radius: 16px;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+}
+
+.nexalgo-pagination button,
+.nexalgo-secondary-btn,
+.nexalgo-inline-btn,
+.nexalgo-link-btn {
+  background: linear-gradient(180deg, #ffffff 0%, #eef3ff 100%);
+  color: #6556ff;
+  border: 1px solid rgba(101, 86, 255, 0.2);
+  box-shadow: 0 10px 22px rgba(101, 86, 255, 0.08);
+}
+
+.nexalgo-save-btn,
+.nexalgo-status-action.primary,
+.nexalgo-auth-card button {
+  background: #6556ff;
+  color: #ffffff;
+}
+
+.nexalgo-external-link {
+  display: none;
+}
+
+.nexalgo-solve-grid {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+}
+
+.nexalgo-solve-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: fit-content;
+  min-width: 0;
+  padding: 0.95rem 1rem;
+  border: 1px solid rgba(101, 86, 255, 0.14);
+  border-radius: 18px;
+  background: linear-gradient(180deg, #f8faff 0%, #eef3ff 100%);
+  color: #6556ff;
+  cursor: pointer;
+  text-align: left;
+}
+
+.nexalgo-solve-card-label {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.nexalgo-external-arrow {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex-shrink: 0;
+}
+
+.nexalgo-danger-btn {
+  background: rgba(101, 86, 255, 0.08);
+  color: #6556ff;
+  border: 1px solid rgba(101, 86, 255, 0.1);
+}
+
+.nexalgo-detail-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.6rem;
+}
+
+.nexalgo-detail-status-block {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  flex-shrink: 0;
+}
+
+.nexalgo-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: rgba(101, 86, 255, 0.08);
+  border: 1px solid rgba(101, 86, 255, 0.08);
+  box-shadow: none;
+}
+
+.nexalgo-status-pill.unvisited,
+.nexalgo-status-pill.visited,
+.nexalgo-status-pill.attempted,
+.nexalgo-status-pill.solved {
+  color: #6556ff;
+}
+
+.nexalgo-detail-actions,
+.nexalgo-status-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 1rem 0 1.25rem;
+}
+
+.nexalgo-status-menu {
+  position: relative;
+  padding-bottom: 0.5rem;
+  margin-bottom: -0.5rem;
+}
+
+.nexalgo-status-menu-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 5;
+  display: grid;
+  min-width: 200px;
+  padding: 0.45rem;
+  border: 1px solid rgba(101, 86, 255, 0.12);
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 18px 34px rgba(101, 86, 255, 0.14);
+}
+
+.nexalgo-status-menu-item {
+  border: none;
+  border-radius: 14px;
+  padding: 0.7rem 0.85rem;
+  background: transparent;
+  color: #222c44;
+  text-align: left;
+  cursor: pointer;
+}
+
+.nexalgo-status-menu-item:hover {
+  background: rgba(101, 86, 255, 0.08);
+  color: #6556ff;
+}
+
+.nexalgo-detail-sections {
+  display: grid;
+  gap: 1rem;
+}
+
+.nexalgo-detail-pane {
+  overflow-y: auto;
+  padding-right: 1rem;
+}
+
+.nexalgo-section {
+  padding: 1rem;
+  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid rgba(101, 86, 255, 0.08);
+}
+
+.nexalgo-section h3 {
+  margin-bottom: 0.7rem;
+}
+
+.nexalgo-section p {
+  margin: 0;
+}
+
+.nexalgo-section ul {
+  padding-left: 1.1rem;
+  margin: 0.75rem 0 0;
+}
+
+.nexalgo-topic-row,
+.nexalgo-company-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+}
+
+.nexalgo-code-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.85rem;
+}
+
+.nexalgo-code-tabs button {
+  border: 1px solid rgba(101, 86, 255, 0.1);
+  border-radius: 999px;
+  padding: 0.45rem 0.85rem;
+  background: #f6faff;
+  color: #6556ff;
+}
+
+.nexalgo-code-tabs button.active {
+  background: rgba(101, 86, 255, 0.12);
+  border-color: rgba(101, 86, 255, 0.22);
+}
+
+.nexalgo-code-block {
+  margin-top: 1rem;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(101, 86, 255, 0.1);
+  background: #ffffff;
+}
+
+.nexalgo-code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid rgba(101, 86, 255, 0.08);
+  background: #f6faff;
+  color: #6556ff;
+  font-size: 0.85rem;
+}
+
+.nexalgo-code-copy-btn {
+  border: 1px solid rgba(101, 86, 255, 0.14);
+  border-radius: 999px;
+  padding: 0.4rem 0.8rem;
+  background: #ffffff;
+  color: #6556ff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.nexalgo-code-body {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  overflow-x: auto;
+}
+
+.nexalgo-code-lines {
+  padding: 1rem 0.75rem;
+  text-align: right;
+  color: #94a3b8;
+  background: #f6faff;
+  user-select: none;
+}
+
+.nexalgo-code-content {
+  margin: 0;
+  padding: 1rem;
+  color: #222c44;
+  background: #ffffff;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 0.92rem;
+  line-height: 1.65;
+  white-space: pre;
+}
+
+.nexalgo-code-keyword {
+  color: #6556ff;
+}
+
+.nexalgo-code-string {
+  color: #1a21bc;
+}
+
+.nexalgo-code-number {
+  color: #6556ff;
+}
+
+.nexalgo-code-comment {
+  color: #94a3b8;
+}
+
+.nexalgo-auth-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 2.5rem 1rem 3rem;
+}
+
+.nexalgo-auth-card {
+  width: min(680px, 100%);
+  border-radius: 30px;
+  padding: 2rem;
+}
+
+.nexalgo-auth-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 1.5rem;
+}
+
+.nexalgo-auth-copy {
+  padding: 1rem;
+}
+
+.nexalgo-auth-copy h2 {
+  font-size: 2rem;
+  margin-bottom: 0.85rem;
+}
+
+.nexalgo-auth-form {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.nexalgo-auth-form input,
+.nexalgo-auth-form select,
+.nexalgo-editor textarea,
+.nexalgo-editor input,
+.nexalgo-menu-panel input,
+.nexalgo-menu-panel select {
+  width: 100%;
+  padding: 0.85rem 0.95rem;
+  border-radius: 16px;
+  border: 1px solid rgba(101, 86, 255, 0.1);
+  background: #ffffff;
+  color: #222c44;
+}
+
+.nexalgo-auth-switch {
+  border: none;
+  padding: 0;
+  background: transparent;
+  color: #6556ff;
+  text-align: left;
+  font-weight: 600;
+}
+
+.nexalgo-message {
+  margin: 0;
+  color: #6556ff;
+}
+
+.nexalgo-error {
+  margin: 0;
+  color: #6556ff;
+}
+
+.nexalgo-menu-scrim,
+.nexalgo-modal-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(101, 86, 255, 0.1);
+  backdrop-filter: blur(8px);
+}
+
+.nexalgo-menu-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 61;
+  width: min(380px, 100%);
+  height: 100vh;
+  overflow-y: auto;
+  border-radius: 28px 0 0 28px;
+  padding: 1rem 1rem 1.1rem;
+}
+
+.nexalgo-menu-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6556ff;
+}
+
+.nexalgo-menu-section {
+  margin-top: 0.85rem;
+  padding: 0.95rem;
+  border-radius: 20px;
+  border: 1px solid rgba(101, 86, 255, 0.08);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.nexalgo-menu-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.4rem;
+}
+
+.nexalgo-close-btn {
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 14px;
+  background: #f6faff;
+  color: #6556ff;
+}
+
+.nexalgo-menu-panel h3 {
+  font-size: 1rem;
+  margin-bottom: 0.55rem;
+}
+
+.nexalgo-menu-copy {
+  margin: 0 0 0.75rem;
+  font-size: 0.92rem;
+}
+
+.nexalgo-role-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.nexalgo-role-list button {
+  border: 1px solid rgba(101, 86, 255, 0.14);
+  border-radius: 999px;
+  padding: 0.55rem 0.9rem;
+  background: linear-gradient(180deg, #ffffff 0%, #eef3ff 100%);
+  color: #6556ff;
+  box-shadow: 0 8px 18px rgba(101, 86, 255, 0.06);
+}
+
+.nexalgo-menu-choice.active {
+  background: rgba(101, 86, 255, 0.14);
+  border-color: rgba(101, 86, 255, 0.28);
+  box-shadow: none;
+}
+
+.nexalgo-menu-panel .nexalgo-detail-actions {
+  margin: 0.7rem 0 0.35rem;
+}
+
+.nexalgo-editor {
+  margin-top: 1.25rem;
+  padding: 1rem;
+  border-radius: 24px;
+  background: #f6faff;
+  border: 1px solid rgba(101, 86, 255, 0.08);
+}
+
+.nexalgo-editor-grid {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.nexalgo-editor textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.nexalgo-question-modal {
+  width: min(920px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.nexalgo-question-form {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 1rem;
+}
+
+.nexalgo-question-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.nexalgo-field {
+  display: grid;
+  gap: 0.42rem;
+}
+
+.nexalgo-field-label {
+  color: rgba(34, 44, 68, 0.8);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.nexalgo-question-form textarea,
+.nexalgo-question-form input,
+.nexalgo-question-form select {
+  width: 100%;
+  padding: 0.85rem 0.95rem;
+  border-radius: 16px;
+  border: 1px solid rgba(101, 86, 255, 0.1);
+  background: #ffffff;
+  color: #222c44;
+}
+
+.nexalgo-question-form textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.nexalgo-question-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.nexalgo-modal-scrim {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.nexalgo-modal-card {
+  width: min(520px, 100%);
+  border-radius: 28px;
+  padding: 1.5rem;
+}
+
+.nexalgo-empty-state {
+  padding: 1.2rem;
+  border-radius: 20px;
+  background: #ffffff;
+  color: rgba(34, 44, 68, 0.72);
+  border: 1px solid rgba(101, 86, 255, 0.08);
+}
+
+@media (max-width: 1120px) {
+  .nexalgo-main {
+    grid-template-columns: 1fr;
+    height: auto;
+    overflow: visible;
+  }
+
+  .nexalgo-main-expanded,
+  .nexalgo-main-minimized {
+    grid-template-columns: 1fr;
+  }
+
+  .nexalgo-sidebar {
+    width: 100%;
+  }
+
+  .nexalgo-sidebar.expanded {
+    width: 100%;
+  }
+
+  .nexalgo-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .nexalgo-nav button {
+    width: auto;
+    min-width: 180px;
+  }
+
+  .nexalgo-list-pane,
+  .nexalgo-detail-pane,
+  .nexalgo-problem-list {
+    overflow: visible;
+  }
+
+  .nexalgo-list-pane-minimized {
+    padding: 1.3rem;
+  }
+
+  .nexalgo-list-pane-minimized .nexalgo-pane-head {
+    flex-direction: row;
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .nexalgo-list-pane-minimized .nexalgo-detail-subcopy,
+  .nexalgo-list-pane-minimized .nexalgo-status-pill {
+    display: initial;
+  }
+
+  .nexalgo-list-pane-minimized .nexalgo-problem-list {
+    align-items: stretch;
+  }
+
+  .nexalgo-problem-card-minimized {
+    min-height: auto;
+    padding: 1rem 1rem 1rem 1.05rem;
+    text-align: left;
+  }
+}
+
+@media (max-width: 820px) {
+  .nexalgo-topbar {
+    grid-template-columns: 1fr;
+    justify-items: stretch;
+  }
+
+  .nexalgo-topbar-left,
+  .nexalgo-topbar-right {
+    justify-content: space-between;
+  }
+
+  .nexalgo-brand {
+    order: -1;
+  }
+
+  .nexalgo-auth-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .nexalgo-question-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -17,6 +17,7 @@ export const HeaderData: HeaderType[] = [
     href: '/#projects',
     submenu: [
       { label: 'BuzzCart', href: '/projects/buzzcart' },
+      { label: 'NexAlgo', href: '/projects/nexalgo' },
       { label: 'Todo App', href: '/projects/todo' },
       { label: 'Digital Clock', href: '/projects/digitalclock' },
     ]
@@ -32,6 +33,14 @@ export const ProjectData: ProjectType[] = [
     tags: ['Flutter', 'Go', 'Cloud Run'],
     status: 'Live',
     link: '/projects/buzzcart',
+  },
+  {
+    title: 'NexAlgo',
+    description: 'A shared-auth coding interview tracker with LeetCode-linked practice flows, language preferences, and editor-managed explanations.',
+    imgSrc: '/images/portfolio/mock02.png',
+    tags: ['Next.js', 'Firebase', 'LeetCode'],
+    status: 'New',
+    link: '/projects/nexalgo',
   },
   {
     title: 'Todo Flow',

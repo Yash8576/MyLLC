@@ -11,6 +11,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
   const isProjectApp =
     pathname === '/projects/todo' ||
     pathname === '/projects/digitalclock' ||
+    pathname === '/projects/nexalgo' ||
     pathname === '/projects/buzzcart' ||
     pathname === '/projects/buzzcart/login' ||
     pathname === '/projects/buzzcart/signup'
