@@ -20,6 +20,7 @@ Go/Gin backend for BuzzCart.
 - [cloudrun.env.example](./cloudrun.env.example)
 - [cloudrun.service.yaml.example](./cloudrun.service.yaml.example)
 - [scripts/deploy-cloud-run.ps1](./scripts/deploy-cloud-run.ps1)
+- [../DEPLOYMENT_PIPELINE.md](../DEPLOYMENT_PIPELINE.md)
 
 ## Current deployment direction
 

@@ -226,3 +226,4 @@ This repo includes:
 
 - `.github/workflows/buzzcart-backend-deploy.yml` for Cloud Run backend deploys
 - `.github/workflows/buzzcart-validate.yml` for project validation on BuzzCart changes
+- `DEPLOYMENT_PIPELINE.md` for trigger rules, secrets, health checks, and rollback

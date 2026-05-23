@@ -34,6 +34,7 @@ Cloud Run is the cleanest fit for the backend in this repo because BuzzCart alre
 ## Key docs
 
 - [Cloud Run + Cloudflare Pages deployment guide](./CLOUD_RUN_FIREBASE_DEPLOYMENT.md)
+- [Deployment pipeline](./DEPLOYMENT_PIPELINE.md)
 - [Cloud SQL migration runbook](./FIREBASE_CLOUDSQL_MIGRATION_RUNBOOK.md)
 - [Backend quick start](./backend/QUICKSTART.md)
 - [Backend env example](./backend/.env.example)
