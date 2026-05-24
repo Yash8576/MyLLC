@@ -1,4 +1,6 @@
 .nexalgo-shell {
+  --nexalgo-topbar-height: 96px;
+  --nexalgo-mobile-pane-gap: 0.85rem;
   min-height: 100vh;
   background:
     radial-gradient(circle at top left, rgba(101, 86, 255, 0.08), transparent 34%),
@@ -51,6 +53,10 @@
 .nexalgo-back-link:hover {
   transform: translateX(-2px);
   background: rgba(101, 86, 255, 0.14);
+}
+
+.nexalgo-back-link-text {
+  white-space: nowrap;
 }
 
 .nexalgo-brand {
@@ -1266,42 +1272,52 @@
 }
 
 @media (max-width: 1120px) {
-  .nexalgo-main {
-    grid-template-columns: 1fr;
-    height: auto;
-    overflow: visible;
-  }
-
+  .nexalgo-main,
   .nexalgo-main-expanded,
   .nexalgo-main-minimized {
     grid-template-columns: 1fr;
+    grid-auto-flow: row;
+    gap: var(--nexalgo-mobile-pane-gap);
+    height: auto;
+    overflow: visible;
+    padding: var(--nexalgo-mobile-pane-gap);
   }
 
-  .nexalgo-sidebar {
-    width: 100%;
+  .nexalgo-sidebar,
+  .nexalgo-sidebar.expanded,
+  .nexalgo-list-pane,
+  .nexalgo-list-pane-minimized,
+  .nexalgo-detail-pane {
+    min-height: 0;
+    height: auto;
   }
 
+  .nexalgo-sidebar,
   .nexalgo-sidebar.expanded {
     width: 100%;
   }
 
   .nexalgo-nav {
     flex-direction: row;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    overflow-x: auto;
   }
 
   .nexalgo-nav button {
     width: auto;
-    min-width: 180px;
+    min-width: 150px;
+    flex: 0 0 auto;
   }
 
   .nexalgo-list-pane,
-  .nexalgo-detail-pane,
-  .nexalgo-problem-list {
-    overflow: visible;
+  .nexalgo-main-expanded .nexalgo-list-pane {
+    width: 100%;
+    min-width: 0;
   }
 
   .nexalgo-list-pane-minimized {
+    width: 100%;
+    min-width: 0;
     padding: 1.3rem;
   }
 
@@ -1316,30 +1332,68 @@
     display: initial;
   }
 
-  .nexalgo-list-pane-minimized .nexalgo-problem-list {
-    align-items: stretch;
+  .nexalgo-detail-pane {
+    position: sticky;
+    top: var(--nexalgo-topbar-height);
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    max-height: calc(
+      100dvh - var(--nexalgo-topbar-height) - var(--nexalgo-mobile-pane-gap)
+    );
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
   }
 
+  .nexalgo-problem-list {
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 0.45rem;
+    padding-right: 0;
+  }
+
+  .nexalgo-problem-card,
   .nexalgo-problem-card-minimized {
+    width: min(86vw, 320px);
+    min-width: min(86vw, 320px);
+    flex: 0 0 auto;
     min-height: auto;
     padding: 1rem 1rem 1rem 1.05rem;
     text-align: left;
   }
-}
 
-@media (max-width: 820px) {
+  .nexalgo-pane-controls {
+    display: none;
+  }
+
+  .nexalgo-pagination {
+    display: none;
+  }
+
   .nexalgo-topbar {
-    grid-template-columns: 1fr;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     justify-items: stretch;
+    align-items: center;
+    padding: 0.85rem 1rem;
   }
 
   .nexalgo-topbar-left,
   .nexalgo-topbar-right {
-    justify-content: space-between;
+    justify-content: flex-start;
   }
 
   .nexalgo-brand {
-    order: -1;
+    order: 0;
+  }
+
+  .nexalgo-brand h1 {
+    font-size: 1.45rem;
+  }
+
+  .nexalgo-brand p {
+    font-size: 0.75rem;
   }
 
   .nexalgo-auth-grid {
@@ -1348,5 +1402,15 @@
 
   .nexalgo-question-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .nexalgo-back-link {
+    padding-inline: 0.8rem;
+  }
+
+  .nexalgo-back-link-text {
+    display: none;
   }
 }

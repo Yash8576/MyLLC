@@ -45,27 +45,32 @@ const Header: React.FC = () => {
   }, [navbarOpen])
 
   return (
-    <header
-      className={`fixed top-0 z-40 w-full transition-all duration-300 ${
-        sticky ? 'bg-white shadow-lg py-2' : 'bg-white/80 backdrop-blur-sm shadow-none py-4'
-      }`}>
-      <div className='container'>
-        <div className='flex items-center justify-between'>
-          <Logo />
-          <nav className='hidden lg:flex items-center lg:gap-6 xl:gap-8'>
-            {navLink.map((item, index) => (
-              <HeaderLink key={index} item={item} />
-            ))}
-          </nav>
-          <div className='flex items-center gap-4 lg:hidden'>
-            <button
-              onClick={() => setNavbarOpen(!navbarOpen)}
-              className='text-black hover:text-primary'>
-              <Icon icon='solar:hamburger-menu-linear' width={32} height={32} />
-            </button>
+    <>
+      <header
+        className={`fixed top-0 z-40 w-full transition-all duration-300 ${
+          sticky ? 'bg-white shadow-lg py-2' : 'bg-white/80 backdrop-blur-sm shadow-none py-4'
+        }`}>
+        <div className='container'>
+          <div className='flex items-center justify-between'>
+            <Logo />
+            <nav className='hidden lg:flex items-center lg:gap-6 xl:gap-8'>
+              {navLink.map((item, index) => (
+                <HeaderLink key={index} item={item} />
+              ))}
+            </nav>
+            <div className='flex items-center gap-4 lg:hidden'>
+              <button
+                type='button'
+                aria-label='Open navigation menu'
+                aria-expanded={navbarOpen}
+                onClick={() => setNavbarOpen(!navbarOpen)}
+                className='text-black hover:text-primary'>
+                <Icon icon='solar:hamburger-menu-linear' width={32} height={32} />
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      </header>
 
       {navbarOpen && (
         <div className='fixed top-0 left-0 w-full h-full bg-black/50 flex justify-end z-50 lg:hidden'>
@@ -96,7 +101,7 @@ const Header: React.FC = () => {
           </div>
         </div>
       )}
-    </header>
+    </>
   )
 }
 

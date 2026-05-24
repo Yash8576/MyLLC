@@ -346,6 +346,7 @@ export default function NexAlgoPage() {
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('signup')
   const [navExpanded, setNavExpanded] = useState(false)
+  const [isMobileLayout, setIsMobileLayout] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [statusMenuOpen, setStatusMenuOpen] = useState(false)
   const [questionEditorOpen, setQuestionEditorOpen] = useState(false)
@@ -376,6 +377,7 @@ export default function NexAlgoPage() {
   const [editorEmailInput, setEditorEmailInput] = useState('')
   const [statusPromptProblemId, setStatusPromptProblemId] = useState<number | null>(null)
   const [editorDraft, setEditorDraft] = useState<QuestionEditorDraft>(createEmptyQuestionDraft())
+  const topbarRef = useRef<HTMLElement>(null)
   const menuPanelRef = useRef<HTMLDivElement>(null)
   const problemListRef = useRef<HTMLDivElement>(null)
   const detailPaneRef = useRef<HTMLElement>(null)
@@ -394,6 +396,41 @@ export default function NexAlgoPage() {
   const [detailPaneScrolling, setDetailPaneScrolling] = useState(false)
   const [topicsExpanded, setTopicsExpanded] = useState(false)
   const [detailTailSpacerHeight, setDetailTailSpacerHeight] = useState(0)
+  const effectiveNavExpanded = isMobileLayout || navExpanded
+  const shouldShowDetailPane = isMobileLayout || problemsPaneMode !== 'expanded'
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 1120px)')
+    const syncMobileLayout = (event?: MediaQueryListEvent) => {
+      setIsMobileLayout(event?.matches ?? mediaQuery.matches)
+    }
+
+    syncMobileLayout()
+    mediaQuery.addEventListener('change', syncMobileLayout)
+
+    return () => mediaQuery.removeEventListener('change', syncMobileLayout)
+  }, [])
+
+  useEffect(() => {
+    if (isMobileLayout) {
+      setProblemsPaneMode('normal')
+    }
+  }, [isMobileLayout])
+
+  useEffect(() => {
+    function syncTopbarHeight() {
+      const topbarHeight = topbarRef.current?.offsetHeight ?? 0
+      document.documentElement.style.setProperty(
+        '--nexalgo-topbar-height',
+        `${topbarHeight}px`,
+      )
+    }
+
+    syncTopbarHeight()
+    window.addEventListener('resize', syncTopbarHeight)
+
+    return () => window.removeEventListener('resize', syncTopbarHeight)
+  }, [isMobileLayout, userEmail, menuOpen])
 
   useEffect(() => {
     const stored = window.localStorage.getItem(LANGUAGE_STORAGE_KEY) as LanguageKey | null
@@ -1056,11 +1093,13 @@ export default function NexAlgoPage() {
 
   return (
     <div className='nexalgo-shell'>
-      <header className='nexalgo-topbar'>
+      <header ref={topbarRef} className='nexalgo-topbar'>
         <div className='nexalgo-topbar-left'>
           <Link href={backLinkHref} className='nexalgo-back-link'>
             <span aria-hidden='true'>&larr;</span>
-            {isProjectsRoute ? 'Back to Projects' : 'Back to Nexacore'}
+            <span className='nexalgo-back-link-text'>
+              {isProjectsRoute ? 'Back to Projects' : 'Back to Nexacore'}
+            </span>
           </Link>
         </div>
 
@@ -1070,21 +1109,6 @@ export default function NexAlgoPage() {
         </div>
 
         <div className='nexalgo-topbar-right'>
-          {isEditor ? (
-            <button
-              type='button'
-              className='nexalgo-save-btn'
-              onClick={() => openQuestionEditor('add')}>
-              Add question
-            </button>
-          ) : null}
-          {userEmail ? (
-            <span className='nexalgo-status-pill solved'>
-              {isAdmin ? 'Admin' : isEditor ? 'Editor' : 'Viewer'}
-            </span>
-          ) : (
-            <span className='nexalgo-status-pill unvisited'>Sign in required</span>
-          )}
           <button
             type='button'
             className='nexalgo-hamburger'
@@ -1173,15 +1197,17 @@ export default function NexAlgoPage() {
         </main>
       ) : (
         <main className={`nexalgo-main nexalgo-main-${problemsPaneMode}`}>
-          <aside className={`nexalgo-sidebar ${navExpanded ? 'expanded' : ''}`}>
+          <aside className={`nexalgo-sidebar ${effectiveNavExpanded ? 'expanded' : ''}`}>
               <div className='nexalgo-sidebar-header'>
-                {navExpanded ? <strong>Browse</strong> : <span />}
-                <button
-                  type='button'
-                  className='nexalgo-icon-toggle'
-                  onClick={() => setNavExpanded((current) => !current)}>
-                  {navExpanded ? 'Minimize' : 'Expand'}
-                </button>
+                {effectiveNavExpanded ? <strong>Browse</strong> : <span />}
+                {!isMobileLayout ? (
+                  <button
+                    type='button'
+                    className='nexalgo-icon-toggle'
+                    onClick={() => setNavExpanded((current) => !current)}>
+                    {navExpanded ? 'Minimize' : 'Expand'}
+                  </button>
+                ) : null}
               </div>
 
             <nav className='nexalgo-nav'>
@@ -1193,7 +1219,7 @@ export default function NexAlgoPage() {
                     setCurrentPage(1)
                   }}>
                   <span className='nexalgo-nav-icon'>123</span>
-                  {navExpanded ? 'Sorted' : null}
+                  {effectiveNavExpanded ? 'Sorted' : null}
                 </button>
                 <button
                   type='button'
@@ -1217,7 +1243,7 @@ export default function NexAlgoPage() {
                       />
                     </svg>
                   </span>
-                  {navExpanded ? 'Companies' : null}
+                  {effectiveNavExpanded ? 'Companies' : null}
                 </button>
                 <button
                   type='button'
@@ -1241,7 +1267,7 @@ export default function NexAlgoPage() {
                       />
                     </svg>
                   </span>
-                  {navExpanded ? 'Topics' : null}
+                  {effectiveNavExpanded ? 'Topics' : null}
                 </button>
             </nav>
           </aside>
@@ -1397,7 +1423,7 @@ export default function NexAlgoPage() {
             ) : null}
           </section>
 
-          {problemsPaneMode !== 'expanded' ? (
+          {shouldShowDetailPane ? (
           <section
             ref={detailPaneRef}
             className={`nexalgo-detail-pane ${
@@ -1712,6 +1738,9 @@ export default function NexAlgoPage() {
               <h3>Account</h3>
               {userEmail ? (
                 <>
+                  <p className='nexalgo-detail-subcopy nexalgo-menu-copy'>
+                    Access level: {isAdmin ? 'Admin' : isEditor ? 'Editor' : 'Viewer'}
+                  </p>
                   <p className='nexalgo-detail-subcopy nexalgo-menu-copy'>{userEmail}</p>
                   <button type='button' className='nexalgo-danger-btn' onClick={handleLogout}>
                     Logout
@@ -1724,6 +1753,23 @@ export default function NexAlgoPage() {
                 </p>
               )}
             </section>
+
+            {isEditor ? (
+              <section className='nexalgo-menu-section'>
+                <h3>Question tools</h3>
+                <div className='nexalgo-detail-actions'>
+                  <button
+                    type='button'
+                    className='nexalgo-save-btn'
+                    onClick={() => {
+                      setMenuOpen(false)
+                      openQuestionEditor('add')
+                    }}>
+                    Add question
+                  </button>
+                </div>
+              </section>
+            ) : null}
 
             <section className='nexalgo-menu-section'>
               <h3>Default language</h3>
