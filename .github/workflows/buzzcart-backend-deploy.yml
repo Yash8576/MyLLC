@@ -103,7 +103,6 @@ jobs:
           cat <<EOF > "$RUNNER_TEMP/buzzcart-cloudrun-env.yaml"
           DATABASE_URL: "${{ secrets.BUZZCART_DATABASE_URL }}"
           JWT_SECRET: "${{ secrets.BUZZCART_JWT_SECRET }}"
-          PORT: "8080"
           REDIS_URL: "${{ secrets.BUZZCART_REDIS_URL }}"
           ALLOWED_FRONTEND_ORIGINS: "${{ vars.BUZZCART_ALLOWED_FRONTEND_ORIGINS }}"
           FIREBASE_PROJECT_ID: "buzzcart-daeb6"
