@@ -858,6 +858,7 @@ class _HomePageState extends State<HomePage> {
             controller: _feedScrollController,
             padding:
                 EdgeInsets.symmetric(vertical: 16, horizontal: pagePadding),
+            // ignore: deprecated_member_use
             cacheExtent: cacheExtent,
             itemCount: _sections.length,
             itemBuilder: (context, index) {
@@ -1069,6 +1070,7 @@ class _HomePageState extends State<HomePage> {
                 child: ListView.separated(
                   controller: controller,
                   scrollDirection: Axis.horizontal,
+                  // ignore: deprecated_member_use
                   cacheExtent: defaultTargetPlatform == TargetPlatform.android
                       ? _mobileListCacheExtent
                       : _desktopListCacheExtent,
