@@ -8,7 +8,7 @@ import '../../../core/providers/app_refresh_provider.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/utils/url_helper.dart';
+import '../../../core/widgets/network_media.dart';
 
 Future<bool?> showProductReviewsSheet({
   required BuildContext context,
@@ -182,9 +182,8 @@ class _ProductReviewsSheetState extends State<_ProductReviewsSheet> {
 
   int _compareReviews(ReviewModel a, ReviewModel b) {
     final currentUserId = context.read<AuthProvider>().user?.id;
-    final ownReviewSort =
-        (_isCurrentUserReview(b, currentUserId) ? 1 : 0)
-            .compareTo(_isCurrentUserReview(a, currentUserId) ? 1 : 0);
+    final ownReviewSort = (_isCurrentUserReview(b, currentUserId) ? 1 : 0)
+        .compareTo(_isCurrentUserReview(a, currentUserId) ? 1 : 0);
     if (ownReviewSort != 0) {
       return ownReviewSort;
     }
@@ -707,18 +706,10 @@ class _ReviewListItemState extends State<_ReviewListItem> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
+              AppAvatar(
+                name: review.username ?? 'U',
+                avatarUrl: review.userAvatar,
                 radius: 18,
-                backgroundImage: (review.userAvatar ?? '').trim().isNotEmpty
-                    ? NetworkImage(
-                        UrlHelper.getPlatformUrl(review.userAvatar!),
-                      )
-                    : null,
-                child: (review.userAvatar ?? '').trim().isEmpty
-                    ? Text(
-                        (review.username ?? 'U').substring(0, 1).toUpperCase(),
-                      )
-                    : null,
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -774,7 +765,8 @@ class _ReviewListItemState extends State<_ReviewListItem> {
               runSpacing: 8,
               children: [
                 if (review.isFollowing)
-                  const _Badge(label: 'Connection', color: AppColors.electricBlue),
+                  const _Badge(
+                      label: 'Connection', color: AppColors.electricBlue),
                 if (review.isVerifiedPurchase)
                   const _Badge(label: 'Verified Purchase', color: Colors.green),
               ],

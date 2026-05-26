@@ -407,9 +407,11 @@ func UploadAvatarHandler(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
+		avatarVersion := time.Now().UnixMilli()
+
 		// Upload to cloud storage in avatars folder
 		storageClient := storage.GetStorageClient()
-		url, err := storageClient.UploadFile(
+		uploadedURL, err := storageClient.UploadFile(
 			file,
 			header,
 			buildUserScopedFolder(userID, "avatars", ""),
@@ -420,15 +422,17 @@ func UploadAvatarHandler(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
+		urlWithVersion := appendMediaVersion(uploadedURL, avatarVersion)
+
 		// Create context with timeout
 		ctx, cancel := database.NewContext()
 		defer cancel()
 
 		// Update user avatar URL in database
-		_, err = db.ExecContext(ctx, "UPDATE users SET avatar = $1, updated_at = $2 WHERE id = $3", url, time.Now(), userID)
+		_, err = db.ExecContext(ctx, "UPDATE users SET avatar = $1, updated_at = $2 WHERE id = $3", urlWithVersion, time.Now(), userID)
 		if err != nil {
 			// Try to delete the uploaded file on database error
-			_ = storageClient.DeleteFile(url)
+			_ = storageClient.DeleteFile(uploadedURL)
 			log.Printf("[UploadAvatar] Database update failed for user %s: %v", userID, err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user profile"})
 			return
@@ -437,7 +441,7 @@ func UploadAvatarHandler(db *sql.DB) gin.HandlerFunc {
 		log.Printf("[UploadAvatar] Avatar updated successfully for user %s", userID)
 		c.JSON(http.StatusOK, gin.H{
 			"success":    true,
-			"avatar_url": url,
+			"avatar_url": urlWithVersion,
 			"message":    "Avatar updated successfully",
 		})
 	}
@@ -530,6 +534,23 @@ func extractObjectNameFromMediaURL(raw string) string {
 	}
 
 	return strings.TrimPrefix(raw, "/")
+}
+
+func appendMediaVersion(raw string, version int64) string {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return ""
+	}
+
+	parsedURL, err := url.Parse(trimmed)
+	if err != nil {
+		return trimmed
+	}
+
+	query := parsedURL.Query()
+	query.Set("v", fmt.Sprintf("%d", version))
+	parsedURL.RawQuery = query.Encode()
+	return parsedURL.String()
 }
 
 // DeleteFileHandler handles file deletion from cloud storage

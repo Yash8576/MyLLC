@@ -10,6 +10,7 @@ import '../../../core/models/models.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/url_helper.dart';
+import '../../../core/widgets/network_media.dart';
 import '../providers/messages_provider.dart';
 
 class MessagesPage extends StatefulWidget {
@@ -754,8 +755,8 @@ class _ProductShareCard extends StatelessWidget {
                           color: inverted ? Colors.white : null,
                         ),
                       )
-                    : Image.network(
-                        imageUrl,
+                    : AppCachedImage(
+                        imageUrl: imageUrl,
                         width: 56,
                         height: 56,
                         fit: BoxFit.cover,
@@ -842,8 +843,8 @@ class _DraftPreviewCard extends StatelessWidget {
                     alignment: Alignment.center,
                     child: const Icon(Icons.share_outlined),
                   )
-                : Image.network(
-                    previewImage,
+                : AppCachedImage(
+                    imageUrl: previewImage,
                     width: 54,
                     height: 54,
                     fit: BoxFit.cover,
@@ -1006,15 +1007,11 @@ class _UserAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final imageUrl = UrlHelper.getPlatformUrl(avatar);
 
-    return CircleAvatar(
+    return AppAvatar(
+      name: name,
+      avatarUrl: imageUrl,
       radius: radius,
-      backgroundImage: imageUrl.isNotEmpty ? NetworkImage(imageUrl) : null,
-      child: imageUrl.isEmpty
-          ? Text(
-              name.isEmpty ? '?' : name[0].toUpperCase(),
-              style: const TextStyle(fontWeight: FontWeight.w700),
-            )
-          : null,
+      textStyle: const TextStyle(fontWeight: FontWeight.w700),
     );
   }
 }

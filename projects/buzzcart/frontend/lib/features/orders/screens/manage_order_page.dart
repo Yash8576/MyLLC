@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../core/models/models.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/services/api_service.dart';
-import '../../../core/utils/url_helper.dart';
+import '../../../core/widgets/network_media.dart';
 import '../../products/widgets/product_reviews_sheet.dart';
 
 class ManageOrderPage extends StatefulWidget {
@@ -375,19 +375,17 @@ class _ManageOrderPageState extends State<ManageOrderPage> {
             ),
             child: Row(
               children: [
-                ClipRRect(
+                AppCachedImage(
+                  imageUrl: imageUrl,
+                  width: 68,
+                  height: 68,
+                  fit: BoxFit.cover,
                   borderRadius: BorderRadius.circular(10),
-                  child: Image.network(
-                    UrlHelper.getPlatformUrl(imageUrl),
+                  errorWidget: Container(
                     width: 68,
                     height: 68,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      width: 68,
-                      height: 68,
-                      color: Colors.grey[300],
-                      child: const Icon(Icons.shopping_bag_outlined),
-                    ),
+                    color: Colors.grey[300],
+                    child: const Icon(Icons.shopping_bag_outlined),
                   ),
                 ),
                 const SizedBox(width: 12),

@@ -4,7 +4,7 @@ import 'package:timeago/timeago.dart' as timeago;
 
 import '../../../../core/models/models.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/url_helper.dart';
+import '../../../../core/widgets/network_media.dart';
 
 Future<void> showTaggedProductsSheet({
   required BuildContext context,
@@ -294,18 +294,10 @@ class _ContentCommentTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
+          AppAvatar(
+            name: comment.username,
+            avatarUrl: comment.userAvatar,
             radius: 18,
-            backgroundImage: (comment.userAvatar ?? '').trim().isNotEmpty
-                ? NetworkImage(UrlHelper.getPlatformUrl(comment.userAvatar!))
-                : null,
-            child: (comment.userAvatar ?? '').trim().isEmpty
-                ? Text(
-                    comment.username.trim().isEmpty
-                        ? 'U'
-                        : comment.username.trim()[0].toUpperCase(),
-                  )
-                : null,
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -425,9 +417,7 @@ class _TaggedProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl = product.images.isNotEmpty
-        ? UrlHelper.getPlatformUrl(product.images.first)
-        : '';
+    final imageUrl = product.images.isNotEmpty ? product.images.first : '';
 
     return Material(
       color: Colors.transparent,
@@ -455,8 +445,8 @@ class _TaggedProductCard extends StatelessWidget {
                         alignment: Alignment.center,
                         child: const Icon(Icons.shopping_bag_outlined),
                       )
-                    : Image.network(
-                        imageUrl,
+                    : AppCachedImage(
+                        imageUrl: imageUrl,
                         width: 72,
                         height: 72,
                         fit: BoxFit.cover,

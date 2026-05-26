@@ -12,6 +12,7 @@ import '../../../core/models/models.dart';
 import '../../../core/providers/app_refresh_provider.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/utils/url_helper.dart';
+import '../../../core/widgets/network_media.dart';
 import '../../content/presentation/widgets/content_bottom_sheets.dart'
     as content_sheets;
 import '../../products/widgets/product_card_social_preview.dart';
@@ -206,7 +207,8 @@ class _VideoListCardState extends State<_VideoListCard> {
   @override
   void initState() {
     super.initState();
-    _resolvedDuration = _videoDurationCache[widget.video.id] ?? widget.video.duration;
+    _resolvedDuration =
+        _videoDurationCache[widget.video.id] ?? widget.video.duration;
     _ensureDuration();
   }
 
@@ -267,10 +269,10 @@ class _VideoListCardState extends State<_VideoListCard> {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      Image.network(
-                        UrlHelper.getPlatformUrl(widget.video.thumbnail),
+                      AppCachedImage(
+                        imageUrl: widget.video.thumbnail,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
+                        errorWidget: Container(
                           color: Colors.black,
                           alignment: Alignment.center,
                           child: const Icon(
@@ -304,8 +306,8 @@ class _VideoListCardState extends State<_VideoListCard> {
                         right: 10,
                         bottom: 10,
                         child: _DurationBadge(
-                          durationLabel:
-                              _formatDuration(_resolvedDuration ?? widget.video.duration),
+                          durationLabel: _formatDuration(
+                              _resolvedDuration ?? widget.video.duration),
                         ),
                       ),
                     ],
@@ -317,20 +319,12 @@ class _VideoListCardState extends State<_VideoListCard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   GestureDetector(
-                    onTap: () => context.push('/profile/${widget.video.creatorId}'),
-                    child: CircleAvatar(
+                    onTap: () =>
+                        context.push('/profile/${widget.video.creatorId}'),
+                    child: AppAvatar(
+                      name: widget.video.creatorName,
+                      avatarUrl: widget.video.creatorAvatar,
                       radius: 20,
-                      backgroundImage:
-                          (widget.video.creatorAvatar ?? '').trim().isNotEmpty
-                              ? NetworkImage(
-                                  UrlHelper.getPlatformUrl(
-                                    widget.video.creatorAvatar!,
-                                  ),
-                                )
-                              : null,
-                      child: (widget.video.creatorAvatar ?? '').trim().isEmpty
-                          ? Text(_initialFor(widget.video.creatorName))
-                          : null,
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -619,7 +613,9 @@ class _VideoDetailViewState extends State<_VideoDetailView> {
       }
       if (mounted && _resumeAfterFullscreen && controller.value.isInitialized) {
         WidgetsBinding.instance.addPostFrameCallback((_) async {
-          if (!mounted || _controller != controller || !controller.value.isInitialized) {
+          if (!mounted ||
+              _controller != controller ||
+              !controller.value.isInitialized) {
             return;
           }
           await controller.play();
@@ -675,21 +671,10 @@ class _VideoDetailViewState extends State<_VideoDetailView> {
                         onTap: () => context.push(
                           '/profile/${widget.video.creatorId}',
                         ),
-                        child: CircleAvatar(
+                        child: AppAvatar(
+                          name: widget.video.creatorName,
+                          avatarUrl: widget.video.creatorAvatar,
                           radius: 24,
-                          backgroundImage:
-                              (widget.video.creatorAvatar ?? '').trim().isNotEmpty
-                                  ? NetworkImage(
-                                      UrlHelper.getPlatformUrl(
-                                        widget.video.creatorAvatar!,
-                                      ),
-                                    )
-                                  : null,
-                          child: (widget.video.creatorAvatar ?? '')
-                                  .trim()
-                                  .isEmpty
-                              ? Text(_initialFor(widget.video.creatorName))
-                              : null,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -764,8 +749,7 @@ class _VideoDetailViewState extends State<_VideoDetailView> {
                 ? _resolvedDuration
                 : widget.video.duration,
           );
-    final clampedPosition =
-        position > totalDuration ? totalDuration : position;
+    final clampedPosition = position > totalDuration ? totalDuration : position;
 
     return Stack(
       fit: StackFit.expand,
@@ -773,10 +757,10 @@ class _VideoDetailViewState extends State<_VideoDetailView> {
         if (liveReady && !_fullscreenOpen)
           VideoPlayer(controller)
         else
-          Image.network(
-            UrlHelper.getPlatformUrl(widget.video.thumbnail),
+          AppCachedImage(
+            imageUrl: widget.video.thumbnail,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => Container(
+            errorWidget: Container(
               color: Colors.black,
               alignment: Alignment.center,
               child: const Icon(
@@ -992,8 +976,8 @@ class _TaggedProductCard extends StatelessWidget {
                           alignment: Alignment.center,
                           child: const Icon(Icons.shopping_bag_outlined),
                         )
-                      : Image.network(
-                          imageUrl,
+                      : AppCachedImage(
+                          imageUrl: imageUrl,
                           height: 82,
                           width: double.infinity,
                           fit: BoxFit.cover,
@@ -1039,7 +1023,8 @@ class _InlineVideoCommentsSection extends StatefulWidget {
       _InlineVideoCommentsSectionState();
 }
 
-class _InlineVideoCommentsSectionState extends State<_InlineVideoCommentsSection> {
+class _InlineVideoCommentsSectionState
+    extends State<_InlineVideoCommentsSection> {
   late final ApiService _api;
   late final TextEditingController _commentController;
   List<ContentCommentModel> _comments = <ContentCommentModel>[];
@@ -1220,14 +1205,10 @@ class _InlineCommentTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
+          AppAvatar(
+            name: comment.username,
+            avatarUrl: comment.userAvatar,
             radius: 18,
-            backgroundImage: (comment.userAvatar ?? '').trim().isNotEmpty
-                ? NetworkImage(UrlHelper.getPlatformUrl(comment.userAvatar!))
-                : null,
-            child: (comment.userAvatar ?? '').trim().isEmpty
-                ? Text(_initialFor(comment.username))
-                : null,
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -1415,7 +1396,8 @@ class _FullscreenVideoDialogState extends State<_FullscreenVideoDialog> {
         valueListenable: controller,
         builder: (context, value, _) {
           final duration = value.duration;
-          final position = value.position > duration ? duration : value.position;
+          final position =
+              value.position > duration ? duration : value.position;
           final totalSeconds = duration.inSeconds;
           final currentSeconds = position.inSeconds.clamp(
             0,
@@ -1494,7 +1476,8 @@ class _FullscreenVideoDialogState extends State<_FullscreenVideoDialog> {
                           ),
                         ),
                         child: Slider(
-                          value: totalSeconds <= 0 ? 0 : currentSeconds.toDouble(),
+                          value:
+                              totalSeconds <= 0 ? 0 : currentSeconds.toDouble(),
                           min: 0,
                           max: totalSeconds <= 0 ? 1 : totalSeconds.toDouble(),
                           onChanged: totalSeconds <= 0
@@ -1502,7 +1485,7 @@ class _FullscreenVideoDialogState extends State<_FullscreenVideoDialog> {
                               : (nextValue) => controller.seekTo(
                                     Duration(seconds: nextValue.round()),
                                   ),
-                      ),
+                        ),
                       ),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -1532,7 +1515,9 @@ class _FullscreenVideoDialogState extends State<_FullscreenVideoDialog> {
                           ),
                           const SizedBox(width: 18),
                           _OverlayCircleButton(
-                            icon: value.isPlaying ? Icons.pause : Icons.play_arrow,
+                            icon: value.isPlaying
+                                ? Icons.pause
+                                : Icons.play_arrow,
                             onTap: () async {
                               await widget.onTogglePlayback();
                               if (!mounted) {
@@ -1638,12 +1623,4 @@ String _formatDuration(int totalSeconds) {
 String _formatPlaybackDuration(Duration duration) {
   final totalSeconds = duration.inSeconds.clamp(0, 359999);
   return _formatDuration(totalSeconds);
-}
-
-String _initialFor(String value) {
-  final trimmed = value.trim();
-  if (trimmed.isEmpty) {
-    return 'U';
-  }
-  return trimmed[0].toUpperCase();
 }

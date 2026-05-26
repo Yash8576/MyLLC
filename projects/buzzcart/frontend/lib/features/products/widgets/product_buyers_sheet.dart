@@ -6,7 +6,7 @@ import '../../../core/models/models.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/utils/url_helper.dart';
+import '../../../core/widgets/network_media.dart';
 
 Future<void> showProductBuyersSheet({
   required BuildContext context,
@@ -173,7 +173,8 @@ class _ProductBuyersSheetState extends State<_ProductBuyersSheet> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline, size: 40, color: Colors.redAccent),
+              const Icon(Icons.error_outline,
+                  size: 40, color: Colors.redAccent),
               const SizedBox(height: 12),
               Text(
                 _error!,
@@ -267,24 +268,17 @@ class _BuyerListItem extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.26),
+        color:
+            theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.26),
         borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
+          AppAvatar(
+            name: fallbackName,
+            avatarUrl: buyer.buyerAvatar,
             radius: 20,
-            backgroundImage: (buyer.buyerAvatar ?? '').trim().isNotEmpty
-                ? NetworkImage(
-                    UrlHelper.getPlatformUrl(buyer.buyerAvatar!),
-                  )
-                : null,
-            child: (buyer.buyerAvatar ?? '').trim().isEmpty
-                ? Text(
-                    fallbackName.substring(0, 1).toUpperCase(),
-                  )
-                : null,
           ),
           const SizedBox(width: 12),
           Expanded(

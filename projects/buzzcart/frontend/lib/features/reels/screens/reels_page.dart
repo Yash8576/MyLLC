@@ -10,6 +10,7 @@ import '../../../core/providers/app_refresh_provider.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/url_helper.dart';
+import '../../../core/widgets/network_media.dart';
 import '../../content/presentation/widgets/content_bottom_sheets.dart'
     as content_sheets;
 import '../../layout/main_layout.dart';
@@ -579,10 +580,10 @@ class _ReelViewportState extends State<_ReelViewport> {
                       );
                     },
                   )
-                : Image.network(
-                    UrlHelper.getPlatformUrl(widget.reel.thumbnail),
+                : AppCachedImage(
+                    imageUrl: widget.reel.thumbnail,
                     fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => const Center(
+                    errorWidget: const Center(
                       child: Icon(
                         Icons.play_circle_outline,
                         color: Colors.white70,
@@ -684,24 +685,10 @@ class _ReelViewportState extends State<_ReelViewport> {
                   ),
                   child: Row(
                     children: [
-                      CircleAvatar(
+                      AppAvatar(
+                        name: widget.reel.creatorName,
+                        avatarUrl: widget.reel.creatorAvatar,
                         radius: 22,
-                        backgroundImage:
-                            (widget.reel.creatorAvatar ?? '').isNotEmpty
-                                ? NetworkImage(
-                                    UrlHelper.getPlatformUrl(
-                                        widget.reel.creatorAvatar!),
-                                  )
-                                : null,
-                        child: (widget.reel.creatorAvatar ?? '').isEmpty
-                            ? Text(
-                                widget.reel.creatorName.trim().isEmpty
-                                    ? 'U'
-                                    : widget.reel.creatorName
-                                        .trim()[0]
-                                        .toUpperCase(),
-                              )
-                            : null,
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -1078,18 +1065,10 @@ class _ReelCommentTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
+          AppAvatar(
+            name: comment.username,
+            avatarUrl: comment.userAvatar,
             radius: 18,
-            backgroundImage: (comment.userAvatar ?? '').trim().isNotEmpty
-                ? NetworkImage(UrlHelper.getPlatformUrl(comment.userAvatar!))
-                : null,
-            child: (comment.userAvatar ?? '').trim().isEmpty
-                ? Text(
-                    comment.username.trim().isEmpty
-                        ? 'U'
-                        : comment.username.trim()[0].toUpperCase(),
-                  )
-                : null,
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -1251,8 +1230,8 @@ class _TaggedProductCard extends StatelessWidget {
                         alignment: Alignment.center,
                         child: const Icon(Icons.shopping_bag_outlined),
                       )
-                    : Image.network(
-                        imageUrl,
+                    : AppCachedImage(
+                        imageUrl: imageUrl,
                         width: 72,
                         height: 72,
                         fit: BoxFit.cover,

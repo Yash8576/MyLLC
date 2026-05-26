@@ -6,8 +6,8 @@ import 'dart:async';
 import '../../core/theme/app_colors.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/providers/cart_provider.dart';
-import '../../core/utils/url_helper.dart';
 import '../../core/utils/app_visibility_listener.dart';
+import '../../core/widgets/network_media.dart';
 import '../../features/messages/providers/messages_provider.dart';
 
 class MainLayout extends StatefulWidget {
@@ -351,23 +351,11 @@ class _MainLayoutState extends State<MainLayout> with WidgetsBindingObserver {
               ),
               child: Row(
                 children: [
-                  CircleAvatar(
+                  AppAvatar(
+                    name: user?.name ?? 'User',
+                    avatarUrl: user?.avatar?.trim(),
                     radius: 20,
                     backgroundColor: AppColors.electricBlue,
-                    backgroundImage: (user?.avatar?.trim().isNotEmpty ?? false)
-                        ? NetworkImage(
-                            UrlHelper.getPlatformUrl(user!.avatar!.trim()),
-                          )
-                        : null,
-                    child: (user?.avatar?.trim().isNotEmpty ?? false)
-                        ? null
-                        : Text(
-                            user?.name[0].toUpperCase() ?? 'U',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(

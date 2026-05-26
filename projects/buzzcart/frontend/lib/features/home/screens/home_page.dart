@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
@@ -859,7 +858,7 @@ class _HomePageState extends State<HomePage> {
             controller: _feedScrollController,
             padding:
                 EdgeInsets.symmetric(vertical: 16, horizontal: pagePadding),
-            scrollCacheExtent: ScrollCacheExtent.pixels(cacheExtent),
+            cacheExtent: cacheExtent,
             itemCount: _sections.length,
             itemBuilder: (context, index) {
               final section = _sections[index];
@@ -1070,11 +1069,9 @@ class _HomePageState extends State<HomePage> {
                 child: ListView.separated(
                   controller: controller,
                   scrollDirection: Axis.horizontal,
-                    scrollCacheExtent: ScrollCacheExtent.pixels(
-                      defaultTargetPlatform == TargetPlatform.android
-                          ? _mobileListCacheExtent
-                          : _desktopListCacheExtent,
-                    ),
+                  cacheExtent: defaultTargetPlatform == TargetPlatform.android
+                      ? _mobileListCacheExtent
+                      : _desktopListCacheExtent,
                   padding: const EdgeInsets.symmetric(horizontal: 2),
                   itemCount: products.length,
                   separatorBuilder: (_, __) => const SizedBox(width: 12),
@@ -1291,9 +1288,7 @@ class _HomePageState extends State<HomePage> {
       creatorName: post.authorName,
       creatorAvatar: post.authorAvatar,
       createdAt: post.createdAt,
-      bodyText: isVideoPost
-          ? _postVideoTitle(post, linkedVideo)
-          : post.caption,
+      bodyText: isVideoPost ? _postVideoTitle(post, linkedVideo) : post.caption,
       bodyTextPosition: isVideoPost
           ? _MediaCardBodyTextPosition.aboveMedia
           : _MediaCardBodyTextPosition.belowMedia,
@@ -1687,7 +1682,8 @@ class _HomeVideoDurationBadge extends StatefulWidget {
   final int initialDurationSeconds;
 
   @override
-  State<_HomeVideoDurationBadge> createState() => _HomeVideoDurationBadgeState();
+  State<_HomeVideoDurationBadge> createState() =>
+      _HomeVideoDurationBadgeState();
 }
 
 class _HomeVideoDurationBadgeState extends State<_HomeVideoDurationBadge> {
@@ -1696,8 +1692,8 @@ class _HomeVideoDurationBadgeState extends State<_HomeVideoDurationBadge> {
   @override
   void initState() {
     super.initState();
-    _durationSeconds =
-        _homeVideoDurationCache[widget.videoUrl] ?? widget.initialDurationSeconds;
+    _durationSeconds = _homeVideoDurationCache[widget.videoUrl] ??
+        widget.initialDurationSeconds;
     _ensureDuration();
   }
 
@@ -1796,10 +1792,9 @@ class _InlineReelControllerCache {
   static void _evictOverflow() {
     while (_entries.length > _maxEntries) {
       final oldestEntry = _entries.entries.reduce(
-        (current, next) =>
-            current.value.cachedAt.isBefore(next.value.cachedAt)
-                ? current
-                : next,
+        (current, next) => current.value.cachedAt.isBefore(next.value.cachedAt)
+            ? current
+            : next,
       );
       _entries.remove(oldestEntry.key)?.controller.dispose();
     }
@@ -1889,8 +1884,7 @@ class _InlineReelMediaState extends State<_InlineReelMedia>
 
     _initializing = true;
     final cachedController = _InlineReelControllerCache.take(widget.videoUrl);
-    final controller =
-        cachedController ??
+    final controller = cachedController ??
         VideoPlayerController.networkUrl(
           Uri.parse(UrlHelper.getPlayableVideoUrl(widget.videoUrl)),
         );

@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/models/models.dart';
 import '../../../../core/services/api_service.dart';
+import '../../../../core/widgets/network_media.dart';
 
 class NetworkPurchasesSection extends StatefulWidget {
   const NetworkPurchasesSection({super.key});
 
   @override
-  State<NetworkPurchasesSection> createState() => _NetworkPurchasesSectionState();
+  State<NetworkPurchasesSection> createState() =>
+      _NetworkPurchasesSectionState();
 }
 
 class _NetworkPurchasesSectionState extends State<NetworkPurchasesSection> {
@@ -147,16 +149,14 @@ class _NetworkPurchaseCard extends StatelessWidget {
                   ),
                 ),
                 child: purchase.productImage.isNotEmpty
-                    ? Image.network(
-                        purchase.productImage,
+                    ? AppCachedImage(
+                        imageUrl: purchase.productImage,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Icon(
-                            Icons.shopping_bag_outlined,
-                            size: 40,
-                            color: Colors.white70,
-                          );
-                        },
+                        errorWidget: const Icon(
+                          Icons.shopping_bag_outlined,
+                          size: 40,
+                          color: Colors.white70,
+                        ),
                       )
                     : const Icon(
                         Icons.shopping_bag_outlined,
@@ -164,7 +164,7 @@ class _NetworkPurchaseCard extends StatelessWidget {
                         color: Colors.white70,
                       ),
               ),
-              
+
               Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: Column(
@@ -181,7 +181,7 @@ class _NetworkPurchaseCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
-                    
+
                     // Price
                     Text(
                       '\$${purchase.productPrice.toStringAsFixed(2)}',
@@ -192,26 +192,21 @@ class _NetworkPurchaseCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    
+
                     // Buyer Info
                     Row(
                       children: [
-                        CircleAvatar(
+                        AppAvatar(
+                          name: purchase.buyerName,
+                          avatarUrl: purchase.buyerAvatar,
                           radius: 12,
-                          backgroundImage: purchase.buyerAvatar != null
-                              ? NetworkImage(purchase.buyerAvatar!)
-                              : null,
-                          backgroundColor: isDark ? Colors.grey[700] : Colors.grey[300],
-                          child: purchase.buyerAvatar == null
-                              ? Text(
-                                  purchase.buyerName[0].toUpperCase(),
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: isDark ? Colors.white : Colors.black87,
-                                  ),
-                                )
-                              : null,
+                          backgroundColor:
+                              isDark ? Colors.grey[700] : Colors.grey[300],
+                          textStyle: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
                         ),
                         const SizedBox(width: 6),
                         Expanded(
@@ -219,7 +214,8 @@ class _NetworkPurchaseCard extends StatelessWidget {
                             purchase.buyerName,
                             style: TextStyle(
                               fontSize: 11,
-                              color: isDark ? Colors.grey[400] : Colors.grey[600],
+                              color:
+                                  isDark ? Colors.grey[400] : Colors.grey[600],
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -228,7 +224,7 @@ class _NetworkPurchaseCard extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 4),
-                    
+
                     // Time ago
                     Text(
                       _getTimeAgo(purchase.purchaseDate),
@@ -251,7 +247,7 @@ class _NetworkPurchaseCard extends StatelessWidget {
     try {
       final dateTime = DateTime.parse(dateStr);
       final difference = DateTime.now().difference(dateTime);
-      
+
       if (difference.inDays > 0) {
         return '${difference.inDays}d ago';
       } else if (difference.inHours > 0) {

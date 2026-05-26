@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/services/api_service.dart';
 import '../../../../core/providers/cart_provider.dart';
+import '../../../../core/widgets/network_media.dart';
 
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
@@ -132,10 +133,10 @@ class _ProductCard extends StatelessWidget {
               children: [
                 AspectRatio(
                   aspectRatio: 1,
-                  child: Image.network(
-                    product['images']?[0] ?? '',
+                  child: AppCachedImage(
+                    imageUrl: product['images']?[0] ?? '',
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
+                    errorWidget: Container(
                       color: Colors.grey[300],
                       child: const Icon(Icons.image, size: 50),
                     ),
@@ -249,13 +250,9 @@ class _VideoCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ListTile(
-              leading: CircleAvatar(
-                backgroundImage: video['creator_avatar'] != null
-                    ? NetworkImage(video['creator_avatar'])
-                    : null,
-                child: video['creator_avatar'] == null
-                    ? Text(video['creator_name']?[0] ?? 'U')
-                    : null,
+              leading: AppAvatar(
+                name: (video['creator_name'] ?? 'U').toString(),
+                avatarUrl: video['creator_avatar']?.toString(),
               ),
               title: Text(video['creator_name'] ?? 'Unknown'),
               subtitle: Text(video['created_at'] ?? ''),
@@ -264,10 +261,10 @@ class _VideoCard extends StatelessWidget {
               children: [
                 AspectRatio(
                   aspectRatio: 16 / 9,
-                  child: Image.network(
-                    video['thumbnail'] ?? '',
+                  child: AppCachedImage(
+                    imageUrl: video['thumbnail'] ?? '',
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
+                    errorWidget: Container(
                       color: Colors.black,
                       child: const Icon(Icons.play_circle_outline,
                           size: 50, color: Colors.white),

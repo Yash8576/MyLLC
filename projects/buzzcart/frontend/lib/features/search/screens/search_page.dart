@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../core/providers/cart_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/services/api_service.dart';
-import '../../../core/utils/url_helper.dart';
+import '../../../core/widgets/network_media.dart';
 import '../../products/widgets/product_card_social_preview.dart';
 
 class SearchPage extends StatefulWidget {
@@ -15,8 +15,7 @@ class SearchPage extends StatefulWidget {
   State<SearchPage> createState() => _SearchPageState();
 }
 
-class _SearchPageState extends State<SearchPage>
-{
+class _SearchPageState extends State<SearchPage> {
   static const double _gridSpacing = 12;
   static const double _minTileWidth = 170;
   static const double _maxTileWidth = 260;
@@ -223,7 +222,9 @@ class _SearchPageState extends State<SearchPage>
           physics: shrinkWrap
               ? const NeverScrollableScrollPhysics()
               : const AlwaysScrollableScrollPhysics(),
-          padding: shrinkWrap ? EdgeInsets.zero : const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          padding: shrinkWrap
+              ? EdgeInsets.zero
+              : const EdgeInsets.fromLTRB(16, 0, 16, 16),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columns,
             childAspectRatio: 0.64,
@@ -300,8 +301,9 @@ class _SearchPageState extends State<SearchPage>
       return _buildAllTab();
     }
 
-    final activeFilters =
-        _filterOrder.where((filter) => _selectedFilters.contains(filter)).toList();
+    final activeFilters = _filterOrder
+        .where((filter) => _selectedFilters.contains(filter))
+        .toList();
     if (activeFilters.length == 1) {
       switch (activeFilters.first) {
         case 'users':
@@ -358,10 +360,10 @@ class _SearchPageState extends State<SearchPage>
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          UrlHelper.getPlatformUrl(reel['thumbnail']),
+                        child: AppCachedImage(
+                          imageUrl: reel['thumbnail']?.toString(),
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
+                          errorWidget: Container(
                             color: Colors.grey[300],
                             child: const Icon(Icons.videocam),
                           ),
@@ -464,10 +466,10 @@ class _SearchPageState extends State<SearchPage>
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    UrlHelper.getPlatformUrl(reel['thumbnail']),
+                  child: AppCachedImage(
+                    imageUrl: reel['thumbnail']?.toString(),
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
+                    errorWidget: Container(
                       color: Colors.grey[300],
                       child: const Icon(Icons.videocam),
                     ),
@@ -586,7 +588,8 @@ class _SearchPageState extends State<SearchPage>
                             Text(
                               'Search by product name, video caption, or person name',
                               textAlign: TextAlign.center,
-                              style: TextStyle(fontSize: 16, color: Colors.grey),
+                              style:
+                                  TextStyle(fontSize: 16, color: Colors.grey),
                             ),
                           ],
                         ),
@@ -640,88 +643,89 @@ class _SearchPageState extends State<SearchPage>
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         children: [
-        if (_results['users']!.isNotEmpty)
-          const Text(
-            'Users',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-        if (_results['users']!.isNotEmpty) const SizedBox(height: 12),
-        if (_results['users']!.isNotEmpty)
-          ...(_results['users']!.take(3).map((user) => _UserCard(user: user))),
-        if (_results['users']!.isNotEmpty) const SizedBox(height: 24),
-        if (_results['products']!.isNotEmpty)
-          const Text(
-            'Products',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-        if (_results['products']!.isNotEmpty) const SizedBox(height: 12),
-        if (_results['products']!.isNotEmpty)
-          _buildProductResultsGrid(
-            _results['products']!,
-            shrinkWrap: true,
-            limit: 4,
-          ),
-        if (_results['products']!.isNotEmpty) const SizedBox(height: 24),
-        if (_results['videos']!.isNotEmpty)
-          const Text(
-            'Videos',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-        if (_results['videos']!.isNotEmpty) const SizedBox(height: 12),
-        if (_results['videos']!.isNotEmpty)
-          ...(_results['videos']!
-              .take(3)
-              .map((video) => _VideoCard(video: video))),
-        if (_results['videos']!.isNotEmpty &&
-            _results['reels']!.isNotEmpty)
-          const SizedBox(height: 24),
-        if (_results['reels']!.isNotEmpty)
-          const Text(
-            'Shorts',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-        if (_results['reels']!.isNotEmpty) const SizedBox(height: 12),
-        if (_results['reels']!.isNotEmpty)
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              childAspectRatio: 9 / 16,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
+          if (_results['users']!.isNotEmpty)
+            const Text(
+              'Users',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            itemCount: _results['reels']!.length.clamp(0, 6),
-            itemBuilder: (context, index) {
-              final reel = _results['reels']![index];
-              return InkWell(
-                onTap: () => context.push('/reels'),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        UrlHelper.getPlatformUrl(reel['thumbnail']),
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          color: Colors.grey[300],
-                          child: const Icon(Icons.videocam),
+          if (_results['users']!.isNotEmpty) const SizedBox(height: 12),
+          if (_results['users']!.isNotEmpty)
+            ...(_results['users']!
+                .take(3)
+                .map((user) => _UserCard(user: user))),
+          if (_results['users']!.isNotEmpty) const SizedBox(height: 24),
+          if (_results['products']!.isNotEmpty)
+            const Text(
+              'Products',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          if (_results['products']!.isNotEmpty) const SizedBox(height: 12),
+          if (_results['products']!.isNotEmpty)
+            _buildProductResultsGrid(
+              _results['products']!,
+              shrinkWrap: true,
+              limit: 4,
+            ),
+          if (_results['products']!.isNotEmpty) const SizedBox(height: 24),
+          if (_results['videos']!.isNotEmpty)
+            const Text(
+              'Videos',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          if (_results['videos']!.isNotEmpty) const SizedBox(height: 12),
+          if (_results['videos']!.isNotEmpty)
+            ...(_results['videos']!
+                .take(3)
+                .map((video) => _VideoCard(video: video))),
+          if (_results['videos']!.isNotEmpty && _results['reels']!.isNotEmpty)
+            const SizedBox(height: 24),
+          if (_results['reels']!.isNotEmpty)
+            const Text(
+              'Shorts',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          if (_results['reels']!.isNotEmpty) const SizedBox(height: 12),
+          if (_results['reels']!.isNotEmpty)
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                childAspectRatio: 9 / 16,
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 8,
+              ),
+              itemCount: _results['reels']!.length.clamp(0, 6),
+              itemBuilder: (context, index) {
+                final reel = _results['reels']![index];
+                return InkWell(
+                  onTap: () => context.push('/reels'),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: AppCachedImage(
+                          imageUrl: reel['thumbnail']?.toString(),
+                          fit: BoxFit.cover,
+                          errorWidget: Container(
+                            color: Colors.grey[300],
+                            child: const Icon(Icons.videocam),
+                          ),
                         ),
                       ),
-                    ),
-                    const Center(
-                      child: Icon(
-                        Icons.play_circle_fill,
-                        color: Colors.white,
-                        size: 48,
+                      const Center(
+                        child: Icon(
+                          Icons.play_circle_fill,
+                          color: Colors.white,
+                          size: 48,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
+                    ],
+                  ),
+                );
+              },
+            ),
         ],
       ),
     );
@@ -739,14 +743,10 @@ class _UserCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         onTap: () => context.push('/profile/${user['id']}'),
-        leading: CircleAvatar(
-          backgroundImage:
-              user['avatar'] != null && user['avatar'].toString().isNotEmpty
-                  ? NetworkImage(UrlHelper.getPlatformUrl(user['avatar']))
-                  : null,
-          child: user['avatar'] == null || user['avatar'].toString().isEmpty
-              ? Text((user['name'] ?? 'U')[0].toUpperCase())
-              : null,
+        leading: AppAvatar(
+          name: (user['name'] ?? 'U').toString(),
+          avatarUrl: user['avatar']?.toString(),
+          backgroundColor: AppColors.electricBlue,
         ),
         title: Text(user['name'] ?? ''),
         subtitle: Text(
@@ -1032,11 +1032,11 @@ class _ProductCardState extends State<_ProductCard> {
                               color: Colors.grey[300],
                               child: const Icon(Icons.image),
                             )
-                          : Image.network(
-                              UrlHelper.getPlatformUrl(firstImage),
+                          : AppCachedImage(
+                              imageUrl: firstImage,
                               fit: BoxFit.cover,
                               width: double.infinity,
-                              errorBuilder: (_, __, ___) => Container(
+                              errorWidget: Container(
                                 color: Colors.grey[300],
                                 child: const Icon(Icons.image),
                               ),
@@ -1044,7 +1044,8 @@ class _ProductCardState extends State<_ProductCard> {
                       Positioned(
                         right: 10,
                         bottom: 10,
-                        child: _buildCartControl(inCartQuantity, remainingStock),
+                        child:
+                            _buildCartControl(inCartQuantity, remainingStock),
                       ),
                     ],
                   ),
@@ -1171,10 +1172,10 @@ class _VideoCard extends StatelessWidget {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      UrlHelper.getPlatformUrl(video['thumbnail']),
+                    child: AppCachedImage(
+                      imageUrl: video['thumbnail']?.toString(),
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
+                      errorWidget: Container(
                         color: Colors.grey[300],
                         child: const Icon(Icons.play_arrow),
                       ),

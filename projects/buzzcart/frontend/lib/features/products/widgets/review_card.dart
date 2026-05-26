@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../../../core/theme/app_colors.dart';
 import '../../../core/models/models.dart';
+import '../../../core/widgets/network_media.dart';
 
 class ReviewCard extends StatelessWidget {
   final ReviewModel review;
@@ -23,20 +24,14 @@ class ReviewCard extends StatelessWidget {
         // User info and rating
         Row(
           children: [
-            CircleAvatar(
-              backgroundImage: review.userAvatar != null
-                  ? NetworkImage(review.userAvatar!)
-                  : null,
-              backgroundColor: isDark ? Colors.grey[700] : Colors.grey[300],
-              child: review.userAvatar == null
-                  ? Text(
-                      (review.username ?? 'U')[0].toUpperCase(),
-                      style: TextStyle(
-                        color: isDark ? Colors.white : Colors.black,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    )
-                  : null,
+            AppAvatar(
+              name: review.username ?? 'U',
+              avatarUrl: review.userAvatar,
+              backgroundColor: isDark ? Colors.grey[700] : Colors.grey[500],
+              textStyle: TextStyle(
+                color: isDark ? Colors.white : Colors.black,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -68,7 +63,7 @@ class ReviewCard extends StatelessWidget {
             ),
           ],
         ),
-        
+
         // Trust badges
         if (review.isVerifiedPurchase || review.isFollowing) ...[
           const SizedBox(height: 12),
@@ -93,7 +88,7 @@ class ReviewCard extends StatelessWidget {
             ],
           ),
         ],
-        
+
         // Review title
         if (review.reviewTitle != null && review.reviewTitle!.isNotEmpty) ...[
           const SizedBox(height: 12),
@@ -104,7 +99,7 @@ class ReviewCard extends StatelessWidget {
                 ),
           ),
         ],
-        
+
         // Review text
         if (review.reviewText != null && review.reviewText!.isNotEmpty) ...[
           const SizedBox(height: 8),
@@ -115,13 +110,13 @@ class ReviewCard extends StatelessWidget {
                 ),
           ),
         ],
-        
+
         // Review images
         if (review.images.isNotEmpty) ...[
           const SizedBox(height: 12),
           _buildImageGallery(context),
         ],
-        
+
         // Helpful button
         const SizedBox(height: 16),
         Row(
@@ -151,7 +146,9 @@ class ReviewCard extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        review.hasVoted ? Icons.thumb_up : Icons.thumb_up_outlined,
+                        review.hasVoted
+                            ? Icons.thumb_up
+                            : Icons.thumb_up_outlined,
                         size: 16,
                         color: review.hasVoted
                             ? AppColors.electricBlue
@@ -165,7 +162,9 @@ class ReviewCard extends StatelessWidget {
                           color: review.hasVoted
                               ? AppColors.electricBlue
                               : (isDark ? Colors.grey[400] : Colors.grey[600]),
-                          fontWeight: review.hasVoted ? FontWeight.bold : FontWeight.normal,
+                          fontWeight: review.hasVoted
+                              ? FontWeight.bold
+                              : FontWeight.normal,
                         ),
                       ),
                     ],
@@ -187,26 +186,25 @@ class ReviewCard extends StatelessWidget {
         itemCount: review.images.length,
         itemBuilder: (context, index) {
           return Padding(
-            padding: EdgeInsets.only(right: index < review.images.length - 1 ? 8 : 0),
+            padding: EdgeInsets.only(
+                right: index < review.images.length - 1 ? 8 : 0),
             child: GestureDetector(
               onTap: () => _showImageViewer(context, index),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  review.images[index],
+                child: AppCachedImage(
+                  imageUrl: review.images[index],
                   width: 100,
                   height: 100,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      width: 100,
-                      height: 100,
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.grey[800]
-                          : Colors.grey[300],
-                      child: const Icon(Icons.broken_image, color: Colors.grey),
-                    );
-                  },
+                  errorWidget: Container(
+                    width: 100,
+                    height: 100,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey[800]
+                        : Colors.grey[300],
+                    child: const Icon(Icons.broken_image, color: Colors.grey),
+                  ),
                 ),
               ),
             ),
@@ -343,24 +341,22 @@ class _ImageViewerPageState extends State<_ImageViewerPage> {
             child: InteractiveViewer(
               minScale: 0.5,
               maxScale: 4.0,
-              child: Image.network(
-                widget.images[index],
+              child: AppCachedImage(
+                imageUrl: widget.images[index],
                 fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) {
-                  return const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.broken_image, color: Colors.white, size: 64),
-                        SizedBox(height: 16),
-                        Text(
-                          'Failed to load image',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ],
-                    ),
-                  );
-                },
+                errorWidget: const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.broken_image, color: Colors.white, size: 64),
+                      SizedBox(height: 16),
+                      Text(
+                        'Failed to load image',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           );
