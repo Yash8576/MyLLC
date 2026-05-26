@@ -376,9 +376,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   void _reorderMediaQueue(int oldIndex, int newIndex) {
     setState(() {
-      if (newIndex > oldIndex) {
-        newIndex -= 1;
-      }
       final item = _mediaQueue.removeAt(oldIndex);
       _mediaQueue.insert(newIndex, item);
     });
@@ -1658,7 +1655,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       physics: const NeverScrollableScrollPhysics(),
                       shrinkWrap: true,
                       itemCount: _mediaQueue.length,
-                      onReorder: _reorderMediaQueue,
+                      onReorderItem: _reorderMediaQueue,
                       itemBuilder: (context, index) {
                         final item = _mediaQueue[index];
                         return Card(

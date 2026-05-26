@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
@@ -858,7 +859,7 @@ class _HomePageState extends State<HomePage> {
             controller: _feedScrollController,
             padding:
                 EdgeInsets.symmetric(vertical: 16, horizontal: pagePadding),
-            cacheExtent: cacheExtent,
+            scrollCacheExtent: ScrollCacheExtent.pixels(cacheExtent),
             itemCount: _sections.length,
             itemBuilder: (context, index) {
               final section = _sections[index];
@@ -1069,9 +1070,11 @@ class _HomePageState extends State<HomePage> {
                 child: ListView.separated(
                   controller: controller,
                   scrollDirection: Axis.horizontal,
-                  cacheExtent: defaultTargetPlatform == TargetPlatform.android
-                      ? _mobileListCacheExtent
-                      : _desktopListCacheExtent,
+                    scrollCacheExtent: ScrollCacheExtent.pixels(
+                      defaultTargetPlatform == TargetPlatform.android
+                          ? _mobileListCacheExtent
+                          : _desktopListCacheExtent,
+                    ),
                   padding: const EdgeInsets.symmetric(horizontal: 2),
                   itemCount: products.length,
                   separatorBuilder: (_, __) => const SizedBox(width: 12),
