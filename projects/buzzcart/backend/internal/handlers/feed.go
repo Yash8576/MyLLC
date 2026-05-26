@@ -720,7 +720,7 @@ func Search(db *sql.DB) gin.HandlerFunc {
 
 		// Search products by product name only, using the same projection as the
 		// product listing endpoints so search stays compatible with both schemas.
-		productQuery := productSelectBase + `
+		productQuery := productSelectBaseQuery(db) + `
 		 AND (
 			p.title ILIKE $1
 			OR regexp_replace(lower(p.title), '[^a-z0-9]+', '', 'g')
@@ -731,7 +731,7 @@ func Search(db *sql.DB) gin.HandlerFunc {
 		useLegacyProductScan := false
 		var products []models.Product
 		if productErr != nil {
-			legacyQuery := productSelectLegacy + `
+			legacyQuery := productSelectLegacyQuery(db) + `
 			 WHERE (
 				p.title ILIKE $1
 				OR regexp_replace(lower(p.title), '[^a-z0-9]+', '', 'g')

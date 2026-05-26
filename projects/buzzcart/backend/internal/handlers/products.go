@@ -20,60 +20,6 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-const productSelectBase = `
-	SELECT
-		p.id,
-		p.title,
-		COALESCE(p.description, ''),
-		p.price,
-		p.compare_at_price,
-		COALESCE(p.currency, 'USD'),
-		p.sku,
-		COALESCE(p.stock_quantity, 0),
-		COALESCE(p.condition, 'new'),
-		COALESCE((
-			SELECT ARRAY_AGG(pi.image_url ORDER BY pi.display_order)
-			FROM product_images pi
-			WHERE pi.product_id = p.id
-		), ARRAY[]::TEXT[]),
-		COALESCE(c.name, ''),
-		COALESCE(p.tags, ARRAY[]::TEXT[]),
-		p.seller_id,
-		COALESCE(u.name, u.username, ''),
-		COALESCE((
-			SELECT ROUND(AVG(pr.rating)::NUMERIC, 1)::FLOAT8
-			FROM product_ratings pr
-			WHERE pr.product_id = p.id
-				AND pr.is_private = false
-				AND pr.moderation_status = 'approved'
-		), 0),
-		COALESCE((
-			SELECT COUNT(*)
-			FROM product_ratings pr
-			WHERE pr.product_id = p.id
-				AND pr.is_private = false
-				AND pr.moderation_status = 'approved'
-		), 0),
-		COALESCE((
-			SELECT SUM(pa.view_count)
-			FROM product_analytics pa
-			WHERE pa.product_id = p.id
-		), 0),
-		COALESCE((
-			SELECT SUM(oi.quantity)
-			FROM order_items oi
-			JOIN orders o ON o.id = oi.order_id
-			WHERE oi.product_id = p.id
-				AND o.status IN ('delivered', 'completed')
-		), 0),
-		COALESCE(p.metadata, '{}'::jsonb),
-		p.created_at
-	FROM products p
-	LEFT JOIN categories c ON c.id = p.category_id
-	LEFT JOIN users u ON u.id = p.seller_id
-	WHERE p.is_active = TRUE
-`
-
 func reviewHelpfulVotesTableExists(db *sql.DB) bool {
 	var exists bool
 	if err := db.QueryRow("SELECT to_regclass($1) IS NOT NULL", "public.review_helpful_votes").Scan(&exists); err != nil {
@@ -82,25 +28,105 @@ func reviewHelpfulVotesTableExists(db *sql.DB) bool {
 	return exists
 }
 
-const productSelectLegacy = `
-	SELECT
-		p.id,
-		p.title,
-		COALESCE(p.description, ''),
-		p.price,
-		p.images,
-		COALESCE(p.category, ''),
-		COALESCE(p.tags, ARRAY[]::TEXT[]),
-		p.seller_id,
-		COALESCE(p.seller_name, u.name, ''),
-		COALESCE(p.rating, 0),
-		COALESCE(p.reviews_count, 0),
-		COALESCE(p.views, 0),
-		0,
-		p.created_at
-	FROM products p
-	LEFT JOIN users u ON u.id = p.seller_id
-`
+func productSalesCountColumnExists(db *sql.DB) bool {
+	var exists bool
+	err := db.QueryRow(`
+		SELECT EXISTS (
+			SELECT 1
+			FROM information_schema.columns
+			WHERE table_schema = 'public'
+				AND table_name = 'products'
+				AND column_name = 'sales_count'
+		)
+	`).Scan(&exists)
+	return err == nil && exists
+}
+
+func productSalesSelectExpression(db *sql.DB, productAlias string) string {
+	if productSalesCountColumnExists(db) {
+		return fmt.Sprintf("COALESCE(%s.sales_count, 0)", productAlias)
+	}
+
+	return fmt.Sprintf(`COALESCE((
+		SELECT SUM(oi.quantity)
+		FROM order_items oi
+		JOIN orders o ON o.id = oi.order_id
+		WHERE oi.product_id = %s.id
+			AND o.status IN ('delivered', 'completed')
+	), 0)`, productAlias)
+}
+
+func productSelectBaseQuery(db *sql.DB) string {
+	return fmt.Sprintf(`
+		SELECT
+			p.id,
+			p.title,
+			COALESCE(p.description, ''),
+			p.price,
+			p.compare_at_price,
+			COALESCE(p.currency, 'USD'),
+			p.sku,
+			COALESCE(p.stock_quantity, 0),
+			COALESCE(p.condition, 'new'),
+			COALESCE((
+				SELECT ARRAY_AGG(pi.image_url ORDER BY pi.display_order)
+				FROM product_images pi
+				WHERE pi.product_id = p.id
+			), ARRAY[]::TEXT[]),
+			COALESCE(c.name, ''),
+			COALESCE(p.tags, ARRAY[]::TEXT[]),
+			p.seller_id,
+			COALESCE(u.name, u.username, ''),
+			COALESCE((
+				SELECT ROUND(AVG(pr.rating)::NUMERIC, 1)::FLOAT8
+				FROM product_ratings pr
+				WHERE pr.product_id = p.id
+					AND pr.is_private = false
+					AND pr.moderation_status = 'approved'
+			), 0),
+			COALESCE((
+				SELECT COUNT(*)
+				FROM product_ratings pr
+				WHERE pr.product_id = p.id
+					AND pr.is_private = false
+					AND pr.moderation_status = 'approved'
+			), 0),
+			COALESCE((
+				SELECT SUM(pa.view_count)
+				FROM product_analytics pa
+				WHERE pa.product_id = p.id
+			), 0),
+			%s,
+			COALESCE(p.metadata, '{}'::jsonb),
+			p.created_at
+		FROM products p
+		LEFT JOIN categories c ON c.id = p.category_id
+		LEFT JOIN users u ON u.id = p.seller_id
+		WHERE p.is_active = TRUE
+	`, productSalesSelectExpression(db, "p"))
+}
+
+func productSelectLegacyQuery(db *sql.DB) string {
+	return fmt.Sprintf(`
+		SELECT
+			p.id,
+			p.title,
+			COALESCE(p.description, ''),
+			p.price,
+			p.images,
+			COALESCE(p.category, ''),
+			COALESCE(p.tags, ARRAY[]::TEXT[]),
+			p.seller_id,
+			COALESCE(p.seller_name, u.name, ''),
+			COALESCE(p.rating, 0),
+			COALESCE(p.reviews_count, 0),
+			COALESCE(p.views, 0),
+			%s,
+			p.created_at
+		FROM products p
+		LEFT JOIN users u ON u.id = p.seller_id
+	`, productSalesSelectExpression(db, "p"))
+}
 
 func CreateProduct(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -202,11 +228,11 @@ func GetProducts(db *sql.DB) gin.HandlerFunc {
 		)
 		if category != "" {
 			rows, err = db.Query(
-				productSelectBase+` AND c.name ILIKE $1 ORDER BY p.created_at DESC LIMIT 100`,
+				productSelectBaseQuery(db)+` AND c.name ILIKE $1 ORDER BY p.created_at DESC LIMIT 100`,
 				category,
 			)
 		} else {
-			rows, err = db.Query(productSelectBase + ` ORDER BY p.created_at DESC LIMIT 100`)
+			rows, err = db.Query(productSelectBaseQuery(db) + ` ORDER BY p.created_at DESC LIMIT 100`)
 		}
 		if err != nil {
 			log.Printf("[GetProducts] primary query failed (category=%q): %v", category, err)
@@ -467,7 +493,7 @@ func GetSellerProducts(db *sql.DB) gin.HandlerFunc {
 		}
 
 		rows, err := db.Query(
-			productSelectBase+` AND p.seller_id = $1 ORDER BY p.created_at DESC`, sellerID,
+			productSelectBaseQuery(db)+` AND p.seller_id = $1 ORDER BY p.created_at DESC`, sellerID,
 		)
 		if err != nil {
 			log.Printf("[GetSellerProducts] primary query failed (seller_id=%s): %v", sellerID, err)
@@ -537,7 +563,7 @@ func parseListLimit(c *gin.Context, defaultLimit int) int {
 func getProductByID(db *sql.DB, productID string) (models.Product, error) {
 	return scanProduct(
 		db.QueryRow(
-			productSelectBase+` AND p.id = $1 LIMIT 1`,
+			productSelectBaseQuery(db)+` AND p.id = $1 LIMIT 1`,
 			productID,
 		),
 	)
@@ -546,7 +572,7 @@ func getProductByID(db *sql.DB, productID string) (models.Product, error) {
 func getProductByIDLegacy(db *sql.DB, productID string) (models.Product, error) {
 	return scanProductLegacy(
 		db.QueryRow(
-			productSelectLegacy+` WHERE p.id = $1 LIMIT 1`,
+			productSelectLegacyQuery(db)+` WHERE p.id = $1 LIMIT 1`,
 			productID,
 		),
 	)
@@ -589,7 +615,7 @@ func scanProduct(scanner productScanner) (models.Product, error) {
 		&product.Rating,
 		&product.ReviewsCount,
 		&product.Views,
-		&product.Buys,
+		&product.SalesCount,
 		&metadataJSON,
 		&product.CreatedAt,
 	)
@@ -639,7 +665,7 @@ func scanProductLegacy(scanner productScanner) (models.Product, error) {
 		&product.Rating,
 		&product.ReviewsCount,
 		&product.Views,
-		&product.Buys,
+		&product.SalesCount,
 		&product.CreatedAt,
 	)
 	if err != nil {
@@ -651,7 +677,7 @@ func scanProductLegacy(scanner productScanner) (models.Product, error) {
 }
 
 func getProductsLegacy(db *sql.DB, category string) ([]models.Product, error) {
-	query := productSelectLegacy
+	query := productSelectLegacyQuery(db)
 	args := []any{}
 	if strings.TrimSpace(category) != "" {
 		query += ` WHERE p.category ILIKE $1`
@@ -677,7 +703,7 @@ func getProductsLegacy(db *sql.DB, category string) ([]models.Product, error) {
 
 func getSellerProductsLegacy(db *sql.DB, sellerID string) ([]models.Product, error) {
 	rows, err := db.Query(
-		productSelectLegacy+` WHERE p.seller_id = $1 ORDER BY p.created_at DESC`,
+		productSelectLegacyQuery(db)+` WHERE p.seller_id = $1 ORDER BY p.created_at DESC`,
 		sellerID,
 	)
 	if err != nil {

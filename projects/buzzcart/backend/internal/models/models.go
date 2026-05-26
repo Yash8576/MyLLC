@@ -176,7 +176,7 @@ type Product struct {
 	Rating         float64        `json:"rating" db:"rating"`
 	ReviewsCount   int            `json:"reviews_count" db:"reviews_count"`
 	Views          int            `json:"views" db:"views"`
-	Buys           int            `json:"buys" db:"buys"`
+	SalesCount     int            `json:"sales_count" db:"sales_count"`
 	Metadata       map[string]any `json:"metadata,omitempty" db:"metadata"`
 	CreatedAt      time.Time      `json:"created_at" db:"created_at"`
 }

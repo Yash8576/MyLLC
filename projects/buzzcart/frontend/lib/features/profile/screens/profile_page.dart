@@ -705,7 +705,7 @@ class _ProfilePageState extends State<ProfilePage>
   }
 
   String _formatPurchaseTimeline(ProductModel product) {
-    final count = product.buys < 0 ? 0 : product.buys;
+    final count = product.salesCount < 0 ? 0 : product.salesCount;
     return 'Bought $count ${count == 1 ? 'time' : 'times'} ${_formatPurchaseRelativeTime(product.createdAt)}';
   }
 
@@ -736,8 +736,8 @@ class _ProfilePageState extends State<ProfilePage>
   }
 
   Widget _buildProductOwnerSummary() {
-    final totalBuys =
-        _products.fold<int>(0, (sum, product) => sum + product.buys);
+    final totalSales =
+        _products.fold<int>(0, (sum, product) => sum + product.salesCount);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
@@ -745,8 +745,8 @@ class _ProfilePageState extends State<ProfilePage>
         children: [
           Expanded(
             child: _buildOwnerMetricCard(
-              label: 'Total Purchases',
-              value: '$totalBuys',
+              label: 'Total Sales',
+              value: '$totalSales',
               icon: Icons.shopping_bag_outlined,
             ),
           ),
@@ -2320,7 +2320,7 @@ class _ProfilePageState extends State<ProfilePage>
                             _buildProductMetricChip(
                               icon: Icons.shopping_bag_outlined,
                               label:
-                                  '${product.buys} ${product.buys == 1 ? 'purchase' : 'purchases'}',
+                                  '${product.salesCount} ${product.salesCount == 1 ? 'sale' : 'sales'}',
                             ),
                           ],
                         )

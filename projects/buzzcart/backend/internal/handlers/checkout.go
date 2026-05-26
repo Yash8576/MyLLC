@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"buzzcart/internal/database"
 	"buzzcart/internal/models"
 	"database/sql"
@@ -41,6 +42,27 @@ type checkoutLineItem struct {
 	Quantity     int
 	UnitPrice    float64
 	Subtotal     float64
+}
+
+func incrementProductSalesCountTx(ctx context.Context, tx *sql.Tx, productID string, quantity int, now time.Time) error {
+	if quantity <= 0 {
+		return nil
+	}
+
+	_, err := tx.ExecContext(
+		ctx,
+		`UPDATE products
+		 SET sales_count = COALESCE(sales_count, 0) + $1,
+		     updated_at = $2
+		 WHERE id = $3`,
+		quantity,
+		now,
+		productID,
+	)
+	if err != nil && strings.Contains(strings.ToLower(err.Error()), "sales_count") {
+		return nil
+	}
+	return err
 }
 
 func CheckoutCart(db *sql.DB) gin.HandlerFunc {
@@ -243,6 +265,11 @@ func CheckoutCart(db *sql.DB) gin.HandlerFunc {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update stock"})
 				return
 			}
+
+			if err := incrementProductSalesCountTx(ctx, tx, lineItem.ProductID, lineItem.Quantity, now); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update sales count"})
+				return
+			}
 		}
 
 		if _, err := tx.ExecContext(ctx, `DELETE FROM carts WHERE user_id = $1`, userID); err != nil {
@@ -431,7 +458,7 @@ func GetUserPurchases(db *sql.DB) gin.HandlerFunc {
 			product.Rating = globalRating
 			product.ReviewsCount = reviewsCount
 			product.Views = 0
-			product.Buys = quantity
+			product.SalesCount = quantity
 			product.Metadata = map[string]any{
 				"purchased_quantity": quantity,
 				"your_rating":        yourRating,
