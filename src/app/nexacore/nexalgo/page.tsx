@@ -10,8 +10,8 @@ import {
   signOut,
   type User,
 } from 'firebase/auth'
-import { auth, firebaseClientConfigured } from '@/app/nexacore/shared/firebase'
 import { nexalgoApi } from './lib/api'
+import { auth, firebaseClientConfigured } from './lib/firebase'
 import type {
   LanguageKey,
   ProblemProgressStatus,
