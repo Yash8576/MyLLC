@@ -1,0 +1,82 @@
+import type {
+  LanguageKey,
+  ProblemProgressStatus,
+  ProblemRecord,
+  ReviewQueueItem,
+  ScrapedProblemInput,
+  SessionUser,
+} from './types'
+
+const apiBaseUrl =
+  process.env.NEXT_PUBLIC_NEXALGO_API_BASE_URL?.replace(/\/+$/, '') ||
+  'http://localhost:8080/v1'
+
+async function request<T>(path: string, init?: RequestInit, idToken?: string): Promise<T> {
+  const headers = new Headers(init?.headers)
+  headers.set('Content-Type', 'application/json')
+  if (idToken) {
+    headers.set('Authorization', `Bearer ${idToken}`)
+  }
+
+  const response = await fetch(`${apiBaseUrl}${path}`, {
+    ...init,
+    headers,
+  })
+
+  const json = await response.json().catch(() => ({}))
+  if (!response.ok) {
+    throw new Error(json.error || 'Request failed.')
+  }
+
+  return json as T
+}
+
+export const nexalgoApi = {
+  apiBaseUrl,
+  getProblems: async () =>
+    request<{ problems: ProblemRecord[] }>('/problems').then((result) => result.problems),
+  getProblem: async (problemId: string) =>
+    request<{ problem: ProblemRecord }>(`/problems/${problemId}`).then((result) => result.problem),
+  createSession: async (idToken: string) =>
+    request<{ user: SessionUser }>('/auth/session', { method: 'POST', body: '{}' }, idToken).then(
+      (result) => result.user,
+    ),
+  updatePreference: async (idToken: string, defaultLanguage: LanguageKey) =>
+    request('/users/me/preferences', {
+      method: 'PUT',
+      body: JSON.stringify({ defaultLanguage }),
+    }, idToken),
+  updateProgress: async (idToken: string, problemId: string, status: ProblemProgressStatus) =>
+    request(`/users/me/progress/${problemId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    }, idToken),
+  getReviewQueue: async (idToken: string) =>
+    request<{ submissions: ReviewQueueItem[] }>('/submissions', undefined, idToken).then(
+      (result) => result.submissions,
+    ),
+  submitProblem: async (
+    idToken: string,
+    problem: ScrapedProblemInput,
+    targetProblemId?: string,
+  ) =>
+    request('/submissions', {
+      method: 'POST',
+      body: JSON.stringify({ problem, targetProblemId }),
+    }, idToken),
+  approveSubmission: async (idToken: string, submissionId: string, notes?: string) =>
+    request(`/submissions/${submissionId}/approve`, {
+      method: 'POST',
+      body: JSON.stringify({ notes }),
+    }, idToken),
+  rejectSubmission: async (idToken: string, submissionId: string, notes?: string) =>
+    request(`/submissions/${submissionId}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ notes }),
+    }, idToken),
+  regenerateSubmission: async (idToken: string, submissionId: string) =>
+    request(`/submissions/${submissionId}/regenerate`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }, idToken),
+}

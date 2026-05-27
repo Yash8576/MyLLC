@@ -1,0 +1,191 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AppRole {
+  admin
+  editor
+  viewer
+}
+
+enum ProblemStatus {
+  draft
+  published
+  archived
+}
+
+enum SubmissionType {
+  create
+  update
+}
+
+enum SubmissionStatus {
+  pending
+  generated
+  approved
+  rejected
+}
+
+enum ReviewAction {
+  approved
+  rejected
+}
+
+enum ProblemProgressStatus {
+  unvisited
+  visited
+  attempted
+  solved
+}
+
+model User {
+  id                String                @id @default(cuid())
+  firebaseUid       String                @unique
+  email             String                @unique
+  displayName       String?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  roles             Role[]
+  preferences       UserPreference?
+  progress          UserProblemProgress[]
+  submissions       ProblemSubmission[]   @relation("SubmittedBy")
+  publishedProblems Problem[]             @relation("PublishedBy")
+  reviews           SubmissionReview[]
+}
+
+model Role {
+  id         String   @id @default(cuid())
+  userId     String
+  role       AppRole
+  createdAt  DateTime @default(now())
+  assignedBy String?
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role])
+}
+
+model Problem {
+  id                 String               @id @default(cuid())
+  problemNumber      Int?                 @unique
+  title              String
+  slug               String               @unique
+  difficulty         String?
+  problemStatement   String
+  hints              Json
+  intuition          String?
+  walkthrough        String?
+  complexityAnalysis String?
+  topics             Json
+  companies          Json
+  solutions          Json
+  status             ProblemStatus        @default(published)
+  publishedAt        DateTime?
+  publishedById      String?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  publishedBy        User?                @relation("PublishedBy", fields: [publishedById], references: [id], onDelete: SetNull)
+  sources            ProblemSource[]
+  progress           UserProblemProgress[]
+  submissions        ProblemSubmission[]
+}
+
+model ProblemSource {
+  id            String   @id @default(cuid())
+  problemId     String
+  platform      String
+  externalId    String?
+  slug          String?
+  normalizedUrl String
+  sourceKey     String   @unique
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  problem       Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@index([platform, externalId])
+  @@index([platform, slug])
+}
+
+model ProblemSubmission {
+  id               String             @id @default(cuid())
+  type             SubmissionType
+  status           SubmissionStatus   @default(pending)
+  platform         String
+  externalId       String?
+  slug             String?
+  normalizedUrl    String
+  rawScrape        Json
+  proposedProblem  Json
+  submittedById    String
+  targetProblemId  String?
+  reviewNotes      String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  reviewedAt       DateTime?
+  submittedBy      User               @relation("SubmittedBy", fields: [submittedById], references: [id], onDelete: Cascade)
+  targetProblem    Problem?           @relation(fields: [targetProblemId], references: [id], onDelete: SetNull)
+  generatedContent GeneratedContent?
+  reviews          SubmissionReview[]
+
+  @@index([status, createdAt])
+  @@index([platform, externalId])
+  @@index([platform, slug])
+}
+
+model GeneratedContent {
+  id              String            @id @default(cuid())
+  submissionId    String            @unique
+  status          SubmissionStatus  @default(generated)
+  hints           Json
+  intuition       String?
+  walkthrough     String?
+  complexity      String?
+  pythonSolution  String?
+  javaSolution    String?
+  cppSolution     String?
+  generatedAt     DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  submission      ProblemSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+}
+
+model UserProblemProgress {
+  id            String                @id @default(cuid())
+  userId        String
+  problemId     String
+  status        ProblemProgressStatus @default(unvisited)
+  lastVisitedAt DateTime?
+  attemptedAt   DateTime?
+  solvedAt      DateTime?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problem       Problem               @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, problemId])
+}
+
+model UserPreference {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  defaultLanguage String   @default("python")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SubmissionReview {
+  id           String       @id @default(cuid())
+  submissionId String
+  reviewerId   String
+  action       ReviewAction
+  notes        String?
+  createdAt    DateTime     @default(now())
+  submission   ProblemSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  reviewer     User         @relation(fields: [reviewerId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId, createdAt])
+}

@@ -1,231 +1,152 @@
 'use client'
 
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import {
-  collection,
-  doc,
-  onSnapshot,
-  setDoc,
-  updateDoc,
-} from 'firebase/firestore'
 import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signOut,
+  type User,
 } from 'firebase/auth'
-import { auth, db } from '@/app/nexacore/shared/firebase'
-import seedData from './generatedSeed.json'
+import { auth, firebaseClientConfigured } from '@/app/nexacore/shared/firebase'
+import { nexalgoApi } from './lib/api'
+import type {
+  LanguageKey,
+  ProblemProgressStatus,
+  ProblemRecord,
+  ReviewQueueItem,
+  ScrapedProblemInput,
+  SessionUser,
+} from './lib/types'
 import './NexAlgo.css'
 
-type LanguageKey = 'python' | 'java' | 'cpp'
-type NavMode = 'number' | 'company' | 'topic'
-type ProblemStatus = 'unvisited' | 'visited' | 'attempted' | 'solved'
-type ProblemsPaneMode = 'normal' | 'expanded' | 'minimized'
-type DetailSectionKey =
-  | 'solve'
-  | 'hints'
-  | 'topics'
-  | 'intuition'
-  | 'code'
-  | 'walkthrough'
-  | 'complexity'
-  | 'companies'
-
-type SeedProblem = {
-  id: number
-  title: string
-  slug: string
-  difficulty: string
-  topics: string[]
-  companies: string[]
-  link: string
-  problemStatement: string
-  hints: string[]
-  whatToUse: string[]
-  intuition: string
-  walkthrough: string
-  complexity: string
-  starterCodeByLanguage: Record<LanguageKey, string>
-  officialSolution: string
-}
-
-type ProblemProgress = {
-  id: string
-  status?: ProblemStatus
-  lastVisitedAt?: number
-  attemptedAt?: number
-  solvedAt?: number
-}
-
-type AppPreferences = {
-  defaultLanguage?: LanguageKey
-}
-
-type AppConfig = {
-  adminEmails?: string[]
-  editorEmails?: string[]
-}
-
-type ProblemOverride = {
-  id?: number
-  title?: string
-  slug?: string
-  difficulty?: string
-  topics?: string[]
-  link?: string
-  problemStatement?: string
-  hints?: string[]
-  whatToUse?: string[]
-  intuition?: string
-  walkthrough?: string
-  complexity?: string
-  codeByLanguage?: Partial<Record<LanguageKey, string>>
-  companies?: string[]
-  updatedBy?: string
-  updatedAt?: number
-}
-
-type QuestionEditorDraft = {
-  questionNumber: string
-  title: string
-  difficulty: string
-  link: string
-  problemStatement: string
-  hints: string
-  topics: string
-  intuition: string
-  walkthrough: string
-  complexity: string
-  companies: string
-  python: string
-  java: string
-  cpp: string
-}
-
-const seedProblems = seedData as SeedProblem[]
-const DEFAULT_LANGUAGE: LanguageKey = 'python'
 const LANGUAGE_OPTIONS: Array<{ value: LanguageKey; label: string }> = [
   { value: 'python', label: 'Python' },
   { value: 'java', label: 'Java' },
   { value: 'cpp', label: 'C++' },
 ]
-const STATUS_LABELS: Record<ProblemStatus, string> = {
-  unvisited: 'Unvisited',
-  visited: 'Visited',
-  attempted: 'Attempted',
-  solved: 'Solved',
-}
-const PROBLEMS_PER_PAGE = 50
-const RETURN_PROMPT_KEY = 'nexalgoPendingReturnProblem'
+
 const LANGUAGE_STORAGE_KEY = 'nexalgoDefaultLanguage'
-const DETAIL_SECTION_LABELS: Array<{ key: DetailSectionKey; label: string }> = [
-  { key: 'solve', label: 'Solve' },
-  { key: 'hints', label: 'Hints' },
-  { key: 'topics', label: 'Topics' },
-  { key: 'intuition', label: 'Intuition' },
-  { key: 'code', label: 'Code' },
-  { key: 'walkthrough', label: 'Code walkthrough' },
-  { key: 'complexity', label: 'Complexity analysis' },
-  { key: 'companies', label: 'Companies' },
-]
 
-function statusForProblem(
-  progressMap: Record<string, ProblemProgress>,
-  problemId: number,
-): ProblemStatus {
-  return progressMap[String(problemId)]?.status ?? 'unvisited'
+type DraftFormState = {
+  platform: string
+  externalId: string
+  slug: string
+  normalizedUrl: string
+  title: string
+  problemNumber: string
+  difficulty: string
+  problemStatement: string
+  topics: string
+  companies: string
+  hints: string
+  intuition: string
+  walkthrough: string
+  complexityAnalysis: string
+  python: string
+  java: string
+  cpp: string
 }
 
-function difficultyToneClass(difficulty: string) {
-  const normalized = difficulty.trim().toLowerCase()
+function splitCsv(value: string) {
+  return value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+}
+
+function splitLines(value: string) {
+  return value
+    .split('\n')
+    .map((item) => item.trim())
+    .filter(Boolean)
+}
+
+function emptyDraft(): DraftFormState {
+  return {
+    platform: 'leetcode',
+    externalId: '',
+    slug: '',
+    normalizedUrl: '',
+    title: '',
+    problemNumber: '',
+    difficulty: '',
+    problemStatement: '',
+    topics: '',
+    companies: '',
+    hints: '',
+    intuition: '',
+    walkthrough: '',
+    complexityAnalysis: '',
+    python: '',
+    java: '',
+    cpp: '',
+  }
+}
+
+function draftFromProblem(problem: ProblemRecord): DraftFormState {
+  const primarySource = problem.sources[0]
+
+  return {
+    platform: primarySource?.platform || 'leetcode',
+    externalId: primarySource?.externalId || '',
+    slug: primarySource?.slug || problem.slug,
+    normalizedUrl: primarySource?.normalizedUrl || '',
+    title: problem.title,
+    problemNumber: problem.problemNumber ? String(problem.problemNumber) : '',
+    difficulty: problem.difficulty || '',
+    problemStatement: problem.problemStatement,
+    topics: problem.topics.join(', '),
+    companies: problem.companies.join(', '),
+    hints: problem.hints.join('\n'),
+    intuition: problem.intuition || '',
+    walkthrough: problem.walkthrough || '',
+    complexityAnalysis: problem.complexityAnalysis || '',
+    python: problem.solutions.python || '',
+    java: problem.solutions.java || '',
+    cpp: problem.solutions.cpp || '',
+  }
+}
+
+function buildDraftPayload(draft: DraftFormState): ScrapedProblemInput {
+  return {
+    platform: draft.platform.trim(),
+    externalId: draft.externalId.trim() || undefined,
+    slug: draft.slug.trim() || undefined,
+    normalizedUrl: draft.normalizedUrl.trim(),
+    title: draft.title.trim(),
+    problemNumber: draft.problemNumber ? Number(draft.problemNumber) : undefined,
+    difficulty: draft.difficulty.trim() || undefined,
+    problemStatement: draft.problemStatement.trim(),
+    topics: splitCsv(draft.topics),
+    companies: splitCsv(draft.companies),
+    hints: splitLines(draft.hints),
+    intuition: draft.intuition.trim() || undefined,
+    walkthrough: draft.walkthrough.trim() || undefined,
+    complexityAnalysis: draft.complexityAnalysis.trim() || undefined,
+    solutions: {
+      python: draft.python,
+      java: draft.java,
+      cpp: draft.cpp,
+    },
+  }
+}
+
+function difficultyToneClass(difficulty?: string | null) {
+  const normalized = difficulty?.trim().toLowerCase()
   if (normalized === 'easy') return 'nexalgo-difficulty-easy'
   if (normalized === 'medium') return 'nexalgo-difficulty-medium'
   if (normalized === 'hard') return 'nexalgo-difficulty-hard'
   return ''
 }
 
-function statusToneClass(status: ProblemStatus) {
-  if (status === 'unvisited') return 'nexalgo-status-unvisited'
+function statusToneClass(status?: ProblemProgressStatus) {
   if (status === 'visited') return 'nexalgo-status-visited'
   if (status === 'attempted') return 'nexalgo-status-attempted'
   if (status === 'solved') return 'nexalgo-status-solved'
-  return ''
-}
-
-function escapeCode(text: string) {
-  return text
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-}
-
-function tokenizeCode(code: string, language: LanguageKey) {
-  const keywords = {
-    python:
-      /\b(class|def|return|for|while|if|elif|else|in|and|or|not|None|True|False|break|continue|try|except|from|import)\b/,
-    java:
-      /\b(class|public|private|protected|static|final|return|for|while|if|else|new|int|long|double|boolean|void|null|this|break|continue)\b/,
-    cpp:
-      /\b(class|public|private|return|for|while|if|else|int|long|bool|void|auto|const|vector|unordered_map|string|break|continue)\b/,
-  }[language]
-
-  const tokenRegex =
-    language === 'python'
-      ? /(#.*$|"(?:\\.|[^"])*"|'(?:\\.|[^'])*'|\b\d+\b|\b[A-Za-z_][A-Za-z0-9_]*\b)/gm
-      : /(\/\/.*$|"(?:\\.|[^"])*"|'(?:\\.|[^'])*'|\b\d+\b|\b[A-Za-z_][A-Za-z0-9_]*\b)/gm
-
-  return code.split('\n').map((line, lineIndex) => {
-    const tokens: React.ReactNode[] = []
-    let lastIndex = 0
-    let match: RegExpExecArray | null
-    const regex = new RegExp(tokenRegex)
-
-    while ((match = regex.exec(line))) {
-      const [value] = match
-      if (match.index > lastIndex) {
-        tokens.push(
-          <span key={`${lineIndex}-${lastIndex}`}>
-            {line.slice(lastIndex, match.index)}
-          </span>,
-        )
-      }
-
-      let className = ''
-      if (
-        (language === 'python' && value.startsWith('#')) ||
-        (language !== 'python' && value.startsWith('//'))
-      ) {
-        className = 'nexalgo-code-comment'
-      } else if (value.startsWith('"') || value.startsWith("'")) {
-        className = 'nexalgo-code-string'
-      } else if (/^\d+$/.test(value)) {
-        className = 'nexalgo-code-number'
-      } else if (keywords.test(value)) {
-        className = 'nexalgo-code-keyword'
-      }
-
-      tokens.push(
-        <span key={`${lineIndex}-${match.index}`} className={className}>
-          {value}
-        </span>,
-      )
-      lastIndex = match.index + value.length
-    }
-
-    if (lastIndex < line.length) {
-      tokens.push(<span key={`${lineIndex}-tail`}>{line.slice(lastIndex)}</span>)
-    }
-
-    return (
-      <React.Fragment key={`line-${lineIndex}`}>
-        {tokens}
-        {lineIndex < code.split('\n').length - 1 ? '\n' : ''}
-      </React.Fragment>
-    )
-  })
+  return 'nexalgo-status-unvisited'
 }
 
 function CodeBlock({
@@ -235,100 +156,16 @@ function CodeBlock({
   language: LanguageKey
   code: string
 }) {
-  const lines = useMemo(() => code.split('\n'), [code])
-  const [copyState, setCopyState] = useState<'idle' | 'copied'>('idle')
-
-  async function handleCopyCode() {
-    try {
-      await navigator.clipboard.writeText(code)
-      setCopyState('copied')
-      window.setTimeout(() => setCopyState('idle'), 1500)
-    } catch {
-      setCopyState('idle')
-    }
-  }
-
   return (
     <div className='nexalgo-code-block'>
       <div className='nexalgo-code-header'>
         <span>{LANGUAGE_OPTIONS.find((option) => option.value === language)?.label}</span>
-        <button
-          type='button'
-          className='nexalgo-code-copy-btn'
-          onClick={() => void handleCopyCode()}>
-          {copyState === 'copied' ? 'Copied' : 'Copy code'}
-        </button>
       </div>
       <div className='nexalgo-code-body'>
-        <div className='nexalgo-code-lines'>
-          {lines.map((_, index) => (
-            <div key={index}>{index + 1}</div>
-          ))}
-        </div>
-        <pre className='nexalgo-code-content'>{tokenizeCode(code, language)}</pre>
+        <pre className='nexalgo-code-content'>{code || '// Solution will appear after editorial approval.'}</pre>
       </div>
     </div>
   )
-}
-
-function splitTextAreaList(value: string) {
-  return value
-    .split('\n')
-    .map((item) => item.trim())
-    .filter(Boolean)
-}
-
-function commaList(value: string) {
-  return value
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean)
-}
-
-function slugifyText(value: string) {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-}
-
-function createEmptyQuestionDraft(): QuestionEditorDraft {
-  return {
-    questionNumber: '',
-    title: '',
-    difficulty: 'Medium',
-    link: '',
-    problemStatement: '',
-    hints: '',
-    topics: '',
-    intuition: '',
-    walkthrough: '',
-    complexity: '',
-    companies: '',
-    python: '',
-    java: '',
-    cpp: '',
-  }
-}
-
-function createQuestionDraft(problem: SeedProblem): QuestionEditorDraft {
-  return {
-    questionNumber: String(problem.id),
-    title: problem.title,
-    difficulty: problem.difficulty,
-    link: problem.link,
-    problemStatement: problem.problemStatement,
-    hints: problem.hints.join('\n'),
-    topics: problem.topics.join(', '),
-    intuition: problem.intuition,
-    walkthrough: problem.walkthrough,
-    complexity: problem.complexity,
-    companies: problem.companies.join(', '),
-    python: problem.starterCodeByLanguage.python ?? '',
-    java: problem.starterCodeByLanguage.java ?? '',
-    cpp: problem.starterCodeByLanguage.cpp ?? '',
-  }
 }
 
 export default function NexAlgoPage() {
@@ -337,612 +174,142 @@ export default function NexAlgoPage() {
   const isProjectsRoute = pathname?.startsWith('/projects/')
   const backLinkHref = isProjectsRoute ? '/#projects' : '/'
 
+  const [firebaseUser, setFirebaseUser] = useState<User | null>(null)
+  const [sessionUser, setSessionUser] = useState<SessionUser | null>(null)
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('signup')
+  const [authForm, setAuthForm] = useState({
+    email: '',
+    password: '',
+  })
+  const [authMessage, setAuthMessage] = useState('')
+  const [authError, setAuthError] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [problems, setProblems] = useState<ProblemRecord[]>([])
+  const [queue, setQueue] = useState<ReviewQueueItem[]>([])
+  const [selectedProblemId, setSelectedProblemId] = useState<string>('')
+  const [selectedLanguage, setSelectedLanguage] = useState<LanguageKey>('python')
+  const [statusMap, setStatusMap] = useState<Record<string, ProblemProgressStatus>>({})
+  const [showDraftModal, setShowDraftModal] = useState(false)
+  const [draftError, setDraftError] = useState('')
+  const [draftMessage, setDraftMessage] = useState('')
+  const [draftMode, setDraftMode] = useState<'create' | 'update'>('create')
+  const [draftForm, setDraftForm] = useState<DraftFormState>(emptyDraft())
+  const [backendError, setBackendError] = useState('')
+
   useEffect(() => {
     if (pathname?.startsWith('/nexacore/')) {
       router.replace('/projects/nexalgo')
     }
   }, [pathname, router])
 
-  const [userEmail, setUserEmail] = useState<string | null>(null)
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('signup')
-  const [navExpanded, setNavExpanded] = useState(false)
-  const [isMobileLayout, setIsMobileLayout] = useState(false)
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [statusMenuOpen, setStatusMenuOpen] = useState(false)
-  const [questionEditorOpen, setQuestionEditorOpen] = useState(false)
-  const [questionEditorMode, setQuestionEditorMode] = useState<'add' | 'edit'>('edit')
-  const [questionEditorError, setQuestionEditorError] = useState('')
-  const [questionEditorConfirm, setQuestionEditorConfirm] = useState<
-    null | 'discard' | 'publish'
-  >(null)
-  const [problemsPaneMode, setProblemsPaneMode] = useState<ProblemsPaneMode>('normal')
-  const [navMode, setNavMode] = useState<NavMode>('number')
-  const [currentPage, setCurrentPage] = useState(1)
-  const [selectedTopic, setSelectedTopic] = useState<string>('')
-  const [selectedCompany, setSelectedCompany] = useState<string>('')
-  const [selectedProblemId, setSelectedProblemId] = useState<number>(seedProblems[0]?.id ?? 1)
-  const [selectedLanguage, setSelectedLanguage] = useState<LanguageKey>(DEFAULT_LANGUAGE)
-  const [defaultLanguage, setDefaultLanguage] = useState<LanguageKey>(DEFAULT_LANGUAGE)
-  const [authForm, setAuthForm] = useState({
-    email: '',
-    password: '',
-    preferredLanguage: DEFAULT_LANGUAGE as LanguageKey,
-  })
-  const [authError, setAuthError] = useState('')
-  const [authMessage, setAuthMessage] = useState('')
-  const [progressMap, setProgressMap] = useState<Record<string, ProblemProgress>>({})
-  const [preferences, setPreferences] = useState<AppPreferences>({})
-  const [config, setConfig] = useState<AppConfig>({})
-  const [contentOverrides, setContentOverrides] = useState<Record<string, ProblemOverride>>({})
-  const [editorEmailInput, setEditorEmailInput] = useState('')
-  const [statusPromptProblemId, setStatusPromptProblemId] = useState<number | null>(null)
-  const [editorDraft, setEditorDraft] = useState<QuestionEditorDraft>(createEmptyQuestionDraft())
-  const topbarRef = useRef<HTMLElement>(null)
-  const menuPanelRef = useRef<HTMLDivElement>(null)
-  const problemListRef = useRef<HTMLDivElement>(null)
-  const detailPaneRef = useRef<HTMLElement>(null)
-  const detailStickyHeaderRef = useRef<HTMLDivElement>(null)
-  const detailSectionRefs = useRef<Record<DetailSectionKey, HTMLElement | null>>({
-    solve: null,
-    hints: null,
-    topics: null,
-    intuition: null,
-    code: null,
-    walkthrough: null,
-    complexity: null,
-    companies: null,
-  })
-  const [problemListScrolling, setProblemListScrolling] = useState(false)
-  const [detailPaneScrolling, setDetailPaneScrolling] = useState(false)
-  const [topicsExpanded, setTopicsExpanded] = useState(false)
-  const [detailTailSpacerHeight, setDetailTailSpacerHeight] = useState(0)
-  const effectiveNavExpanded = isMobileLayout || navExpanded
-  const shouldShowDetailPane = isMobileLayout || problemsPaneMode !== 'expanded'
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(max-width: 1120px)')
-    const syncMobileLayout = (event?: MediaQueryListEvent) => {
-      setIsMobileLayout(event?.matches ?? mediaQuery.matches)
-    }
-
-    syncMobileLayout()
-    mediaQuery.addEventListener('change', syncMobileLayout)
-
-    return () => mediaQuery.removeEventListener('change', syncMobileLayout)
-  }, [])
-
-  useEffect(() => {
-    if (isMobileLayout) {
-      setProblemsPaneMode('normal')
-    }
-  }, [isMobileLayout])
-
-  useEffect(() => {
-    function syncTopbarHeight() {
-      const topbarHeight = topbarRef.current?.offsetHeight ?? 0
-      document.documentElement.style.setProperty(
-        '--nexalgo-topbar-height',
-        `${topbarHeight}px`,
-      )
-    }
-
-    syncTopbarHeight()
-    window.addEventListener('resize', syncTopbarHeight)
-
-    return () => window.removeEventListener('resize', syncTopbarHeight)
-  }, [isMobileLayout, userEmail, menuOpen])
-
   useEffect(() => {
     const stored = window.localStorage.getItem(LANGUAGE_STORAGE_KEY) as LanguageKey | null
     if (stored && LANGUAGE_OPTIONS.some((option) => option.value === stored)) {
-      setDefaultLanguage(stored)
       setSelectedLanguage(stored)
-      setAuthForm((current) => ({ ...current, preferredLanguage: stored }))
     }
   }, [])
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUserEmail(currentUser?.email ?? null)
-      if (currentUser?.email) {
-        setAuthMessage(`Signed in as ${currentUser.email}`)
-        setAuthError('')
+    async function bootstrapProblems() {
+      try {
+        const nextProblems = await nexalgoApi.getProblems()
+        setProblems(nextProblems)
+        if (nextProblems[0]) {
+          setSelectedProblemId(nextProblems[0].id)
+        }
+        setBackendError('')
+      } catch (error) {
+        setBackendError(error instanceof Error ? error.message : 'Unable to load NexAlgo.')
+      } finally {
+        setLoading(false)
       }
-    })
+    }
 
-    return () => unsubscribe()
+    void bootstrapProblems()
   }, [])
 
   useEffect(() => {
-    setTopicsExpanded(false)
-  }, [selectedProblemId])
-
-  useEffect(() => {
-    function updateDetailTailSpacer() {
-      const pane = detailPaneRef.current
-      const stickyHeader = detailStickyHeaderRef.current
-      if (!pane || !stickyHeader) return
-
-      const nextHeight = Math.max(
-        120,
-        pane.clientHeight - stickyHeader.offsetHeight - 64,
-      )
-      setDetailTailSpacerHeight(nextHeight)
-    }
-
-    updateDetailTailSpacer()
-    window.addEventListener('resize', updateDetailTailSpacer)
-
-    return () => window.removeEventListener('resize', updateDetailTailSpacer)
-  }, [selectedProblemId, topicsExpanded, selectedLanguage, statusMenuOpen])
-
-  function performDetailSectionScroll(section: DetailSectionKey) {
-    const pane = detailPaneRef.current
-    if (!pane) return
-
-    if (section === 'solve') {
-      pane.scrollTo({
-        top: 0,
-        behavior: 'smooth',
-      })
+    if (!firebaseClientConfigured || !auth) {
+      setLoading(false)
       return
     }
 
-    const target = detailSectionRefs.current[section]
-    if (!target) return
+    const unsubscribe = onAuthStateChanged(auth, async (nextUser) => {
+      setFirebaseUser(nextUser)
+      setSessionUser(null)
 
-    const paneRect = pane.getBoundingClientRect()
-    const targetRect = target.getBoundingClientRect()
-    const stickyHeaderHeight = detailStickyHeaderRef.current?.offsetHeight ?? 0
-    const nextTop =
-      pane.scrollTop + (targetRect.top - paneRect.top) - stickyHeaderHeight - 12
-
-    pane.scrollTo({
-      top: Math.max(0, nextTop),
-      behavior: 'smooth',
-    })
-  }
-
-  function scrollToDetailSection(section: DetailSectionKey) {
-    if (section === 'topics' && !topicsExpanded) {
-      setTopicsExpanded(true)
-      window.requestAnimationFrame(() => {
-        window.requestAnimationFrame(() => {
-          performDetailSectionScroll('topics')
-        })
-      })
-      return
-    }
-
-    performDetailSectionScroll(section)
-  }
-
-  useEffect(() => {
-    if (!userEmail) {
-      setProgressMap({})
-      return
-    }
-
-    const unsubscribe = onSnapshot(
-      collection(db, 'users', userEmail, 'nexalgoProgress'),
-      (snapshot) => {
-        const nextProgress: Record<string, ProblemProgress> = {}
-        snapshot.forEach((item) => {
-          nextProgress[item.id] = {
-            id: item.id,
-            ...(item.data() as Omit<ProblemProgress, 'id'>),
-          }
-        })
-        setProgressMap(nextProgress)
-      },
-    )
-
-    return () => unsubscribe()
-  }, [userEmail])
-
-  useEffect(() => {
-    if (!userEmail) {
-      setPreferences({})
-      return
-    }
-
-    const preferenceRef = doc(db, 'users', userEmail, 'appPreferences', 'nexalgo')
-    const unsubscribe = onSnapshot(preferenceRef, async (snapshot) => {
-      if (!snapshot.exists()) {
-        await setDoc(
-          preferenceRef,
-          { defaultLanguage },
-          { merge: true },
-        )
+      if (!nextUser) {
         return
       }
 
-      const nextPreferences = snapshot.data() as AppPreferences
-      setPreferences(nextPreferences)
-      const language = nextPreferences.defaultLanguage ?? DEFAULT_LANGUAGE
-      setDefaultLanguage(language)
-      setSelectedLanguage(language)
-      window.localStorage.setItem(LANGUAGE_STORAGE_KEY, language)
-    })
-
-    return () => unsubscribe()
-  }, [defaultLanguage, userEmail])
-
-  useEffect(() => {
-    const unsubscribe = onSnapshot(
-      doc(db, 'appConfigs', 'nexalgo'),
-      async (snapshot) => {
-        if (!snapshot.exists()) {
-          if (userEmail) {
-            await setDoc(doc(db, 'appConfigs', 'nexalgo'), {
-              adminEmails: [userEmail],
-              editorEmails: [],
-            })
-          }
-          return
-        }
-
-        setConfig(snapshot.data() as AppConfig)
-      },
-    )
-
-    return () => unsubscribe()
-  }, [userEmail])
-
-  useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'nexalgoContent'), (snapshot) => {
-      const nextOverrides: Record<string, ProblemOverride> = {}
-      snapshot.forEach((item) => {
-        nextOverrides[item.id] = item.data() as ProblemOverride
-      })
-      setContentOverrides(nextOverrides)
+      try {
+        const idToken = await nextUser.getIdToken()
+        const user = await nexalgoApi.createSession(idToken)
+        setSessionUser(user)
+        setAuthMessage(`Signed in as ${user.email}`)
+        setAuthError('')
+      } catch (error) {
+        setAuthError(error instanceof Error ? error.message : 'Unable to start session.')
+      }
     })
 
     return () => unsubscribe()
   }, [])
 
   useEffect(() => {
-    const handleReturnPrompt = () => {
-      const pending = window.localStorage.getItem(RETURN_PROMPT_KEY)
-      if (pending) {
-        const problemId = Number(pending)
-        if (problemId) {
-          setStatusPromptProblemId(problemId)
-          setSelectedProblemId(problemId)
-        }
+    async function loadQueue() {
+      if (!firebaseUser || !sessionUser?.roles.some((role) => role === 'admin' || role === 'editor')) {
+        setQueue([])
+        return
+      }
+
+      try {
+        const idToken = await firebaseUser.getIdToken()
+        const nextQueue = await nexalgoApi.getReviewQueue(idToken)
+        setQueue(nextQueue)
+      } catch (error) {
+        setBackendError(error instanceof Error ? error.message : 'Unable to load queue.')
       }
     }
 
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        handleReturnPrompt()
-      }
-    }
+    void loadQueue()
+  }, [firebaseUser, sessionUser])
 
-    window.addEventListener('focus', handleReturnPrompt)
-    document.addEventListener('visibilitychange', handleVisibility)
-    handleReturnPrompt()
-
-    return () => {
-      window.removeEventListener('focus', handleReturnPrompt)
-      document.removeEventListener('visibilitychange', handleVisibility)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!menuOpen) return
-
-    const handleMouseDown = (event: MouseEvent) => {
-      if (menuPanelRef.current && !menuPanelRef.current.contains(event.target as Node)) {
-        setMenuOpen(false)
-      }
-    }
-
-    document.addEventListener('mousedown', handleMouseDown)
-    return () => document.removeEventListener('mousedown', handleMouseDown)
-  }, [menuOpen])
-
-  useEffect(() => {
-    const problemList = problemListRef.current
-    const detailPane = detailPaneRef.current
-    let problemListTimer: number | null = null
-    let detailPaneTimer: number | null = null
-
-    const bindScrollIndicator = (
-      element: HTMLElement | null,
-      setScrolling: React.Dispatch<React.SetStateAction<boolean>>,
-      getTimer: () => number | null,
-      setTimer: (timer: number | null) => void,
-    ) => {
-      if (!element) return () => {}
-
-      const showIndicator = () => {
-        if (element.scrollHeight <= element.clientHeight) return
-        setScrolling(true)
-        const activeTimer = getTimer()
-        if (activeTimer) window.clearTimeout(activeTimer)
-        setTimer(window.setTimeout(() => setScrolling(false), 1000))
-      }
-
-      const scheduleHide = () => {
-        const activeTimer = getTimer()
-        if (activeTimer) window.clearTimeout(activeTimer)
-        setTimer(window.setTimeout(() => setScrolling(false), 1000))
-      }
-
-      const handleKeydown = (event: KeyboardEvent) => {
-        if (
-          ['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', 'Space'].includes(
-            event.code,
-          )
-        ) {
-          showIndicator()
-        }
-      }
-
-      element.addEventListener('scroll', showIndicator, { passive: true })
-      element.addEventListener('wheel', showIndicator, { passive: true })
-      element.addEventListener('touchmove', showIndicator, { passive: true })
-      element.addEventListener('mouseenter', showIndicator)
-      element.addEventListener('mouseleave', scheduleHide)
-      element.addEventListener('keydown', handleKeydown)
-
-      return () => {
-        element.removeEventListener('scroll', showIndicator)
-        element.removeEventListener('wheel', showIndicator)
-        element.removeEventListener('touchmove', showIndicator)
-        element.removeEventListener('mouseenter', showIndicator)
-        element.removeEventListener('mouseleave', scheduleHide)
-        element.removeEventListener('keydown', handleKeydown)
-      }
-    }
-
-    const cleanupProblemList = bindScrollIndicator(
-      problemList,
-      setProblemListScrolling,
-      () => problemListTimer,
-      (timer) => {
-        problemListTimer = timer
-      },
-    )
-
-    const cleanupDetailPane = bindScrollIndicator(
-      detailPane,
-      setDetailPaneScrolling,
-      () => detailPaneTimer,
-      (timer) => {
-        detailPaneTimer = timer
-      },
-    )
-
-    return () => {
-      cleanupProblemList()
-      cleanupDetailPane()
-      if (problemListTimer) window.clearTimeout(problemListTimer)
-      if (detailPaneTimer) window.clearTimeout(detailPaneTimer)
-    }
-  }, [problemsPaneMode, selectedProblemId])
-
-  const isAdmin = !!userEmail && (config.adminEmails ?? []).includes(userEmail)
-  const isEditor =
-    isAdmin || (!!userEmail && (config.editorEmails ?? []).includes(userEmail))
-
-  const allProblems = useMemo(() => {
-    const mergedMap = new Map<number, SeedProblem>()
-
-    seedProblems.forEach((problem) => {
-      const override = contentOverrides[String(problem.id)] ?? {}
-      mergedMap.set(problem.id, {
-        ...problem,
-        title: override.title || problem.title,
-        slug: override.slug || problem.slug,
-        difficulty: override.difficulty || problem.difficulty,
-        topics: override.topics?.length ? override.topics : problem.topics,
-        companies: override.companies?.length ? override.companies : problem.companies,
-        link: override.link || problem.link,
-        problemStatement: override.problemStatement || problem.problemStatement,
-        hints: override.hints?.length ? override.hints : problem.hints,
-        whatToUse: override.whatToUse?.length ? override.whatToUse : problem.whatToUse,
-        intuition: override.intuition || problem.intuition,
-        walkthrough: override.walkthrough || problem.walkthrough,
-        complexity: override.complexity || problem.complexity,
-        starterCodeByLanguage: {
-          ...problem.starterCodeByLanguage,
-          ...(override.codeByLanguage ?? {}),
-        },
-      })
-    })
-
-    Object.entries(contentOverrides).forEach(([id, override]) => {
-      const numericId = override.id ?? Number(id)
-      if (mergedMap.has(numericId) || !override.title) return
-
-      mergedMap.set(numericId, {
-        id: numericId,
-        title: override.title,
-        slug: override.slug || slugifyText(override.title),
-        difficulty: override.difficulty || 'Medium',
-        topics: override.topics ?? [],
-        companies: override.companies ?? [],
-        link: override.link || '',
-        problemStatement: override.problemStatement || '',
-        hints: override.hints ?? [],
-        whatToUse: override.whatToUse ?? [],
-        intuition: override.intuition || '',
-        walkthrough: override.walkthrough || '',
-        complexity: override.complexity || '',
-        starterCodeByLanguage: {
-          python: override.codeByLanguage?.python ?? '# Editor solution coming soon',
-          java: override.codeByLanguage?.java ?? '// Editor solution coming soon',
-          cpp: override.codeByLanguage?.cpp ?? '// Editor solution coming soon',
-        },
-        officialSolution: '',
-      })
-    })
-
-    return Array.from(mergedMap.values()).sort((a, b) => a.id - b.id)
-  }, [contentOverrides])
-
-  const topics = useMemo(
-    () =>
-      Array.from(new Set(allProblems.flatMap((problem) => problem.topics))).sort((a, b) =>
-        a.localeCompare(b),
-      ),
-    [allProblems],
+  const selectedProblem = useMemo(
+    () => problems.find((problem) => problem.id === selectedProblemId) ?? null,
+    [problems, selectedProblemId],
   )
 
-  const companies = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          allProblems.flatMap((problem) =>
-            problem.companies.length > 0 ? problem.companies : ['General'],
-          ),
-        ),
-      ).sort((a, b) => a.localeCompare(b)),
-    [allProblems],
-  )
-
-  const visibleProblems = useMemo(() => {
-    if (navMode === 'topic') {
-      if (!selectedTopic) return []
-      return allProblems.filter((problem) => problem.topics.includes(selectedTopic))
-    }
-
-    if (navMode === 'company') {
-      if (!selectedCompany) return []
-      return allProblems.filter((problem) =>
-        (problem.companies.length > 0 ? problem.companies : ['General']).includes(
-          selectedCompany,
-        ),
-      )
-    }
-
-    const start = (currentPage - 1) * PROBLEMS_PER_PAGE
-    return allProblems.slice(start, start + PROBLEMS_PER_PAGE)
-  }, [allProblems, currentPage, navMode, selectedCompany, selectedTopic])
-
-  const totalPages = Math.max(1, Math.ceil(allProblems.length / PROBLEMS_PER_PAGE))
-
-  const selectedProblem =
-    allProblems.find((problem) => problem.id === selectedProblemId) ?? allProblems[0]
-  const mergedProblem = selectedProblem ?? null
-
-  const solveLinks = mergedProblem
-    ? [{ label: 'LeetCode', url: mergedProblem.link }].filter((item) => item.url)
-    : []
-
-  async function persistLanguage(language: LanguageKey) {
-    setDefaultLanguage(language)
-    setSelectedLanguage(language)
-    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, language)
-
-    if (!userEmail) return
-
-    await setDoc(
-      doc(db, 'users', userEmail, 'appPreferences', 'nexalgo'),
-      { defaultLanguage: language },
-      { merge: true },
-    )
-  }
-
-  async function saveProgress(problem: SeedProblem, status: ProblemStatus) {
-    if (!userEmail) return
-
-    await setDoc(
-      doc(db, 'users', userEmail, 'nexalgoProgress', String(problem.id)),
-      {
-        problemId: problem.id,
-        title: problem.title,
-        difficulty: problem.difficulty,
-        topics: problem.topics,
-        status,
-        lastVisitedAt: Date.now(),
-        attemptedAt: status === 'attempted' ? Date.now() : null,
-        solvedAt: status === 'solved' ? Date.now() : null,
-      },
-      { merge: true },
-    )
-  }
-
-  async function handleStatusChange(problem: SeedProblem, status: ProblemStatus) {
-    await saveProgress(problem, status)
-    setStatusMenuOpen(false)
-  }
-
-  function jumpToFilter(mode: 'topic' | 'company', value: string) {
-    setProblemsPaneMode('normal')
-    setNavMode(mode)
-    if (mode === 'topic') {
-      setSelectedTopic(value)
-      return
-    }
-    setSelectedCompany(value)
-  }
-
-  async function handleProblemSelect(problem: SeedProblem) {
-    setSelectedProblemId(problem.id)
-
-    if (!userEmail) return
-
-    const currentStatus = statusForProblem(progressMap, problem.id)
-    if (currentStatus === 'unvisited') {
-      await saveProgress(problem, 'visited')
-    } else {
-      await setDoc(
-        doc(db, 'users', userEmail, 'nexalgoProgress', String(problem.id)),
-        { lastVisitedAt: Date.now() },
-        { merge: true },
-      )
-    }
-  }
-
-  async function handleExternalAttempt(problem: SeedProblem, url = problem.link) {
-    if (!userEmail) {
-      setMenuOpen(true)
-      return
-    }
-
-    await saveProgress(problem, 'attempted')
-    window.localStorage.setItem(RETURN_PROMPT_KEY, String(problem.id))
-    window.open(url, '_blank', 'noopener,noreferrer')
-  }
-
-  async function handleSolvedChoice(status: 'solved' | 'attempted') {
-    if (!mergedProblem || !userEmail) return
-
-    await saveProgress(mergedProblem, status)
-    window.localStorage.removeItem(RETURN_PROMPT_KEY)
-    setStatusPromptProblemId(null)
-  }
+  const isEditor = !!sessionUser?.roles.some((role) => role === 'admin' || role === 'editor')
+  const isSignedIn = !!firebaseUser && !!sessionUser
 
   async function handleLoginSubmit(event: React.FormEvent) {
     event.preventDefault()
+    if (!auth) {
+      setAuthError('Firebase Auth is not configured yet.')
+      return
+    }
+
     setAuthError('')
     setAuthMessage('')
 
     try {
-      const credential = await signInWithEmailAndPassword(
-        auth,
-        authForm.email,
-        authForm.password,
-      )
+      const credential = await signInWithEmailAndPassword(auth, authForm.email, authForm.password)
       setAuthMessage(`Welcome back, ${credential.user.email}`)
-      setMenuOpen(false)
-    } catch (error: any) {
-      setAuthError(error.message ?? 'Unable to log in.')
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'Unable to log in.')
     }
   }
 
   async function handleSignupSubmit(event: React.FormEvent) {
     event.preventDefault()
-    setAuthError('')
-    setAuthMessage('')
-
-    if (authForm.password.length < 6) {
-      setAuthError('Password must be at least 6 characters long.')
+    if (!auth) {
+      setAuthError('Firebase Auth is not configured yet.')
       return
     }
+
+    setAuthError('')
+    setAuthMessage('')
 
     try {
       const credential = await createUserWithEmailAndPassword(
@@ -950,150 +317,161 @@ export default function NexAlgoPage() {
         authForm.email,
         authForm.password,
       )
-
-      await setDoc(
-        doc(db, 'users', credential.user.email!, 'appPreferences', 'nexalgo'),
-        { defaultLanguage: authForm.preferredLanguage },
-        { merge: true },
-      )
-
-      await persistLanguage(authForm.preferredLanguage)
       setAuthMessage(`Account created for ${credential.user.email}`)
-      setMenuOpen(false)
-    } catch (error: any) {
-      setAuthError(error.message ?? 'Unable to sign up.')
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'Unable to create account.')
     }
   }
 
   async function handleLogout() {
+    if (!auth) return
     await signOut(auth)
-    setMenuOpen(false)
+    setSessionUser(null)
     setAuthMessage('Signed out.')
   }
 
-  async function addEditor() {
-    if (!isAdmin || !editorEmailInput.trim()) return
+  async function persistLanguage(language: LanguageKey) {
+    setSelectedLanguage(language)
+    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, language)
 
-    const nextEditors = Array.from(
-      new Set([...(config.editorEmails ?? []), editorEmailInput.trim()]),
-    )
+    if (!firebaseUser) return
 
-    await updateDoc(doc(db, 'appConfigs', 'nexalgo'), {
-      editorEmails: nextEditors,
-    })
-    setEditorEmailInput('')
+    const idToken = await firebaseUser.getIdToken()
+    await nexalgoApi.updatePreference(idToken, language)
   }
 
-  async function removeEditor(email: string) {
-    if (!isAdmin) return
+  async function updateProgress(problemId: string, status: ProblemProgressStatus) {
+    setStatusMap((current) => ({ ...current, [problemId]: status }))
+    if (!firebaseUser) return
 
-    await updateDoc(doc(db, 'appConfigs', 'nexalgo'), {
-      editorEmails: (config.editorEmails ?? []).filter((item) => item !== email),
-    })
+    const idToken = await firebaseUser.getIdToken()
+    await nexalgoApi.updateProgress(idToken, problemId, status)
   }
 
-  function openQuestionEditor(mode: 'add' | 'edit') {
-    if (!isEditor) return
-    if (mode === 'edit' && !mergedProblem) return
-
-    setQuestionEditorMode(mode)
-    setQuestionEditorError('')
-    setQuestionEditorConfirm(null)
-    setQuestionEditorOpen(true)
-    setEditorDraft(
-      mode === 'edit' && mergedProblem
-        ? createQuestionDraft(mergedProblem)
-        : createEmptyQuestionDraft(),
-    )
+  function openCreateDraft() {
+    setDraftMode('create')
+    setDraftError('')
+    setDraftMessage('')
+    setDraftForm(emptyDraft())
+    setShowDraftModal(true)
   }
 
-  function handleDiscardQuestionEditor() {
-    setQuestionEditorConfirm('discard')
+  function openRevisionDraft() {
+    if (!selectedProblem) return
+    setDraftMode('update')
+    setDraftError('')
+    setDraftMessage('')
+    setDraftForm(draftFromProblem(selectedProblem))
+    setShowDraftModal(true)
   }
 
-  function confirmDiscardQuestionEditor() {
-    setQuestionEditorOpen(false)
-    setQuestionEditorError('')
-    setQuestionEditorConfirm(null)
-  }
-
-  async function handlePublishQuestion() {
-    if (!isEditor || !userEmail) return
-
-    const questionNumber = Number(editorDraft.questionNumber)
-    if (!Number.isInteger(questionNumber) || questionNumber <= 0) {
-      setQuestionEditorError('Question number must be a positive whole number.')
+  async function handleDraftSubmit(event: React.FormEvent) {
+    event.preventDefault()
+    if (!firebaseUser) {
+      setDraftError('Sign in before submitting a draft.')
       return
     }
 
-    if (!editorDraft.title.trim()) {
-      setQuestionEditorError('Title is required.')
-      return
+    setDraftError('')
+    setDraftMessage('')
+
+    try {
+      const idToken = await firebaseUser.getIdToken()
+      const payload = buildDraftPayload(draftForm)
+      if (!payload.normalizedUrl) {
+        throw new Error('Primary platform link is required.')
+      }
+
+      const result = await nexalgoApi.submitProblem(
+        idToken,
+        payload,
+        draftMode === 'update' ? selectedProblem?.id : undefined,
+      )
+
+      if ((result as any).existingProblem) {
+        setDraftMessage('This source is already published in NexAlgo.')
+        return
+      }
+
+      setDraftMessage('Draft submitted to the NexAlgo review queue.')
+      setShowDraftModal(false)
+
+      if (isEditor) {
+        const refreshedQueue = await nexalgoApi.getReviewQueue(idToken)
+        setQueue(refreshedQueue)
+      }
+    } catch (error) {
+      setDraftError(error instanceof Error ? error.message : 'Unable to submit draft.')
     }
-
-    const existingQuestion = allProblems.find((problem) => problem.id === questionNumber)
-    const editingCurrentQuestion =
-      questionEditorMode === 'edit' && mergedProblem?.id === questionNumber
-
-    if (existingQuestion && !editingCurrentQuestion) {
-      setQuestionEditorError('That question number already exists.')
-      return
-    }
-
-    setQuestionEditorConfirm('publish')
   }
 
-  async function confirmPublishQuestion() {
-    if (!isEditor || !userEmail) return
-
-    const questionNumber = Number(editorDraft.questionNumber)
-    if (!Number.isInteger(questionNumber) || questionNumber <= 0) return
-
-    await setDoc(
-      doc(db, 'nexalgoContent', String(questionNumber)),
-      {
-        id: questionNumber,
-        title: editorDraft.title.trim(),
-        slug: slugifyText(editorDraft.title),
-        difficulty: editorDraft.difficulty.trim() || 'Medium',
-        link: editorDraft.link.trim(),
-        problemStatement: editorDraft.problemStatement.trim(),
-        hints: splitTextAreaList(editorDraft.hints),
-        topics: commaList(editorDraft.topics),
-        whatToUse: [],
-        intuition: editorDraft.intuition.trim(),
-        walkthrough: editorDraft.walkthrough.trim(),
-        complexity: editorDraft.complexity.trim(),
-        companies: commaList(editorDraft.companies),
-        codeByLanguage: {
-          python: editorDraft.python,
-          java: editorDraft.java,
-          cpp: editorDraft.cpp,
-        },
-        updatedBy: userEmail,
-        updatedAt: Date.now(),
-      },
-      { merge: true },
-    )
-
-    setSelectedProblemId(questionNumber)
-    setQuestionEditorOpen(false)
-    setQuestionEditorError('')
-    setQuestionEditorConfirm(null)
+  async function handleApprove(submissionId: string) {
+    if (!firebaseUser) return
+    const idToken = await firebaseUser.getIdToken()
+    await nexalgoApi.approveSubmission(idToken, submissionId)
+    const [nextProblems, nextQueue] = await Promise.all([
+      nexalgoApi.getProblems(),
+      nexalgoApi.getReviewQueue(idToken),
+    ])
+    setProblems(nextProblems)
+    setQueue(nextQueue)
+    if (nextProblems[0] && !selectedProblemId) {
+      setSelectedProblemId(nextProblems[0].id)
+    }
   }
 
-  const promptProblem =
-    statusPromptProblemId !== null
-      ? allProblems.find((problem) => problem.id === statusPromptProblemId)
-      : null
+  async function handleReject(submissionId: string) {
+    if (!firebaseUser) return
+    const idToken = await firebaseUser.getIdToken()
+    await nexalgoApi.rejectSubmission(idToken, submissionId)
+    const nextQueue = await nexalgoApi.getReviewQueue(idToken)
+    setQueue(nextQueue)
+  }
+
+  async function handleRegenerate(submissionId: string) {
+    if (!firebaseUser) return
+    const idToken = await firebaseUser.getIdToken()
+    await nexalgoApi.regenerateSubmission(idToken, submissionId)
+    const nextQueue = await nexalgoApi.getReviewQueue(idToken)
+    setQueue(nextQueue)
+  }
 
   if (pathname?.startsWith('/nexacore/')) {
     return null
   }
 
+  if (!firebaseClientConfigured) {
+    return (
+      <div className='nexalgo-shell'>
+        <header className='nexalgo-topbar'>
+          <div className='nexalgo-topbar-left'>
+            <Link href={backLinkHref} className='nexalgo-back-link'>
+              <span aria-hidden='true'>&larr;</span>
+              <span className='nexalgo-back-link-text'>Back to Projects</span>
+            </Link>
+          </div>
+          <div className='nexalgo-brand'>
+            <h1>NexAlgo</h1>
+            <p>Firebase Auth + Cloud SQL</p>
+          </div>
+          <div className='nexalgo-topbar-right' />
+        </header>
+        <main className='nexalgo-auth-wrap'>
+          <div className='nexalgo-auth-card'>
+            <h2>Firebase Client Config Required</h2>
+            <p className='nexalgo-detail-subcopy'>
+              Set the new Firebase project values in `NEXT_PUBLIC_FIREBASE_*` env vars and point
+              `NEXT_PUBLIC_NEXALGO_API_BASE_URL` to the new Cloud Run backend.
+            </p>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
   return (
     <div className='nexalgo-shell'>
-      <header ref={topbarRef} className='nexalgo-topbar'>
+      <header className='nexalgo-topbar'>
         <div className='nexalgo-topbar-left'>
           <Link href={backLinkHref} className='nexalgo-back-link'>
             <span aria-hidden='true'>&larr;</span>
@@ -1102,39 +480,34 @@ export default function NexAlgoPage() {
             </span>
           </Link>
         </div>
-
         <div className='nexalgo-brand'>
           <h1>NexAlgo</h1>
-          <p>Practice with structure</p>
+          <p>Cloud SQL + Firebase Auth</p>
         </div>
-
         <div className='nexalgo-topbar-right'>
-          <button
-            type='button'
-            className='nexalgo-hamburger'
-            aria-label='Open account and settings menu'
-            onClick={() => setMenuOpen(true)}>
-            <span />
-          </button>
+          {isSignedIn ? (
+            <button type='button' className='nexalgo-secondary-btn' onClick={handleLogout}>
+              Logout
+            </button>
+          ) : null}
         </div>
       </header>
 
-      {!userEmail ? (
+      {!isSignedIn ? (
         <main className='nexalgo-auth-wrap'>
           <div className='nexalgo-auth-card'>
             <div className='nexalgo-auth-grid'>
               <div className='nexalgo-auth-copy'>
-                <h2>One login for NexAlgo and Todo Flow</h2>
+                <h2>New NexAlgo Stack</h2>
                 <p className='nexalgo-detail-subcopy'>
-                  NexAlgo shares the same Firebase auth session as the todo app, so
-                  signing in here signs you into both experiences automatically.
+                  NexAlgo now treats Firebase as identity only. Questions, approvals, source
+                  mappings, and user metadata belong in the backend and Cloud SQL.
                 </p>
                 <p className='nexalgo-detail-subcopy'>
-                  After signup, your preferred language becomes the default code tab
-                  across the app.
+                  API base URL: <code>{nexalgoApi.apiBaseUrl}</code>
                 </p>
+                {backendError ? <p className='nexalgo-error'>{backendError}</p> : null}
               </div>
-
               <form
                 className='nexalgo-auth-form'
                 onSubmit={authMode === 'login' ? handleLoginSubmit : handleSignupSubmit}>
@@ -1143,44 +516,21 @@ export default function NexAlgoPage() {
                 {authMessage ? <p className='nexalgo-message'>{authMessage}</p> : null}
                 <input
                   type='email'
-                  placeholder='Email'
+                  placeholder='Email address'
                   value={authForm.email}
                   onChange={(event) =>
                     setAuthForm((current) => ({ ...current, email: event.target.value }))
                   }
-                  required
                 />
                 <input
                   type='password'
                   placeholder='Password'
                   value={authForm.password}
                   onChange={(event) =>
-                    setAuthForm((current) => ({
-                      ...current,
-                      password: event.target.value,
-                    }))
+                    setAuthForm((current) => ({ ...current, password: event.target.value }))
                   }
-                  required
                 />
-                {authMode === 'signup' ? (
-                  <select
-                    value={authForm.preferredLanguage}
-                    onChange={(event) =>
-                      setAuthForm((current) => ({
-                        ...current,
-                        preferredLanguage: event.target.value as LanguageKey,
-                      }))
-                    }>
-                    {LANGUAGE_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                ) : null}
-                <button type='submit'>
-                  {authMode === 'login' ? 'Login' : 'Create account'}
-                </button>
+                <button type='submit'>{authMode === 'login' ? 'Login' : 'Create account'}</button>
                 <button
                   type='button'
                   className='nexalgo-auth-switch'
@@ -1188,680 +538,278 @@ export default function NexAlgoPage() {
                     setAuthMode((current) => (current === 'login' ? 'signup' : 'login'))
                   }>
                   {authMode === 'login'
-                    ? 'Need an account? Switch to signup.'
-                    : 'Already have an account? Switch to login.'}
+                    ? 'Need an account? Create one'
+                    : 'Already have an account? Log in'}
                 </button>
               </form>
             </div>
           </div>
         </main>
       ) : (
-        <main className={`nexalgo-main nexalgo-main-${problemsPaneMode}`}>
-          <aside className={`nexalgo-sidebar ${effectiveNavExpanded ? 'expanded' : ''}`}>
-              <div className='nexalgo-sidebar-header'>
-                {effectiveNavExpanded ? <strong>Browse</strong> : <span />}
-                {!isMobileLayout ? (
-                  <button
-                    type='button'
-                    className='nexalgo-icon-toggle'
-                    onClick={() => setNavExpanded((current) => !current)}>
-                    {navExpanded ? 'Minimize' : 'Expand'}
-                  </button>
-                ) : null}
+        <main className='nexalgo-main'>
+          <section className='nexalgo-list-pane nexalgo-list-pane-normal'>
+            <div className='nexalgo-pane-head'>
+              <div>
+                <h2>Problem Library</h2>
+                <p className='nexalgo-detail-subcopy'>
+                  Published questions from the new backend and Cloud SQL.
+                </p>
+                <p className='nexalgo-detail-subcopy'>
+                  Signed in as {sessionUser?.email} ({sessionUser?.roles.join(', ')})
+                </p>
               </div>
-
-            <nav className='nexalgo-nav'>
-                <button
-                  type='button'
-                  className={navMode === 'number' ? 'active' : ''}
-                  onClick={() => {
-                    setNavMode('number')
-                    setCurrentPage(1)
-                  }}>
-                  <span className='nexalgo-nav-icon'>123</span>
-                  {effectiveNavExpanded ? 'Sorted' : null}
+              <div className='nexalgo-pane-controls'>
+                <button type='button' className='nexalgo-pane-toggle' onClick={openCreateDraft}>
+                  Submit draft
                 </button>
-                <button
-                  type='button'
-                  className={navMode === 'company' ? 'active' : ''}
-                  onClick={() => setNavMode('company')}>
-                  <span className='nexalgo-nav-icon' aria-hidden='true'>
-                    <svg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'>
-                      <path
-                        d='M4 20V7.5C4 6.67 4.67 6 5.5 6H10V4.5C10 3.67 10.67 3 11.5 3H18.5C19.33 3 20 3.67 20 4.5V20'
-                        stroke='currentColor'
-                        strokeWidth='1.8'
-                        strokeLinecap='round'
-                        strokeLinejoin='round'
-                      />
-                      <path
-                        d='M8 10H8.01M8 13H8.01M8 16H8.01M12 8H12.01M12 11H12.01M12 14H12.01M16 8H16.01M16 11H16.01M16 14H16.01'
-                        stroke='currentColor'
-                        strokeWidth='2.2'
-                        strokeLinecap='round'
-                        strokeLinejoin='round'
-                      />
-                    </svg>
-                  </span>
-                  {effectiveNavExpanded ? 'Companies' : null}
-                </button>
-                <button
-                  type='button'
-                  className={navMode === 'topic' ? 'active' : ''}
-                  onClick={() => setNavMode('topic')}>
-                  <span className='nexalgo-nav-icon' aria-hidden='true'>
-                    <svg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'>
-                      <path
-                        d='M11 5H6.5C5.67 5 5 5.67 5 6.5V11L12.5 18.5C13.33 19.33 14.67 19.33 15.5 18.5L18.5 15.5C19.33 14.67 19.33 13.33 18.5 12.5L11 5Z'
-                        stroke='currentColor'
-                        strokeWidth='1.8'
-                        strokeLinecap='round'
-                        strokeLinejoin='round'
-                      />
-                      <circle
-                        cx='8.5'
-                        cy='8.5'
-                        r='1.25'
-                        stroke='currentColor'
-                        strokeWidth='1.8'
-                      />
-                    </svg>
-                  </span>
-                  {effectiveNavExpanded ? 'Topics' : null}
-                </button>
-            </nav>
-          </aside>
-
-          <section className={`nexalgo-list-pane nexalgo-list-pane-${problemsPaneMode}`}>
-              <div className='nexalgo-pane-head'>
-                <div>
-                  <h2>
-                  {problemsPaneMode === 'minimized'
-                    ? 'Problems'
-                    : navMode === 'number'
-                      ? 'Sorted'
-                      : navMode === 'company'
-                        ? 'Companies'
-                        : 'Topics'}
-                </h2>
-                {problemsPaneMode === 'minimized' ? (
-                  <p className='nexalgo-detail-subcopy'>Compact number list</p>
-                  ) : navMode === 'number' ? (
-                    <p className='nexalgo-detail-subcopy'>
-                      {`Showing problems ${(currentPage - 1) * PROBLEMS_PER_PAGE + 1}-${Math.min(
-                        currentPage * PROBLEMS_PER_PAGE,
-                        allProblems.length,
-                      )}`}
-                    </p>
-                  ) : (
-                  <div className='nexalgo-pane-filter'>
-                    <label htmlFor='nexalgo-group-filter' className='nexalgo-filter-label'>
-                      {navMode === 'company' ? 'Filter company' : 'Filter topic'}
-                    </label>
-                    <select
-                      id='nexalgo-group-filter'
-                      value={navMode === 'company' ? selectedCompany : selectedTopic}
-                      onChange={(event) =>
-                        navMode === 'company'
-                          ? setSelectedCompany(event.target.value)
-                          : setSelectedTopic(event.target.value)
-                      }>
-                      <option value=''>Select one</option>
-                      {(navMode === 'company' ? companies : topics).map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  )}
-                </div>
-                <div className='nexalgo-pane-controls'>
-                  {problemsPaneMode === 'minimized' ? (
-                    <button
-                      type='button'
-                    className='nexalgo-pane-toggle'
-                    onClick={() => setProblemsPaneMode('normal')}>
-                    Expand
-                  </button>
-                ) : problemsPaneMode === 'expanded' ? (
-                  <button
-                    type='button'
-                    className='nexalgo-pane-toggle'
-                    onClick={() => setProblemsPaneMode('normal')}>
-                    Minimize
-                  </button>
-                  ) : (
-                    <>
-                      <button
-                        type='button'
-                        className='nexalgo-pane-toggle'
-                        onClick={() => setProblemsPaneMode('expanded')}>
-                        Expand
-                      </button>
-                      <button
-                        type='button'
-                        className='nexalgo-pane-toggle'
-                        onClick={() => setProblemsPaneMode('minimized')}>
-                        Minimize
-                      </button>
-                    </>
-                  )}
-                  <span className='nexalgo-status-pill visited nexalgo-items-pill'>
-                    {visibleProblems.length} items
-                  </span>
-                </div>
               </div>
-
-            <div
-              ref={problemListRef}
-              className={`nexalgo-problem-list ${
-                problemListScrolling ? 'nexalgo-scroll-active' : ''
-              }`}>
-              {visibleProblems.map((problem) => {
-                const status = statusForProblem(progressMap, problem.id)
-                const companyList =
-                  problem.companies.length > 0 ? problem.companies.join(', ') : 'General'
-
-                return (
-                  <button
-                    type='button'
-                    key={problem.id}
-                    className={`nexalgo-problem-card ${
-                      selectedProblemId === problem.id ? 'active' : ''
-                    } ${
-                      problemsPaneMode === 'minimized'
-                        ? 'nexalgo-problem-card-minimized'
-                        : ''
-                    }`}
-                    onClick={() => handleProblemSelect(problem)}>
-                    {problemsPaneMode === 'minimized' ? (
-                      <span className='nexalgo-problem-number-only'>{problem.id}</span>
-                    ) : (
-                      <>
-                        <h3>
-                          {problem.id}. {problem.title}
-                        </h3>
-                        <p className='nexalgo-meta-line'>
-                          {problem.topics.slice(0, 2).join(', ')} • {problem.difficulty} •{' '}
-                          {STATUS_LABELS[status]}
-                        </p>
-                        <p className='nexalgo-meta-line nexalgo-problem-card-status'>
-                          <span className={difficultyToneClass(problem.difficulty)}>
-                            {problem.difficulty}
-                          </span>{' '}
-                          - <span className={statusToneClass(status)}>{STATUS_LABELS[status]}</span>
-                        </p>
-                        <p className='nexalgo-meta-line'>{companyList}</p>
-                      </>
-                    )}
-                  </button>
-                )
-              })}
             </div>
 
-            {problemsPaneMode !== 'minimized' && navMode === 'number' ? (
-              <div className='nexalgo-pagination'>
+            {loading ? <div className='nexalgo-empty-state'>Loading problems...</div> : null}
+            {backendError ? <div className='nexalgo-empty-state'>{backendError}</div> : null}
+
+            <div className='nexalgo-problem-list'>
+              {problems.map((problem) => (
                 <button
+                  key={problem.id}
                   type='button'
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}>
-                  Previous
+                  className={`nexalgo-problem-card ${
+                    selectedProblemId === problem.id ? 'active' : ''
+                  }`}
+                  onClick={() => {
+                    setSelectedProblemId(problem.id)
+                    void updateProgress(problem.id, 'visited')
+                  }}>
+                  <h3>
+                    {problem.problemNumber ? `${problem.problemNumber}. ` : ''}
+                    {problem.title}
+                  </h3>
+                  <p className={`nexalgo-meta-line ${difficultyToneClass(problem.difficulty)}`}>
+                    {problem.difficulty || 'Difficulty pending'}
+                  </p>
+                  <p
+                    className={`nexalgo-meta-line ${statusToneClass(
+                      statusMap[problem.id] ?? 'unvisited',
+                    )}`}>
+                    {statusMap[problem.id] ?? 'unvisited'}
+                  </p>
+                  <p className='nexalgo-meta-line'>{problem.topics.join(', ') || 'No topics yet'}</p>
                 </button>
-                <span>
-                  Page {currentPage} of {totalPages}
-                </span>
-                <button
-                  type='button'
-                  disabled={currentPage === totalPages}
-                  onClick={() =>
-                    setCurrentPage((page) => Math.min(totalPages, page + 1))
-                  }>
-                  Next
-                </button>
-              </div>
-            ) : null}
+              ))}
+            </div>
           </section>
 
-          {shouldShowDetailPane ? (
-          <section
-            ref={detailPaneRef}
-            className={`nexalgo-detail-pane ${
-              detailPaneScrolling ? 'nexalgo-scroll-active' : ''
-            }`}>
-            {mergedProblem ? (
-              <>
-                <div ref={detailStickyHeaderRef} className='nexalgo-detail-sticky-header'>
-                  <div className='nexalgo-detail-anchor-bar'>
-                    {DETAIL_SECTION_LABELS.map((section) => (
-                      <button
-                        type='button'
-                        key={section.key}
-                        className='nexalgo-detail-anchor-btn'
-                        onClick={() => scrollToDetailSection(section.key)}>
-                        {section.label}
-                      </button>
-                    ))}
+          <section className='nexalgo-detail-pane'>
+            {!selectedProblem ? (
+              <div className='nexalgo-empty-state'>No problem selected yet.</div>
+            ) : (
+              <div className='nexalgo-detail-body'>
+                <div className='nexalgo-detail-title-row'>
+                  <div>
+                    <h2>
+                      {selectedProblem.problemNumber
+                        ? `${selectedProblem.problemNumber}. `
+                        : ''}
+                      {selectedProblem.title}
+                    </h2>
+                    <p className={`nexalgo-detail-subcopy ${difficultyToneClass(selectedProblem.difficulty)}`}>
+                      {selectedProblem.difficulty || 'Difficulty pending'}
+                    </p>
                   </div>
-                  <div
-                    className='nexalgo-detail-status-block'
-                    onMouseLeave={() => setStatusMenuOpen(false)}>
-                    <span
-                      className={`nexalgo-status-pill ${statusForProblem(
-                        progressMap,
-                        mergedProblem.id,
-                      )}`}>
-                      {STATUS_LABELS[statusForProblem(progressMap, mergedProblem.id)]}
-                    </span>
-                    <div className='nexalgo-status-menu'>
-                      <button
-                        type='button'
-                        className='nexalgo-secondary-btn'
-                        onClick={() => setStatusMenuOpen((current) => !current)}>
-                        Change status
+                  <div className='nexalgo-detail-actions'>
+                    <button
+                      type='button'
+                      className='nexalgo-secondary-btn'
+                      onClick={() => void updateProgress(selectedProblem.id, 'attempted')}>
+                      Mark Attempted
+                    </button>
+                    <button
+                      type='button'
+                      className='nexalgo-save-btn'
+                      onClick={() => void updateProgress(selectedProblem.id, 'solved')}>
+                      Mark Solved
+                    </button>
+                    {isEditor ? (
+                      <button type='button' className='nexalgo-link-btn' onClick={openRevisionDraft}>
+                        Create revision draft
                       </button>
-                      {statusMenuOpen ? (
-                        <div className='nexalgo-status-menu-list'>
-                          <button
-                            type='button'
-                            className='nexalgo-status-menu-item'
-                            onClick={() => handleStatusChange(mergedProblem, 'unvisited')}>
-                            Unvisited
-                          </button>
-                          <button
-                            type='button'
-                            className='nexalgo-status-menu-item'
-                            onClick={() => handleStatusChange(mergedProblem, 'visited')}>
-                            Visited
-                          </button>
-                          <button
-                            type='button'
-                            className='nexalgo-status-menu-item'
-                            onClick={() => handleStatusChange(mergedProblem, 'attempted')}>
-                            Still attempting
-                          </button>
-                          <button
-                            type='button'
-                            className='nexalgo-status-menu-item'
-                            onClick={() => handleStatusChange(mergedProblem, 'solved')}>
-                            Solved
-                          </button>
-                        </div>
-                      ) : null}
-                    </div>
+                    ) : null}
                   </div>
                 </div>
 
-                <div className='nexalgo-detail-body'>
-                  <div className='nexalgo-detail-title-row'>
-                    <div>
-                      <h2>
-                        {mergedProblem.id}. {mergedProblem.title}
-                      </h2>
-                    </div>
-                  </div>
+                <div className='nexalgo-detail-sections'>
+                  <section className='nexalgo-section'>
+                    <h3>Problem statement</h3>
+                    <p>{selectedProblem.problemStatement}</p>
+                  </section>
 
-                  {isEditor ? (
-                    <div className='nexalgo-detail-actions'>
-                      <button
-                        type='button'
-                        className='nexalgo-save-btn'
-                        onClick={() => openQuestionEditor('edit')}>
-                        Edit question
-                      </button>
-                    </div>
-                  ) : null}
+                  <section className='nexalgo-section'>
+                    <h3>Hints</h3>
+                    <ul>
+                      {selectedProblem.hints.map((hint) => (
+                        <li key={hint}>{hint}</li>
+                      ))}
+                    </ul>
+                  </section>
 
-                  <div className='nexalgo-detail-sections'>
-                    <section
-                      ref={(node) => {
-                        detailSectionRefs.current.solve = node
-                      }}
-                      className='nexalgo-section'>
-                    <h3>Solve</h3>
-                    <div className='nexalgo-solve-grid'>
-                      {solveLinks.map((solveLink) => (
-                          <button
-                            type='button'
-                            key={solveLink.label}
-                            className='nexalgo-solve-card'
-                            onClick={() =>
-                              handleExternalAttempt(mergedProblem, solveLink.url)
-                            }>
-                            <span className='nexalgo-solve-card-label'>{solveLink.label}</span>
-                            <svg
-                              aria-hidden='true'
-                              className='nexalgo-external-arrow'
-                              viewBox='0 0 24 24'
-                              fill='none'
-                              xmlns='http://www.w3.org/2000/svg'>
-                              <path
-                                d='M9 5H5V19H19V15'
-                                stroke='currentColor'
-                                strokeWidth='2.5'
-                                strokeLinecap='square'
-                              />
-                              <path
-                                d='M10 14L19 5'
-                                stroke='currentColor'
-                                strokeWidth='2.5'
-                                strokeLinecap='square'
-                              />
-                              <path
-                                d='M13 5H19V11'
-                                stroke='currentColor'
-                                strokeWidth='2.5'
-                                strokeLinecap='square'
-                              />
-                            </svg>
-                          </button>
+                  <section className='nexalgo-section'>
+                    <h3>Topics</h3>
+                    <div className='nexalgo-topic-row'>
+                      {selectedProblem.topics.map((topic) => (
+                        <span key={topic} className='nexalgo-chip'>
+                          {topic}
+                        </span>
                       ))}
                     </div>
-                      <button
-                        type='button'
-                        className='nexalgo-link-btn nexalgo-external-link'
-                        onClick={() => handleExternalAttempt(mergedProblem)}>
-                        <span>Open platform</span>
-                        <span aria-hidden='true' className='nexalgo-external-arrow'>
-                          <span className='nexalgo-external-arrow-glyph'>↗</span>
+                  </section>
+
+                  <section className='nexalgo-section'>
+                    <h3>Companies</h3>
+                    <div className='nexalgo-company-row'>
+                      {selectedProblem.companies.map((company) => (
+                        <span key={company} className='nexalgo-chip'>
+                          {company}
                         </span>
-                      </button>
-                    </section>
-
-                  <section
-                    ref={(node) => {
-                      detailSectionRefs.current.hints = node
-                    }}
-                    className='nexalgo-section'>
-                    <h3>Hints</h3>
-                    {mergedProblem.hints.length > 0 ? (
-                      <ul>
-                        {mergedProblem.hints.map((hint, index) => (
-                          <li key={index}>{hint}</li>
-                        ))}
-                      </ul>
-                      ) : (
-                        <p>No hints saved yet.</p>
-                      )}
+                      ))}
+                    </div>
                   </section>
 
-                  <section
-                    ref={(node) => {
-                      detailSectionRefs.current.topics = node
-                    }}
-                    className='nexalgo-section'>
-                    <button
-                      type='button'
-                      className='nexalgo-section-toggle'
-                      onClick={() => setTopicsExpanded((current) => !current)}
-                      aria-expanded={topicsExpanded}>
-                      <h3>Topics</h3>
-                      <span
-                        className={`nexalgo-section-toggle-icon ${
-                          topicsExpanded ? 'expanded' : ''
-                        }`}
-                        aria-hidden='true'>
-                        <svg
-                          viewBox='0 0 24 24'
-                          fill='none'
-                          xmlns='http://www.w3.org/2000/svg'>
-                          <path
-                            d='M6 9L12 15L18 9'
-                            stroke='currentColor'
-                            strokeWidth='2'
-                            strokeLinecap='round'
-                            strokeLinejoin='round'
-                          />
-                        </svg>
-                      </span>
-                    </button>
-                    {topicsExpanded ? (
-                      <div className='nexalgo-topic-row'>
-                        {mergedProblem.topics.map((topic) => (
-                          <button
-                            type='button'
-                            key={topic}
-                            className='nexalgo-chip nexalgo-chip-button'
-                            onClick={() => jumpToFilter('topic', topic)}>
-                            {topic}
-                          </button>
-                        ))}
-                      </div>
-                    ) : null}
-                  </section>
-
-                  <section
-                    ref={(node) => {
-                      detailSectionRefs.current.intuition = node
-                    }}
-                    className='nexalgo-section'>
+                  <section className='nexalgo-section'>
                     <h3>Intuition</h3>
-                    <p>{mergedProblem.intuition || 'Editor intuition coming soon.'}</p>
+                    <p>{selectedProblem.intuition || 'Editorial intuition will appear after review.'}</p>
                   </section>
 
-                  <section
-                    ref={(node) => {
-                      detailSectionRefs.current.code = node
-                    }}
-                    className='nexalgo-section'>
-                    <h3>Code</h3>
+                  <section className='nexalgo-section'>
+                    <h3>Code walkthrough</h3>
+                    <p>{selectedProblem.walkthrough || 'Walkthrough pending.'}</p>
+                  </section>
+
+                  <section className='nexalgo-section'>
+                    <h3>Complexity analysis</h3>
+                    <p>
+                      {selectedProblem.complexityAnalysis || 'Complexity analysis pending.'}
+                    </p>
+                  </section>
+
+                  <section className='nexalgo-section'>
+                    <h3>Solutions</h3>
                     <div className='nexalgo-code-tabs'>
                       {LANGUAGE_OPTIONS.map((option) => (
                         <button
                           type='button'
                           key={option.value}
                           className={selectedLanguage === option.value ? 'active' : ''}
-                          onClick={() => setSelectedLanguage(option.value)}>
+                          onClick={() => void persistLanguage(option.value)}>
                           {option.label}
                         </button>
                       ))}
                     </div>
                     <CodeBlock
                       language={selectedLanguage}
-                      code={
-                        mergedProblem.starterCodeByLanguage[selectedLanguage] ||
-                        '# Editor solution coming soon'
-                      }
+                      code={selectedProblem.solutions[selectedLanguage] || ''}
                     />
                   </section>
 
-                  <section
-                    ref={(node) => {
-                      detailSectionRefs.current.walkthrough = node
-                    }}
-                    className='nexalgo-section'>
-                    <h3>Code walk through</h3>
-                    <p>{mergedProblem.walkthrough || 'Editor walkthrough coming soon.'}</p>
-                  </section>
-
-                  <section
-                    ref={(node) => {
-                      detailSectionRefs.current.complexity = node
-                    }}
-                    className='nexalgo-section'>
-                    <h3>Complexity analysis</h3>
-                    <p>{mergedProblem.complexity || 'Editor complexity notes coming soon.'}</p>
-                  </section>
-
-                  <section
-                    ref={(node) => {
-                      detailSectionRefs.current.companies = node
-                    }}
-                    className='nexalgo-section'>
-                    <h3>Companies</h3>
-                    <div className='nexalgo-company-row'>
-                      {(mergedProblem.companies.length > 0
-                        ? mergedProblem.companies
-                        : ['General']
-                      ).map((company) => (
-                        <button
-                          type='button'
-                          key={company}
-                          className='nexalgo-chip nexalgo-chip-button'
-                          onClick={() => jumpToFilter('company', company)}>
-                          {company}
-                        </button>
-                      ))}
-                    </div>
-                  </section>
-                  <div
-                    className='nexalgo-detail-tail-spacer'
-                    aria-hidden='true'
-                    style={{ height: `${detailTailSpacerHeight}px` }}
-                  />
+                  {isEditor ? (
+                    <section className='nexalgo-section'>
+                      <h3>Review queue</h3>
+                      {queue.length === 0 ? (
+                        <p>No pending drafts.</p>
+                      ) : (
+                        <div className='nexalgo-queue-list'>
+                          {queue.map((submission) => (
+                            <div key={submission.id} className='nexalgo-queue-card'>
+                              <div className='nexalgo-queue-head'>
+                                <div>
+                                  <strong>{submission.proposedProblem.title}</strong>
+                                  <p className='nexalgo-detail-subcopy'>
+                                    {submission.platform} · {submission.type} · submitted by{' '}
+                                    {submission.submittedBy.email}
+                                  </p>
+                                </div>
+                                <span className='nexalgo-status-pill visited'>
+                                  {submission.status}
+                                </span>
+                              </div>
+                              <p className='nexalgo-detail-subcopy'>
+                                {submission.proposedProblem.problemStatement.slice(0, 220)}
+                                {submission.proposedProblem.problemStatement.length > 220 ? '…' : ''}
+                              </p>
+                              <div className='nexalgo-detail-actions'>
+                                <button
+                                  type='button'
+                                  className='nexalgo-secondary-btn'
+                                  onClick={() => void handleRegenerate(submission.id)}>
+                                  Regenerate
+                                </button>
+                                <button
+                                  type='button'
+                                  className='nexalgo-danger-btn'
+                                  onClick={() => void handleReject(submission.id)}>
+                                  Reject
+                                </button>
+                                <button
+                                  type='button'
+                                  className='nexalgo-save-btn'
+                                  onClick={() => void handleApprove(submission.id)}>
+                                  Approve
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </section>
+                  ) : null}
                 </div>
-                </div>
-
-              </>
-            ) : (
-              <div className='nexalgo-empty-state'>No problem selected yet.</div>
+              </div>
             )}
           </section>
-          ) : null}
         </main>
       )}
 
-      {menuOpen ? (
-        <div className='nexalgo-menu-scrim'>
-          <aside className='nexalgo-menu-panel' ref={menuPanelRef}>
-            <div className='nexalgo-menu-head'>
-              <span className='nexalgo-menu-title'>Settings</span>
-              <button
-                type='button'
-                className='nexalgo-close-btn'
-                onClick={() => setMenuOpen(false)}>
-                ×
-              </button>
-            </div>
-
-            <section className='nexalgo-menu-section'>
-              <h3>Account</h3>
-              {userEmail ? (
-                <>
-                  <p className='nexalgo-detail-subcopy nexalgo-menu-copy'>
-                    Access level: {isAdmin ? 'Admin' : isEditor ? 'Editor' : 'Viewer'}
-                  </p>
-                  <p className='nexalgo-detail-subcopy nexalgo-menu-copy'>{userEmail}</p>
-                  <button type='button' className='nexalgo-danger-btn' onClick={handleLogout}>
-                    Logout
-                  </button>
-                </>
-              ) : (
-                <p className='nexalgo-detail-subcopy nexalgo-menu-copy'>
-                  Use the main signup card to create a shared account for NexAlgo and
-                  Todo Flow.
-                </p>
-              )}
-            </section>
-
-            {isEditor ? (
-              <section className='nexalgo-menu-section'>
-                <h3>Question tools</h3>
-                <div className='nexalgo-detail-actions'>
-                  <button
-                    type='button'
-                    className='nexalgo-save-btn'
-                    onClick={() => {
-                      setMenuOpen(false)
-                      openQuestionEditor('add')
-                    }}>
-                    Add question
-                  </button>
-                </div>
-              </section>
-            ) : null}
-
-            <section className='nexalgo-menu-section'>
-              <h3>Default language</h3>
-              <div className='nexalgo-role-list'>
-                {LANGUAGE_OPTIONS.map((option) => (
-                  <button
-                    type='button'
-                    key={option.value}
-                    onClick={() => persistLanguage(option.value)}
-                    className={
-                      defaultLanguage === option.value
-                        ? 'nexalgo-menu-choice active'
-                        : 'nexalgo-menu-choice'
-                    }>
-                    {option.label}
-                    {defaultLanguage === option.value ? ' (selected)' : ''}
-                  </button>
-                ))}
-              </div>
-            </section>
-
-            {isAdmin ? (
-              <section className='nexalgo-menu-section'>
-                <h3>Editor access</h3>
-                <input
-                  type='email'
-                  placeholder='editor@example.com'
-                  value={editorEmailInput}
-                  onChange={(event) => setEditorEmailInput(event.target.value)}
-                />
-                <div className='nexalgo-detail-actions'>
-                  <button type='button' className='nexalgo-save-btn' onClick={addEditor}>
-                    Add editor
-                  </button>
-                </div>
-                <div className='nexalgo-role-list'>
-                  {(config.editorEmails ?? []).map((email) => (
-                    <button
-                      type='button'
-                      key={email}
-                      onClick={() => removeEditor(email)}>
-                      {email} ×
-                    </button>
-                  ))}
-                </div>
-              </section>
-            ) : null}
-          </aside>
-        </div>
-      ) : null}
-
-      {questionEditorOpen ? (
+      {showDraftModal ? (
         <div className='nexalgo-modal-scrim'>
           <div className='nexalgo-modal-card nexalgo-question-modal'>
             <div className='nexalgo-menu-head'>
               <div>
-                <h3>{questionEditorMode === 'add' ? 'Add question' : 'Edit question'}</h3>
+                <h3>{draftMode === 'create' ? 'Submit question draft' : 'Create revision draft'}</h3>
                 <p className='nexalgo-detail-subcopy'>
-                  {questionEditorMode === 'add'
-                    ? 'Create a new question and publish it to the shared library.'
-                    : 'Update the current question and publish the revised version.'}
+                  Drafts are stored in Cloud SQL and routed through the backend review queue.
                 </p>
               </div>
               <button
                 type='button'
                 className='nexalgo-close-btn'
-                onClick={handleDiscardQuestionEditor}>
+                onClick={() => setShowDraftModal(false)}>
                 ×
               </button>
             </div>
 
-            <form
-              className='nexalgo-question-form'
-              onSubmit={(event) => {
-                event.preventDefault()
-                void handlePublishQuestion()
-              }}>
-              {questionEditorError ? (
-                <p className='nexalgo-error'>{questionEditorError}</p>
-              ) : null}
+            <form className='nexalgo-question-form' onSubmit={handleDraftSubmit}>
+              {draftError ? <p className='nexalgo-error'>{draftError}</p> : null}
+              {draftMessage ? <p className='nexalgo-message'>{draftMessage}</p> : null}
 
               <div className='nexalgo-question-grid'>
+                <label className='nexalgo-field'>
+                  <span className='nexalgo-field-label'>Platform</span>
+                  <input
+                    type='text'
+                    value={draftForm.platform}
+                    onChange={(event) =>
+                      setDraftForm((current) => ({ ...current, platform: event.target.value }))
+                    }
+                  />
+                </label>
                 <label className='nexalgo-field'>
                   <span className='nexalgo-field-label'>Question number</span>
                   <input
                     type='number'
-                    value={editorDraft.questionNumber}
-                    disabled={questionEditorMode === 'edit'}
+                    value={draftForm.problemNumber}
                     onChange={(event) =>
-                      setEditorDraft((current) => ({
+                      setDraftForm((current) => ({
                         ...current,
-                        questionNumber: event.target.value,
+                        problemNumber: event.target.value,
                       }))
                     }
                   />
@@ -1870,39 +818,54 @@ export default function NexAlgoPage() {
                   <span className='nexalgo-field-label'>Title</span>
                   <input
                     type='text'
-                    value={editorDraft.title}
+                    value={draftForm.title}
                     onChange={(event) =>
-                      setEditorDraft((current) => ({
-                        ...current,
-                        title: event.target.value,
-                      }))
+                      setDraftForm((current) => ({ ...current, title: event.target.value }))
                     }
                   />
                 </label>
                 <label className='nexalgo-field'>
                   <span className='nexalgo-field-label'>Difficulty</span>
-                  <select
-                    value={editorDraft.difficulty}
+                  <input
+                    type='text'
+                    value={draftForm.difficulty}
                     onChange={(event) =>
-                      setEditorDraft((current) => ({
+                      setDraftForm((current) => ({ ...current, difficulty: event.target.value }))
+                    }
+                  />
+                </label>
+                <label className='nexalgo-field'>
+                  <span className='nexalgo-field-label'>External ID</span>
+                  <input
+                    type='text'
+                    value={draftForm.externalId}
+                    onChange={(event) =>
+                      setDraftForm((current) => ({
                         ...current,
-                        difficulty: event.target.value,
+                        externalId: event.target.value,
                       }))
-                    }>
-                    <option value='Easy'>Easy</option>
-                    <option value='Medium'>Medium</option>
-                    <option value='Hard'>Hard</option>
-                  </select>
+                    }
+                  />
+                </label>
+                <label className='nexalgo-field'>
+                  <span className='nexalgo-field-label'>Slug</span>
+                  <input
+                    type='text'
+                    value={draftForm.slug}
+                    onChange={(event) =>
+                      setDraftForm((current) => ({ ...current, slug: event.target.value }))
+                    }
+                  />
                 </label>
                 <label className='nexalgo-field'>
                   <span className='nexalgo-field-label'>Primary platform link</span>
                   <input
                     type='text'
-                    value={editorDraft.link}
+                    value={draftForm.normalizedUrl}
                     onChange={(event) =>
-                      setEditorDraft((current) => ({
+                      setDraftForm((current) => ({
                         ...current,
-                        link: event.target.value,
+                        normalizedUrl: event.target.value,
                       }))
                     }
                   />
@@ -1911,12 +874,9 @@ export default function NexAlgoPage() {
                   <span className='nexalgo-field-label'>Topics</span>
                   <input
                     type='text'
-                    value={editorDraft.topics}
+                    value={draftForm.topics}
                     onChange={(event) =>
-                      setEditorDraft((current) => ({
-                        ...current,
-                        topics: event.target.value,
-                      }))
+                      setDraftForm((current) => ({ ...current, topics: event.target.value }))
                     }
                   />
                 </label>
@@ -1924,12 +884,9 @@ export default function NexAlgoPage() {
                   <span className='nexalgo-field-label'>Companies</span>
                   <input
                     type='text'
-                    value={editorDraft.companies}
+                    value={draftForm.companies}
                     onChange={(event) =>
-                      setEditorDraft((current) => ({
-                        ...current,
-                        companies: event.target.value,
-                      }))
+                      setDraftForm((current) => ({ ...current, companies: event.target.value }))
                     }
                   />
                 </label>
@@ -1938,9 +895,9 @@ export default function NexAlgoPage() {
               <label className='nexalgo-field'>
                 <span className='nexalgo-field-label'>Problem statement</span>
                 <textarea
-                  value={editorDraft.problemStatement}
+                  value={draftForm.problemStatement}
                   onChange={(event) =>
-                    setEditorDraft((current) => ({
+                    setDraftForm((current) => ({
                       ...current,
                       problemStatement: event.target.value,
                     }))
@@ -1950,47 +907,38 @@ export default function NexAlgoPage() {
               <label className='nexalgo-field'>
                 <span className='nexalgo-field-label'>Hints</span>
                 <textarea
-                  value={editorDraft.hints}
+                  value={draftForm.hints}
                   onChange={(event) =>
-                    setEditorDraft((current) => ({
-                      ...current,
-                      hints: event.target.value,
-                    }))
+                    setDraftForm((current) => ({ ...current, hints: event.target.value }))
                   }
                 />
               </label>
               <label className='nexalgo-field'>
                 <span className='nexalgo-field-label'>Intuition</span>
                 <textarea
-                  value={editorDraft.intuition}
+                  value={draftForm.intuition}
                   onChange={(event) =>
-                    setEditorDraft((current) => ({
-                      ...current,
-                      intuition: event.target.value,
-                    }))
+                    setDraftForm((current) => ({ ...current, intuition: event.target.value }))
                   }
                 />
               </label>
               <label className='nexalgo-field'>
                 <span className='nexalgo-field-label'>Code walkthrough</span>
                 <textarea
-                  value={editorDraft.walkthrough}
+                  value={draftForm.walkthrough}
                   onChange={(event) =>
-                    setEditorDraft((current) => ({
-                      ...current,
-                      walkthrough: event.target.value,
-                    }))
+                    setDraftForm((current) => ({ ...current, walkthrough: event.target.value }))
                   }
                 />
               </label>
               <label className='nexalgo-field'>
                 <span className='nexalgo-field-label'>Complexity analysis</span>
                 <textarea
-                  value={editorDraft.complexity}
+                  value={draftForm.complexityAnalysis}
                   onChange={(event) =>
-                    setEditorDraft((current) => ({
+                    setDraftForm((current) => ({
                       ...current,
-                      complexity: event.target.value,
+                      complexityAnalysis: event.target.value,
                     }))
                   }
                 />
@@ -1998,36 +946,27 @@ export default function NexAlgoPage() {
               <label className='nexalgo-field'>
                 <span className='nexalgo-field-label'>Python solution</span>
                 <textarea
-                  value={editorDraft.python}
+                  value={draftForm.python}
                   onChange={(event) =>
-                    setEditorDraft((current) => ({
-                      ...current,
-                      python: event.target.value,
-                    }))
+                    setDraftForm((current) => ({ ...current, python: event.target.value }))
                   }
                 />
               </label>
               <label className='nexalgo-field'>
                 <span className='nexalgo-field-label'>Java solution</span>
                 <textarea
-                  value={editorDraft.java}
+                  value={draftForm.java}
                   onChange={(event) =>
-                    setEditorDraft((current) => ({
-                      ...current,
-                      java: event.target.value,
-                    }))
+                    setDraftForm((current) => ({ ...current, java: event.target.value }))
                   }
                 />
               </label>
               <label className='nexalgo-field'>
                 <span className='nexalgo-field-label'>C++ solution</span>
                 <textarea
-                  value={editorDraft.cpp}
+                  value={draftForm.cpp}
                   onChange={(event) =>
-                    setEditorDraft((current) => ({
-                      ...current,
-                      cpp: event.target.value,
-                    }))
+                    setDraftForm((current) => ({ ...current, cpp: event.target.value }))
                   }
                 />
               </label>
@@ -2036,75 +975,14 @@ export default function NexAlgoPage() {
                 <button
                   type='button'
                   className='nexalgo-danger-btn'
-                  onClick={handleDiscardQuestionEditor}>
-                  Discard
+                  onClick={() => setShowDraftModal(false)}>
+                  Cancel
                 </button>
                 <button type='submit' className='nexalgo-save-btn'>
-                  Publish
+                  Submit draft
                 </button>
               </div>
             </form>
-          </div>
-
-          {questionEditorConfirm ? (
-            <div className='nexalgo-modal-scrim'>
-              <div className='nexalgo-modal-card'>
-                <h3>
-                  {questionEditorConfirm === 'discard'
-                    ? 'Discard changes?'
-                    : 'Publish changes?'}
-                </h3>
-                <p className='nexalgo-detail-subcopy'>
-                  {questionEditorConfirm === 'discard'
-                    ? 'Your unsaved edits will be lost.'
-                    : 'This question will be saved to the shared library.'}
-                </p>
-                <div className='nexalgo-status-actions'>
-                  <button
-                    type='button'
-                    className='nexalgo-secondary-btn'
-                    onClick={() => setQuestionEditorConfirm(null)}>
-                    Cancel
-                  </button>
-                  <button
-                    type='button'
-                    className='nexalgo-save-btn'
-                    onClick={() =>
-                      questionEditorConfirm === 'discard'
-                        ? confirmDiscardQuestionEditor()
-                        : void confirmPublishQuestion()
-                    }>
-                    {questionEditorConfirm === 'discard' ? 'Discard' : 'Publish'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-
-      {promptProblem ? (
-        <div className='nexalgo-modal-scrim'>
-          <div className='nexalgo-modal-card'>
-            <h3>How did it go?</h3>
-            <p className='nexalgo-detail-subcopy'>
-              You came back from {promptProblem.id}. {promptProblem.title}. Did you solve
-              it or are you still attempting it?
-            </p>
-            <div className='nexalgo-status-actions'>
-              <button
-                type='button'
-                className='nexalgo-status-action primary'
-                onClick={() => handleSolvedChoice('solved')}>
-                Solved
-              </button>
-              <button
-                type='button'
-                className='nexalgo-secondary-btn'
-                onClick={() => handleSolvedChoice('attempted')}>
-                Still attempting
-              </button>
-            </div>
           </div>
         </div>
       ) : null}

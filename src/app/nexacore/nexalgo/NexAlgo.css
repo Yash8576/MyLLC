@@ -989,6 +989,10 @@
   overflow-x: auto;
 }
 
+.nexalgo-code-body > :only-child {
+  grid-column: 1 / -1;
+}
+
 .nexalgo-code-lines {
   padding: 1rem 0.75rem;
   text-align: right;
@@ -1269,6 +1273,25 @@
   background: #ffffff;
   color: rgba(34, 44, 68, 0.72);
   border: 1px solid rgba(101, 86, 255, 0.08);
+}
+
+.nexalgo-queue-list {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.nexalgo-queue-card {
+  border-radius: 18px;
+  border: 1px solid rgba(101, 86, 255, 0.1);
+  background: #f8fbff;
+  padding: 1rem;
+}
+
+.nexalgo-queue-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
 }
 
 @media (max-width: 1120px) {

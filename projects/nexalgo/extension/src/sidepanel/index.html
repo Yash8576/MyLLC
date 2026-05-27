@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NexAlgo</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: Poppins, sans-serif;
+        background: #f6f8ff;
+        color: #223;
+      }
+
+      .shell {
+        padding: 16px;
+      }
+
+      .card {
+        background: white;
+        border: 1px solid rgba(101, 86, 255, 0.12);
+        border-radius: 16px;
+        padding: 16px;
+        box-shadow: 0 12px 24px rgba(101, 86, 255, 0.08);
+      }
+
+      .muted {
+        color: rgba(34, 34, 51, 0.68);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="card">
+        <h1>NexAlgo</h1>
+        <p class="muted" id="status">Waiting for a supported problem page.</p>
+        <div id="content"></div>
+      </div>
+    </div>
+    <script type="module" src="./sidepanel.js"></script>
+  </body>
+</html>
