@@ -31,4 +31,4 @@ COPY --from=build /app/dist ./dist
 
 EXPOSE 8080
 
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
+CMD ["node", "dist/index.js"]
