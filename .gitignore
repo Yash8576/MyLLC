@@ -17,6 +17,7 @@
 # production
 /build
 **/dist
+.gcloud-temp/
 
 # misc
 .DS_Store
