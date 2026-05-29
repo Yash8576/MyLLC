@@ -18,10 +18,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GCP_PROJECT_ID: buzzcart-daeb6
+  GCP_PROJECT_ID: nexalgo-ace83
   GCP_REGION: us-east4
   CLOUD_RUN_SERVICE: nexalgo-backend
-  CLOUD_SQL_INSTANCE: ${{ vars.NEXALGO_CLOUD_SQL_INSTANCE }}
+  CLOUD_SQL_INSTANCE: nexalgo-ace83:us-east4:nexalgo-ace83-instance
 
 jobs:
   build:

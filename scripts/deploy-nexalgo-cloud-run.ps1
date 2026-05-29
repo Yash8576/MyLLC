@@ -1,5 +1,5 @@
 param(
-  [string]$ProjectId = "buzzcart-daeb6",
+  [string]$ProjectId = "nexalgo-ace83",
   [string]$Region = "us-east4",
   [string]$ServiceName = "nexalgo-backend",
   [string]$CloudSqlInstance = "",

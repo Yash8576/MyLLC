@@ -44,7 +44,7 @@ See [backend/.env.example](/abs/path/c:/Users/dravi/Downloads/Developer/MyLLC/pr
 
 ```powershell
 .\scripts\deploy-nexalgo-cloud-run.ps1 `
-  -ProjectId buzzcart-daeb6 `
+  -ProjectId nexalgo-ace83 `
   -Region us-east4 `
   -ServiceName nexalgo-backend `
   -CloudSqlInstance "PROJECT:REGION:INSTANCE" `
