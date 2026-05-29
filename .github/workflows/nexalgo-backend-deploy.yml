@@ -100,7 +100,6 @@ jobs:
         run: |
           cat <<EOF > "$RUNNER_TEMP/nexalgo-cloudrun-env.yaml"
           NODE_ENV: "production"
-          PORT: "8080"
           CORS_ORIGIN: "https://nexacoreglobal.org"
           DATABASE_URL: "${{ secrets.NEXALGO_DATABASE_URL }}"
           FIREBASE_PROJECT_ID: "nexalgo-ace83"
