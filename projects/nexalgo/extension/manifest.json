@@ -3,10 +3,12 @@
   "name": "NexAlgo",
   "version": "1.0.0",
   "description": "Show NexAlgo problem details and submit new coding questions for review.",
-  "permissions": ["sidePanel"],
+  "permissions": ["sidePanel", "storage"],
   "host_permissions": [
     "https://leetcode.com/*",
     "https://www.geeksforgeeks.org/*",
+    "https://identitytoolkit.googleapis.com/*",
+    "https://securetoken.googleapis.com/*",
     "https://*.run.app/*"
   ],
   "background": {

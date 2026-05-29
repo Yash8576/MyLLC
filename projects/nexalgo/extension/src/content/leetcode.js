@@ -36,10 +36,16 @@
     }
   }
 
-  chrome.runtime.sendMessage({
-    type: 'NEXALGO_PAGE_PAYLOAD',
-    payload: buildPayload(),
-  }, () => {
-    void chrome.runtime.lastError
-  })
+  function sendPayload() {
+    chrome.runtime.sendMessage({
+      type: 'NEXALGO_PAGE_PAYLOAD',
+      payload: buildPayload(),
+    }, () => {
+      void chrome.runtime.lastError
+    })
+  }
+
+  sendPayload()
+  window.setTimeout(sendPayload, 1500)
+  window.setTimeout(sendPayload, 4000)
 })()

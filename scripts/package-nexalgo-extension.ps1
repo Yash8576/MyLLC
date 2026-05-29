@@ -2,6 +2,7 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$ApiBaseUrl,
   [string]$WebBaseUrl = "https://nexacoreglobal.org/projects/nexalgo",
+  [string]$FirebaseApiKey = "AIzaSyChiOs7D_dHdXY4aadUfJyB-6f6XFXPPwo",
   [string]$OutputDir = "projects\nexalgo\extension\dist"
 )
 
@@ -27,6 +28,8 @@ $manifest = Get-Content -Raw -LiteralPath $manifestPath | ConvertFrom-Json
 $manifest.host_permissions = @(
   "https://leetcode.com/*",
   "https://www.geeksforgeeks.org/*",
+  "https://identitytoolkit.googleapis.com/*",
+  "https://securetoken.googleapis.com/*",
   "$apiOrigin/*"
 )
 $manifest | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $manifestPath -Encoding ascii
@@ -36,6 +39,7 @@ $config = @"
 globalThis.NEXALGO_EXTENSION_CONFIG = {
   apiBaseUrl: '$($ApiBaseUrl.TrimEnd('/'))',
   webBaseUrl: '$($WebBaseUrl.TrimEnd('/'))',
+  firebaseApiKey: '$FirebaseApiKey',
 }
 "@
 Set-Content -LiteralPath $configPath -Value $config -Encoding ascii

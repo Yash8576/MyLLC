@@ -7,26 +7,122 @@
     <style>
       body {
         margin: 0;
-        font-family: ui-sans-serif, system-ui, sans-serif;
-        background: #f7f7f3;
+        font-family:
+          "Aptos",
+          "Segoe UI",
+          sans-serif;
+        background: #f5f1e8;
         color: #20201d;
       }
 
       .shell {
-        padding: 16px;
+        min-height: 100vh;
+        background:
+          linear-gradient(135deg, rgba(22, 108, 84, 0.14), transparent 34%),
+          linear-gradient(180deg, #fffaf0 0%, #f5f1e8 100%);
       }
 
-      .card {
-        background: white;
-        border: 1px solid rgba(32, 32, 29, 0.12);
-        border-radius: 8px;
-        padding: 16px;
-        box-shadow: 0 10px 24px rgba(32, 32, 29, 0.08);
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        padding: 14px;
+        border-bottom: 1px solid rgba(32, 32, 29, 0.12);
+        background: rgba(255, 250, 240, 0.92);
+        backdrop-filter: blur(12px);
       }
 
       h1 {
-        margin: 0 0 8px;
+        margin: 0;
         font-size: 20px;
+      }
+
+      #status {
+        margin: 6px 0 0;
+        font-size: 12px;
+      }
+
+      .panel {
+        padding: 14px;
+      }
+
+      section {
+        margin: 0 0 18px;
+      }
+
+      .hero {
+        margin: -14px -14px 16px;
+        padding: 18px 14px;
+        border-bottom: 1px solid rgba(32, 32, 29, 0.12);
+      }
+
+      .hero.published {
+        background: linear-gradient(135deg, #10483a, #20201d);
+        color: #fffaf0;
+      }
+
+      .hero.missing {
+        background: linear-gradient(135deg, #7c3f21, #20201d);
+        color: #fffaf0;
+      }
+
+      .hero.idle {
+        background: #20201d;
+        color: #fffaf0;
+      }
+
+      .eyebrow {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0;
+        text-transform: uppercase;
+        opacity: 0.78;
+      }
+
+      h2 {
+        margin: 0 0 10px;
+        font-size: 22px;
+        line-height: 1.15;
+      }
+
+      h3 {
+        margin: 0 0 8px;
+        font-size: 14px;
+      }
+
+      p,
+      li,
+      dd,
+      dt {
+        font-size: 13px;
+        line-height: 1.48;
+      }
+
+      ol {
+        margin: 0;
+        padding-left: 20px;
+      }
+
+      dl {
+        display: grid;
+        grid-template-columns: 86px 1fr;
+        gap: 6px 10px;
+        margin: 0;
+      }
+
+      dt {
+        color: rgba(32, 32, 29, 0.62);
+        font-weight: 700;
+      }
+
+      dd {
+        margin: 0;
+      }
+
+      .break {
+        overflow-wrap: anywhere;
       }
 
       button {
@@ -40,10 +136,66 @@
         font: inherit;
       }
 
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.54;
+      }
+
       button.secondary {
-        margin-top: 8px;
         background: #ece8dc;
         color: #20201d;
+      }
+
+      button.ghost {
+        background: transparent;
+        color: #20201d;
+        border: 1px solid rgba(32, 32, 29, 0.2);
+      }
+
+      button.small {
+        width: auto;
+        padding: 6px 9px;
+        font-size: 12px;
+      }
+
+      .actions,
+      .button-row {
+        display: grid;
+        gap: 8px;
+      }
+
+      .button-row {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      #auth {
+        padding: 12px 14px;
+        border-bottom: 1px solid rgba(32, 32, 29, 0.12);
+        background: rgba(255, 250, 240, 0.7);
+      }
+
+      .auth-form {
+        display: grid;
+        gap: 8px;
+      }
+
+      .auth-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        font-size: 12px;
+      }
+
+      input {
+        box-sizing: border-box;
+        width: 100%;
+        border: 1px solid rgba(32, 32, 29, 0.18);
+        border-radius: 6px;
+        padding: 10px;
+        background: #fffdf8;
+        color: #20201d;
+        font: inherit;
       }
 
       pre {
@@ -51,10 +203,52 @@
         overflow: auto;
         white-space: pre-wrap;
         overflow-wrap: anywhere;
-        background: #f4f2eb;
+        background: #20201d;
+        color: #fffaf0;
         border-radius: 6px;
         padding: 10px;
         font-size: 12px;
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .chips span,
+      .difficulty {
+        display: inline-flex;
+        border: 1px solid rgba(32, 32, 29, 0.14);
+        border-radius: 999px;
+        padding: 5px 8px;
+        background: rgba(255, 255, 255, 0.62);
+        font-size: 12px;
+      }
+
+      .difficulty.easy {
+        background: #dff5e7;
+        color: #13552c;
+      }
+
+      .difficulty.medium {
+        background: #fff1bd;
+        color: #6e4d00;
+      }
+
+      .difficulty.hard {
+        background: #ffe0d8;
+        color: #8d2513;
+      }
+
+      .code-panel {
+        margin-bottom: 8px;
+      }
+
+      .code-panel summary {
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 700;
       }
 
       .muted {
@@ -62,19 +256,34 @@
       }
 
       .error {
+        border-left: 3px solid #9c2f20;
+        padding: 8px 10px;
+        background: #fff1ed;
         color: #9c2f20;
+      }
+
+      .message {
+        border-left: 3px solid #166c54;
+        padding: 8px 10px;
+        background: #e7f6ef;
+        color: #10483a;
       }
     </style>
   </head>
   <body>
     <div class="shell">
-      <div class="card">
+      <header class="topbar">
         <h1>NexAlgo</h1>
         <p class="muted" id="status">Waiting for a supported problem page.</p>
+      </header>
+      <div id="auth"></div>
+      <main class="panel">
         <div id="content"></div>
-        <button type="button" id="open-web">Open NexAlgo</button>
-        <button type="button" class="secondary" id="refresh">Refresh</button>
-      </div>
+        <div class="actions">
+          <button type="button" id="open-web">Open NexAlgo</button>
+          <button type="button" class="secondary" id="refresh">Refresh</button>
+        </div>
+      </main>
     </div>
     <script type="module" src="./sidepanel.js"></script>
   </body>

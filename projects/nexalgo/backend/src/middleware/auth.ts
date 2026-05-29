@@ -8,23 +8,77 @@ type AuthenticatedRequest = Request & {
   currentUser?: User & { appRoles: AppRole[] }
 }
 
-async function ensureBootstrapAdmin(email: string, userId: string) {
-  if (!env.NEXALGO_INITIAL_ADMIN_EMAIL) return
-  if (email.toLowerCase() !== env.NEXALGO_INITIAL_ADMIN_EMAIL.toLowerCase()) return
+const bootstrapRoles: Record<string, AppRole[]> = {
+  'nexacoregloballlc@gmail.com': [AppRole.admin],
+  'drvaiteja2004@gmail.com': [AppRole.editor],
+}
 
-  await prisma.role.upsert({
-    where: {
-      userId_role: {
-        userId,
-        role: AppRole.admin,
-      },
-    },
-    update: {},
-    create: {
-      userId,
-      role: AppRole.admin,
+function getBootstrapRoles(email: string) {
+  const roles = new Set<AppRole>(bootstrapRoles[email.toLowerCase()] ?? [])
+
+  if (env.NEXALGO_INITIAL_ADMIN_EMAIL?.toLowerCase() === email.toLowerCase()) {
+    roles.add(AppRole.admin)
+  }
+
+  return Array.from(roles)
+}
+
+async function ensureBootstrapRoles(email: string, userId: string) {
+  const roles = getBootstrapRoles(email)
+  if (roles.length === 0) return
+
+  await Promise.all(
+    roles.map((role) =>
+      prisma.role.upsert({
+        where: {
+          userId_role: {
+            userId,
+            role,
+          },
+        },
+        update: {},
+        create: {
+          userId,
+          role,
+        },
+      }),
+    ),
+  )
+}
+
+async function getUserWithRoles(userId: string) {
+  return prisma.user.findUniqueOrThrow({
+    where: { id: userId },
+    include: {
+      roles: true,
     },
   })
+}
+
+async function ensureViewerRole(user: User & { roles: Array<{ role: AppRole }> }) {
+  if (user.roles.length !== 0) {
+    return user
+  }
+
+  await prisma.role.create({
+    data: {
+      userId: user.id,
+      role: AppRole.viewer,
+    },
+  })
+
+  return getUserWithRoles(user.id)
+}
+
+async function ensureRuntimeRoles(email: string, user: User & { roles: Array<{ role: AppRole }> }) {
+  await ensureBootstrapRoles(email, user.id)
+  const refreshed = await getUserWithRoles(user.id)
+
+  if (getBootstrapRoles(email).length > 0) {
+    return refreshed
+  }
+
+  return ensureViewerRole(refreshed)
 }
 
 export async function authenticateRequest(
@@ -48,7 +102,7 @@ export async function authenticateRequest(
       return
     }
 
-    let user = await prisma.user.upsert({
+    const user = await prisma.user.upsert({
       where: { firebaseUid: decodedToken.uid },
       update: {
         email,
@@ -64,24 +118,11 @@ export async function authenticateRequest(
       },
     })
 
-    await ensureBootstrapAdmin(email, user.id)
-
-    if (user.roles.length === 0) {
-      await prisma.role.create({
-        data: {
-          userId: user.id,
-          role: AppRole.viewer,
-        },
-      })
-      user = await prisma.user.findUniqueOrThrow({
-        where: { id: user.id },
-        include: { roles: true },
-      })
-    }
+    const userWithRoles = await ensureRuntimeRoles(email, user)
 
     req.currentUser = {
-      ...user,
-      appRoles: user.roles.map((role: { role: AppRole }) => role.role),
+      ...userWithRoles,
+      appRoles: userWithRoles.roles.map((role: { role: AppRole }) => role.role),
     }
     next()
   } catch (error) {
