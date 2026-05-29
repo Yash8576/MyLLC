@@ -238,6 +238,56 @@
   color: #6556ff;
 }
 
+.nexalgo-sidebar-filters,
+.nexalgo-review-queue-panel {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(101, 86, 255, 0.1);
+}
+
+.nexalgo-sidebar-filter-btn {
+  width: 100%;
+  border: 1px solid rgba(101, 86, 255, 0.1);
+  border-radius: 14px;
+  padding: 0.68rem 0.78rem;
+  background: #ffffff;
+  color: #222c44;
+  text-align: left;
+  cursor: pointer;
+}
+
+.nexalgo-sidebar-filter-btn.active {
+  background: rgba(101, 86, 255, 0.1);
+  border-color: rgba(101, 86, 255, 0.24);
+  color: #6556ff;
+  font-weight: 700;
+}
+
+.nexalgo-review-queue-panel {
+  max-height: 46vh;
+  overflow-y: auto;
+}
+
+.nexalgo-review-queue-panel h3 {
+  margin: 0.2rem 0 0;
+  font-size: 0.95rem;
+}
+
+.nexalgo-queue-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+}
+
+.nexalgo-queue-actions button {
+  padding: 0.55rem 0.7rem;
+  border-radius: 12px;
+  font-size: 0.78rem;
+}
+
 .nexalgo-nav-icon {
   display: inline-flex;
   align-items: center;
@@ -1098,6 +1148,7 @@
   position: fixed;
   inset: 0;
   z-index: 60;
+  border: 0;
   background: rgba(101, 86, 255, 0.1);
   backdrop-filter: blur(8px);
 }

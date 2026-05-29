@@ -134,6 +134,25 @@ function buildDraftPayload(draft: DraftFormState): ScrapedProblemInput {
   }
 }
 
+function detectPlatformFromUrl(url: string) {
+  const normalized = url.trim().toLowerCase()
+  if (normalized.includes('leetcode.com')) return 'leetcode'
+  if (normalized.includes('geeksforgeeks.org') || normalized.includes('gfg')) return 'gfg'
+  if (normalized.includes('hackerrank.com')) return 'hackerrank'
+  if (normalized.includes('codeforces.com')) return 'codeforces'
+  return ''
+}
+
+function displayPlatform(platform?: string | null) {
+  if (!platform) return 'unknown'
+  if (platform === 'gfg') return 'GeeksforGeeks'
+  return platform.charAt(0).toUpperCase() + platform.slice(1)
+}
+
+function getPrimaryPlatform(problem: ProblemRecord) {
+  return problem.sources[0]?.platform || 'unknown'
+}
+
 function difficultyToneClass(difficulty?: string | null) {
   const normalized = difficulty?.trim().toLowerCase()
   if (normalized === 'easy') return 'nexalgo-difficulty-easy'
@@ -195,6 +214,9 @@ export default function NexAlgoPage() {
   const [draftMode, setDraftMode] = useState<'create' | 'update'>('create')
   const [draftForm, setDraftForm] = useState<DraftFormState>(emptyDraft())
   const [backendError, setBackendError] = useState('')
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false)
+  const [activeNav, setActiveNav] = useState<'platform' | 'sorted' | 'companies' | 'topics'>('platform')
+  const [activeFilter, setActiveFilter] = useState('all')
 
   useEffect(() => {
     if (pathname?.startsWith('/nexacore/')) {
@@ -288,10 +310,49 @@ export default function NexAlgoPage() {
   const isEditor = !!sessionUser?.roles.some((role) => role === 'admin' || role === 'editor')
   const isSignedIn = !!firebaseUser && !!sessionUser
 
+  const navItems = useMemo(() => {
+    if (activeNav === 'platform') {
+      return Array.from(new Set(problems.map(getPrimaryPlatform))).sort()
+    }
+    if (activeNav === 'companies') {
+      return Array.from(new Set(problems.flatMap((problem) => problem.companies))).sort()
+    }
+    if (activeNav === 'topics') {
+      return Array.from(new Set(problems.flatMap((problem) => problem.topics))).sort()
+    }
+    return ['number', 'title', 'easy', 'medium', 'hard']
+  }, [activeNav, problems])
+
+  const filteredProblems = useMemo(() => {
+    const nextProblems = problems.filter((problem) => {
+      if (activeFilter === 'all') return true
+      if (activeNav === 'platform') return getPrimaryPlatform(problem) === activeFilter
+      if (activeNav === 'companies') return problem.companies.includes(activeFilter)
+      if (activeNav === 'topics') return problem.topics.includes(activeFilter)
+      if (['easy', 'medium', 'hard'].includes(activeFilter)) {
+        return problem.difficulty?.toLowerCase() === activeFilter
+      }
+      return true
+    })
+
+    if (activeNav === 'sorted') {
+      if (activeFilter === 'title') {
+        return [...nextProblems].sort((left, right) => left.title.localeCompare(right.title))
+      }
+      return [...nextProblems].sort((left, right) => {
+        const leftNumber = left.problemNumber ?? Number.MAX_SAFE_INTEGER
+        const rightNumber = right.problemNumber ?? Number.MAX_SAFE_INTEGER
+        return leftNumber - rightNumber || left.title.localeCompare(right.title)
+      })
+    }
+
+    return nextProblems
+  }, [activeFilter, activeNav, problems])
+
   async function handleLoginSubmit(event: React.FormEvent) {
     event.preventDefault()
     if (!auth) {
-      setAuthError('Firebase Auth is not configured yet.')
+      setAuthError('Sign-in is not configured yet.')
       return
     }
 
@@ -309,7 +370,7 @@ export default function NexAlgoPage() {
   async function handleSignupSubmit(event: React.FormEvent) {
     event.preventDefault()
     if (!auth) {
-      setAuthError('Firebase Auth is not configured yet.')
+      setAuthError('Sign-in is not configured yet.')
       return
     }
 
@@ -359,6 +420,15 @@ export default function NexAlgoPage() {
     setDraftMessage('')
     setDraftForm(emptyDraft())
     setShowDraftModal(true)
+  }
+
+  function updateDraftUrl(normalizedUrl: string) {
+    const detectedPlatform = detectPlatformFromUrl(normalizedUrl)
+    setDraftForm((current) => ({
+      ...current,
+      normalizedUrl,
+      platform: detectedPlatform || current.platform,
+    }))
   }
 
   function openRevisionDraft() {
@@ -462,7 +532,7 @@ export default function NexAlgoPage() {
           </div>
           <div className='nexalgo-brand'>
             <h1>NexAlgo</h1>
-            <p>Firebase Auth + Cloud SQL</p>
+            <p>Interview Library</p>
           </div>
           <div className='nexalgo-topbar-right' />
         </header>
@@ -470,8 +540,7 @@ export default function NexAlgoPage() {
           <div className='nexalgo-auth-card'>
             <h2>NexAlgo Client Config Required</h2>
             <p className='nexalgo-detail-subcopy'>
-              Set the frontend env vars for Firebase Auth and the Cloud Run backend before the
-              app can load.
+              Set the frontend env vars for sign-in and the production API before the app can load.
             </p>
             <p className='nexalgo-detail-subcopy'>
               Missing: <code>{missingConfig.join(', ')}</code>
@@ -495,29 +564,95 @@ export default function NexAlgoPage() {
         </div>
         <div className='nexalgo-brand'>
           <h1>NexAlgo</h1>
-          <p>Cloud SQL + Firebase Auth</p>
+          <p>Interview Library</p>
         </div>
         <div className='nexalgo-topbar-right'>
           {isSignedIn ? (
-            <button type='button' className='nexalgo-secondary-btn' onClick={handleLogout}>
-              Logout
+            <button
+              type='button'
+              className='nexalgo-hamburger'
+              aria-label='Open account menu'
+              onClick={() => setAccountMenuOpen(true)}>
+              <span aria-hidden='true' />
             </button>
           ) : null}
         </div>
       </header>
+
+      {accountMenuOpen && isSignedIn ? (
+        <>
+          <button
+            type='button'
+            className='nexalgo-menu-scrim'
+            aria-label='Close account menu'
+            onClick={() => setAccountMenuOpen(false)}
+          />
+          <aside className='nexalgo-menu-panel' aria-label='Account menu'>
+            <div className='nexalgo-menu-head'>
+              <div>
+                <p className='nexalgo-menu-title'>Account</p>
+                <h3>{sessionUser?.email}</h3>
+              </div>
+              <button
+                type='button'
+                className='nexalgo-close-btn'
+                onClick={() => setAccountMenuOpen(false)}>
+                x
+              </button>
+            </div>
+            <div className='nexalgo-menu-section'>
+              <h3>Roles</h3>
+              <div className='nexalgo-role-list'>
+                {sessionUser?.roles.map((role) => (
+                  <span key={role} className='nexalgo-chip'>
+                    {role}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className='nexalgo-menu-section'>
+              <h3>Actions</h3>
+              <div className='nexalgo-detail-actions'>
+                <button
+                  type='button'
+                  className='nexalgo-secondary-btn'
+                  onClick={() => {
+                    setAccountMenuOpen(false)
+                    openCreateDraft()
+                  }}>
+                  Submit draft
+                </button>
+                {isEditor ? (
+                  <button
+                    type='button'
+                    className='nexalgo-link-btn'
+                    onClick={() => setAccountMenuOpen(false)}>
+                    Review queue: {queue.length}
+                  </button>
+                ) : null}
+                <button
+                  type='button'
+                  className='nexalgo-danger-btn'
+                  onClick={() => {
+                    setAccountMenuOpen(false)
+                    void handleLogout()
+                  }}>
+                  Logout
+                </button>
+              </div>
+            </div>
+          </aside>
+        </>
+      ) : null}
 
       {!isSignedIn ? (
         <main className='nexalgo-auth-wrap'>
           <div className='nexalgo-auth-card'>
             <div className='nexalgo-auth-grid'>
               <div className='nexalgo-auth-copy'>
-                <h2>New NexAlgo Stack</h2>
+                <h2>NexAlgo Workspace</h2>
                 <p className='nexalgo-detail-subcopy'>
-                  NexAlgo now treats Firebase as identity only. Questions, approvals, source
-                  mappings, and user metadata belong in the backend and Cloud SQL.
-                </p>
-                <p className='nexalgo-detail-subcopy'>
-                  API base URL: <code>{nexalgoApi.apiBaseUrl}</code>
+                  Build, review, and approve coding problem editorials from one workspace.
                 </p>
                 {backendError ? <p className='nexalgo-error'>{backendError}</p> : null}
               </div>
@@ -560,15 +695,108 @@ export default function NexAlgoPage() {
         </main>
       ) : (
         <main className='nexalgo-main'>
+          <aside className='nexalgo-sidebar expanded'>
+            <div className='nexalgo-sidebar-header'>
+              <p className='nexalgo-menu-title'>Browse</p>
+            </div>
+            <nav className='nexalgo-nav' aria-label='Problem filters'>
+              {[
+                ['platform', 'Platform'],
+                ['sorted', 'Sorted'],
+                ['companies', 'Companies'],
+                ['topics', 'Topics'],
+              ].map(([value, label]) => (
+                <button
+                  key={value}
+                  type='button'
+                  className={activeNav === value ? 'active' : ''}
+                  onClick={() => {
+                    setActiveNav(value as typeof activeNav)
+                    setActiveFilter('all')
+                  }}>
+                  <span className='nexalgo-nav-icon'>{label.slice(0, 2)}</span>
+                  <span>{label}</span>
+                </button>
+              ))}
+            </nav>
+            <div className='nexalgo-sidebar-filters'>
+              <p className='nexalgo-filter-label'>
+                {activeNav === 'sorted' ? 'Sort / Difficulty' : 'Filter'}
+              </p>
+              <button
+                type='button'
+                className={`nexalgo-sidebar-filter-btn ${activeFilter === 'all' ? 'active' : ''}`}
+                onClick={() => setActiveFilter('all')}>
+                All
+              </button>
+              {navItems.map((item) => (
+                <button
+                  key={item}
+                  type='button'
+                  className={`nexalgo-sidebar-filter-btn ${activeFilter === item ? 'active' : ''}`}
+                  onClick={() => setActiveFilter(item)}>
+                  {activeNav === 'platform' ? displayPlatform(item) : item}
+                </button>
+              ))}
+            </div>
+            {isEditor ? (
+              <div className='nexalgo-review-queue-panel'>
+                <div className='nexalgo-queue-head'>
+                  <div>
+                    <p className='nexalgo-menu-title'>Review</p>
+                    <h3>Waiting Approval</h3>
+                  </div>
+                  <span className='nexalgo-status-pill visited'>{queue.length}</span>
+                </div>
+                {queue.length === 0 ? (
+                  <p className='nexalgo-detail-subcopy'>No pending drafts.</p>
+                ) : (
+                  <div className='nexalgo-queue-list'>
+                    {queue.map((submission) => (
+                      <div key={submission.id} className='nexalgo-queue-card'>
+                        <strong>{submission.proposedProblem.title}</strong>
+                        <p className='nexalgo-detail-subcopy'>
+                          {displayPlatform(submission.platform)} - {submission.type} - submitted by{' '}
+                          {submission.submittedBy.email}
+                        </p>
+                        <p className='nexalgo-detail-subcopy'>
+                          {submission.proposedProblem.problemStatement.slice(0, 140)}
+                          {submission.proposedProblem.problemStatement.length > 140 ? '...' : ''}
+                        </p>
+                        <div className='nexalgo-queue-actions'>
+                          <button
+                            type='button'
+                            className='nexalgo-secondary-btn'
+                            onClick={() => void handleRegenerate(submission.id)}>
+                            Regenerate
+                          </button>
+                          <button
+                            type='button'
+                            className='nexalgo-danger-btn'
+                            onClick={() => void handleReject(submission.id)}>
+                            Reject
+                          </button>
+                          <button
+                            type='button'
+                            className='nexalgo-save-btn'
+                            onClick={() => void handleApprove(submission.id)}>
+                            Approve
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </aside>
+
           <section className='nexalgo-list-pane nexalgo-list-pane-normal'>
             <div className='nexalgo-pane-head'>
               <div>
-                <h2>Problem Library</h2>
+                <h2>Problems</h2>
                 <p className='nexalgo-detail-subcopy'>
-                  Published questions from the new backend and Cloud SQL.
-                </p>
-                <p className='nexalgo-detail-subcopy'>
-                  Signed in as {sessionUser?.email} ({sessionUser?.roles.join(', ')})
+                  {filteredProblems.length} of {problems.length} published questions
                 </p>
               </div>
               <div className='nexalgo-pane-controls'>
@@ -582,7 +810,7 @@ export default function NexAlgoPage() {
             {backendError ? <div className='nexalgo-empty-state'>{backendError}</div> : null}
 
             <div className='nexalgo-problem-list'>
-              {problems.map((problem) => (
+              {filteredProblems.map((problem) => (
                 <button
                   key={problem.id}
                   type='button'
@@ -606,10 +834,14 @@ export default function NexAlgoPage() {
                     )}`}>
                     {statusMap[problem.id] ?? 'unvisited'}
                   </p>
+                  <p className='nexalgo-meta-line'>{displayPlatform(getPrimaryPlatform(problem))}</p>
                   <p className='nexalgo-meta-line'>{problem.topics.join(', ') || 'No topics yet'}</p>
                 </button>
               ))}
             </div>
+            {!loading && filteredProblems.length === 0 ? (
+              <div className='nexalgo-empty-state'>No problems match this filter.</div>
+            ) : null}
           </section>
 
           <section className='nexalgo-detail-pane'>
@@ -723,7 +955,7 @@ export default function NexAlgoPage() {
                     />
                   </section>
 
-                  {isEditor ? (
+                  {false ? (
                     <section className='nexalgo-section'>
                       <h3>Review queue</h3>
                       {queue.length === 0 ? (
@@ -788,14 +1020,14 @@ export default function NexAlgoPage() {
               <div>
                 <h3>{draftMode === 'create' ? 'Submit question draft' : 'Create revision draft'}</h3>
                 <p className='nexalgo-detail-subcopy'>
-                  Drafts are stored in Cloud SQL and routed through the backend review queue.
+                  Drafts are routed to the NexAlgo review queue for approval.
                 </p>
               </div>
               <button
                 type='button'
                 className='nexalgo-close-btn'
                 onClick={() => setShowDraftModal(false)}>
-                ×
+                x
               </button>
             </div>
 
@@ -875,12 +1107,7 @@ export default function NexAlgoPage() {
                   <input
                     type='text'
                     value={draftForm.normalizedUrl}
-                    onChange={(event) =>
-                      setDraftForm((current) => ({
-                        ...current,
-                        normalizedUrl: event.target.value,
-                      }))
-                    }
+                    onChange={(event) => updateDraftUrl(event.target.value)}
                   />
                 </label>
                 <label className='nexalgo-field'>
