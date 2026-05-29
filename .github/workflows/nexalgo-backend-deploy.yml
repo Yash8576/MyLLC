@@ -113,10 +113,39 @@ jobs:
             FIREBASE_PRIVATE_KEY="$(node -e 'const key = JSON.parse(process.env.GCP_CREDENTIALS_JSON); process.stdout.write(key.private_key || "")')"
           fi
 
+          FIREBASE_PRIVATE_KEY="$(FIREBASE_PRIVATE_KEY="$FIREBASE_PRIVATE_KEY" node -e 'process.stdout.write((process.env.FIREBASE_PRIVATE_KEY || "").replace(/\r?\n/g, "\\n"))')"
+
           if [[ -z "$FIREBASE_CLIENT_EMAIL" || -z "$FIREBASE_PRIVATE_KEY" ]]; then
             echo "::error::Configure NEXALGO_FIREBASE_CLIENT_EMAIL and NEXALGO_FIREBASE_PRIVATE_KEY, or provide a GCP_CREDENTIALS_JSON service account key with client_email/private_key."
             exit 1
           fi
+
+          if [[ -z "$NEXALGO_DATABASE_URL" ]]; then
+            echo "::error::Configure NEXALGO_DATABASE_URL."
+            exit 1
+          fi
+
+          if [[ -n "$NEXALGO_INITIAL_ADMIN_EMAIL" ]]; then
+            ADMIN_EMAIL="$NEXALGO_INITIAL_ADMIN_EMAIL" node -e 'const email = process.env.ADMIN_EMAIL || ""; if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { console.error("NEXALGO_INITIAL_ADMIN_EMAIL must be a valid email if set."); process.exit(1); }'
+          fi
+
+          FIREBASE_CLIENT_EMAIL="$FIREBASE_CLIENT_EMAIL" FIREBASE_PRIVATE_KEY="$FIREBASE_PRIVATE_KEY" node <<'EOF'
+          const { createPrivateKey } = require('node:crypto')
+          const email = process.env.FIREBASE_CLIENT_EMAIL || ''
+          const privateKey = (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n')
+
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            console.error('FIREBASE_CLIENT_EMAIL must be a valid email.')
+            process.exit(1)
+          }
+
+          try {
+            createPrivateKey(privateKey)
+          } catch {
+            console.error('FIREBASE_PRIVATE_KEY is not a valid PEM private key.')
+            process.exit(1)
+          }
+          EOF
 
           {
             cat <<EOF
