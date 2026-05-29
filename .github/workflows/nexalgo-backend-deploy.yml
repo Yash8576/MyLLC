@@ -97,18 +97,42 @@ jobs:
 
       - name: Write Cloud Run env file
         shell: bash
+        env:
+          GCP_CREDENTIALS_JSON: ${{ secrets.GCP_CREDENTIALS_JSON }}
+          NEXALGO_DATABASE_URL: ${{ secrets.NEXALGO_DATABASE_URL }}
+          NEXALGO_FIREBASE_CLIENT_EMAIL: ${{ secrets.NEXALGO_FIREBASE_CLIENT_EMAIL }}
+          NEXALGO_FIREBASE_PRIVATE_KEY: ${{ secrets.NEXALGO_FIREBASE_PRIVATE_KEY }}
+          NEXALGO_OPENAI_API_KEY: ${{ secrets.NEXALGO_OPENAI_API_KEY }}
+          NEXALGO_INITIAL_ADMIN_EMAIL: ${{ vars.NEXALGO_INITIAL_ADMIN_EMAIL }}
         run: |
-          cat <<EOF > "$RUNNER_TEMP/nexalgo-cloudrun-env.yaml"
+          FIREBASE_CLIENT_EMAIL="${NEXALGO_FIREBASE_CLIENT_EMAIL}"
+          FIREBASE_PRIVATE_KEY="${NEXALGO_FIREBASE_PRIVATE_KEY}"
+
+          if [[ -z "$FIREBASE_CLIENT_EMAIL" || -z "$FIREBASE_PRIVATE_KEY" ]]; then
+            FIREBASE_CLIENT_EMAIL="$(node -e 'const key = JSON.parse(process.env.GCP_CREDENTIALS_JSON); process.stdout.write(key.client_email || "")')"
+            FIREBASE_PRIVATE_KEY="$(node -e 'const key = JSON.parse(process.env.GCP_CREDENTIALS_JSON); process.stdout.write(key.private_key || "")')"
+          fi
+
+          if [[ -z "$FIREBASE_CLIENT_EMAIL" || -z "$FIREBASE_PRIVATE_KEY" ]]; then
+            echo "::error::Configure NEXALGO_FIREBASE_CLIENT_EMAIL and NEXALGO_FIREBASE_PRIVATE_KEY, or provide a GCP_CREDENTIALS_JSON service account key with client_email/private_key."
+            exit 1
+          fi
+
+          {
+            cat <<EOF
           NODE_ENV: "production"
           CORS_ORIGIN: "https://nexacoreglobal.org"
-          DATABASE_URL: "${{ secrets.NEXALGO_DATABASE_URL }}"
+          DATABASE_URL: "${NEXALGO_DATABASE_URL}"
           FIREBASE_PROJECT_ID: "nexalgo-ace83"
-          FIREBASE_CLIENT_EMAIL: "${{ secrets.NEXALGO_FIREBASE_CLIENT_EMAIL }}"
-          FIREBASE_PRIVATE_KEY: "${{ secrets.NEXALGO_FIREBASE_PRIVATE_KEY }}"
-          OPENAI_API_KEY: "${{ secrets.NEXALGO_OPENAI_API_KEY }}"
+          FIREBASE_CLIENT_EMAIL: "${FIREBASE_CLIENT_EMAIL}"
+          FIREBASE_PRIVATE_KEY: "${FIREBASE_PRIVATE_KEY}"
+          OPENAI_API_KEY: "${NEXALGO_OPENAI_API_KEY}"
           OPENAI_MODEL: "gpt-5-mini"
-          NEXALGO_INITIAL_ADMIN_EMAIL: "${{ vars.NEXALGO_INITIAL_ADMIN_EMAIL }}"
           EOF
+            if [[ -n "$NEXALGO_INITIAL_ADMIN_EMAIL" ]]; then
+              printf 'NEXALGO_INITIAL_ADMIN_EMAIL: "%s"\n' "$NEXALGO_INITIAL_ADMIN_EMAIL"
+            fi
+          } > "$RUNNER_TEMP/nexalgo-cloudrun-env.yaml"
 
       - name: Deploy backend to Cloud Run
         shell: bash
