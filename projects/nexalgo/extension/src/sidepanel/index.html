@@ -7,9 +7,9 @@
     <style>
       body {
         margin: 0;
-        font-family: Poppins, sans-serif;
-        background: #f6f8ff;
-        color: #223;
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        background: #f7f7f3;
+        color: #20201d;
       }
 
       .shell {
@@ -18,14 +18,51 @@
 
       .card {
         background: white;
-        border: 1px solid rgba(101, 86, 255, 0.12);
-        border-radius: 16px;
+        border: 1px solid rgba(32, 32, 29, 0.12);
+        border-radius: 8px;
         padding: 16px;
-        box-shadow: 0 12px 24px rgba(101, 86, 255, 0.08);
+        box-shadow: 0 10px 24px rgba(32, 32, 29, 0.08);
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 20px;
+      }
+
+      button {
+        width: 100%;
+        border: 0;
+        border-radius: 6px;
+        padding: 10px 12px;
+        background: #20201d;
+        color: white;
+        cursor: pointer;
+        font: inherit;
+      }
+
+      button.secondary {
+        margin-top: 8px;
+        background: #ece8dc;
+        color: #20201d;
+      }
+
+      pre {
+        max-height: 220px;
+        overflow: auto;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        background: #f4f2eb;
+        border-radius: 6px;
+        padding: 10px;
+        font-size: 12px;
       }
 
       .muted {
         color: rgba(34, 34, 51, 0.68);
+      }
+
+      .error {
+        color: #9c2f20;
       }
     </style>
   </head>
@@ -35,6 +72,8 @@
         <h1>NexAlgo</h1>
         <p class="muted" id="status">Waiting for a supported problem page.</p>
         <div id="content"></div>
+        <button type="button" id="open-web">Open NexAlgo</button>
+        <button type="button" class="secondary" id="refresh">Refresh</button>
       </div>
     </div>
     <script type="module" src="./sidepanel.js"></script>

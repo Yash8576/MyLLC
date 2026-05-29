@@ -39,5 +39,7 @@
   chrome.runtime.sendMessage({
     type: 'NEXALGO_PAGE_PAYLOAD',
     payload: buildPayload(),
+  }, () => {
+    void chrome.runtime.lastError
   })
 })()

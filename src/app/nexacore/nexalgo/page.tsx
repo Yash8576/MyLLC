@@ -10,8 +10,8 @@ import {
   signOut,
   type User,
 } from 'firebase/auth'
-import { nexalgoApi } from './lib/api'
-import { auth, firebaseClientConfigured } from './lib/firebase'
+import { nexalgoApi, nexalgoApiConfigured } from './lib/api'
+import { auth, firebaseClientConfigured, missingFirebaseEnvKeys } from './lib/firebase'
 import type {
   LanguageKey,
   ProblemProgressStatus,
@@ -211,6 +211,11 @@ export default function NexAlgoPage() {
 
   useEffect(() => {
     async function bootstrapProblems() {
+      if (!firebaseClientConfigured || !nexalgoApiConfigured) {
+        setLoading(false)
+        return
+      }
+
       try {
         const nextProblems = await nexalgoApi.getProblems()
         setProblems(nextProblems)
@@ -440,7 +445,12 @@ export default function NexAlgoPage() {
     return null
   }
 
-  if (!firebaseClientConfigured) {
+  if (!firebaseClientConfigured || !nexalgoApiConfigured) {
+    const missingConfig = [
+      ...missingFirebaseEnvKeys,
+      ...(nexalgoApiConfigured ? [] : ['NEXT_PUBLIC_NEXALGO_API_BASE_URL']),
+    ]
+
     return (
       <div className='nexalgo-shell'>
         <header className='nexalgo-topbar'>
@@ -458,10 +468,13 @@ export default function NexAlgoPage() {
         </header>
         <main className='nexalgo-auth-wrap'>
           <div className='nexalgo-auth-card'>
-            <h2>Firebase Client Config Required</h2>
+            <h2>NexAlgo Client Config Required</h2>
             <p className='nexalgo-detail-subcopy'>
-              Set the new Firebase project values in `NEXT_PUBLIC_FIREBASE_*` env vars and point
-              `NEXT_PUBLIC_NEXALGO_API_BASE_URL` to the new Cloud Run backend.
+              Set the frontend env vars for Firebase Auth and the Cloud Run backend before the
+              app can load.
+            </p>
+            <p className='nexalgo-detail-subcopy'>
+              Missing: <code>{missingConfig.join(', ')}</code>
             </p>
           </div>
         </main>

@@ -3,11 +3,11 @@
   "name": "NexAlgo",
   "version": "1.0.0",
   "description": "Show NexAlgo problem details and submit new coding questions for review.",
-  "permissions": ["storage", "sidePanel"],
+  "permissions": ["sidePanel"],
   "host_permissions": [
     "https://leetcode.com/*",
     "https://www.geeksforgeeks.org/*",
-    "http://localhost:3000/*"
+    "https://*.run.app/*"
   ],
   "background": {
     "service_worker": "src/background/service-worker.js",

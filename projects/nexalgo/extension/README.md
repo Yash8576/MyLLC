@@ -18,6 +18,10 @@ The extension expects the following values to be injected during packaging or bu
 - `NEXALGO_WEB_BASE_URL`
 - Firebase web config if extension-side Firebase Auth is enabled
 
+For production, `NEXALGO_API_BASE_URL` should point to the deployed Cloud Run service
+with `/v1`, and `NEXALGO_WEB_BASE_URL` should point to
+`https://nexacoreglobal.org/projects/nexalgo`.
+
 ## Notes
 
 - The files here are plain JS/HTML scaffolds so the repo can carry the intended structure now.

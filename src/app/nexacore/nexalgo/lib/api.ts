@@ -8,20 +8,33 @@ import type {
 } from './types'
 
 const apiBaseUrl =
-  process.env.NEXT_PUBLIC_NEXALGO_API_BASE_URL?.replace(/\/+$/, '') ||
-  'http://localhost:8080/v1'
+  process.env.NEXT_PUBLIC_NEXALGO_API_BASE_URL?.replace(/\/+$/, '') ?? ''
+
+export const nexalgoApiConfigured = apiBaseUrl.length > 0
 
 async function request<T>(path: string, init?: RequestInit, idToken?: string): Promise<T> {
+  if (!nexalgoApiConfigured) {
+    throw new Error('NEXT_PUBLIC_NEXALGO_API_BASE_URL is not configured.')
+  }
+
   const headers = new Headers(init?.headers)
   headers.set('Content-Type', 'application/json')
   if (idToken) {
     headers.set('Authorization', `Bearer ${idToken}`)
   }
 
-  const response = await fetch(`${apiBaseUrl}${path}`, {
-    ...init,
-    headers,
-  })
+  let response: Response
+
+  try {
+    response = await fetch(`${apiBaseUrl}${path}`, {
+      ...init,
+      headers,
+    })
+  } catch {
+    throw new Error(
+      `Unable to reach NexAlgo backend at ${apiBaseUrl}. Set NEXT_PUBLIC_NEXALGO_API_BASE_URL to the deployed Cloud Run /v1 URL.`,
+    )
+  }
 
   const json = await response.json().catch(() => ({}))
   if (!response.ok) {
