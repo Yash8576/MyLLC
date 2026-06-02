@@ -119,7 +119,8 @@ jobs:
             exit 1
           fi
 
-      - name: Write Cloud Run env file
+      - name: Resolve Cloud Run env strategy
+        id: env-config
         shell: bash
         env:
           BUZZCART_DATABASE_URL: ${{ secrets.BUZZCART_DATABASE_URL }}
@@ -127,13 +128,24 @@ jobs:
           BUZZCART_REDIS_URL: ${{ secrets.BUZZCART_REDIS_URL }}
           BUZZCART_ALLOWED_FRONTEND_ORIGINS: ${{ vars.BUZZCART_ALLOWED_FRONTEND_ORIGINS }}
         run: |
-          missing=()
-          [[ -z "$BUZZCART_DATABASE_URL" ]] && missing+=("BUZZCART_DATABASE_URL")
-          [[ -z "$BUZZCART_JWT_SECRET" ]] && missing+=("BUZZCART_JWT_SECRET")
-          [[ -z "$BUZZCART_ALLOWED_FRONTEND_ORIGINS" ]] && missing+=("BUZZCART_ALLOWED_FRONTEND_ORIGINS")
+          if [[ -z "$BUZZCART_ALLOWED_FRONTEND_ORIGINS" ]]; then
+            BUZZCART_ALLOWED_FRONTEND_ORIGINS="https://myllc.pages.dev,https://nexacoreglobal.org,http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000"
+          fi
 
-          if (( ${#missing[@]} > 0 )); then
-            echo "::error::Missing required BuzzCart deploy secrets/vars: ${missing[*]}"
+          if [[ -z "$BUZZCART_DATABASE_URL" || -z "$BUZZCART_JWT_SECRET" ]]; then
+            echo "GitHub runtime secrets are not fully configured; checking the existing Cloud Run service env."
+            EXISTING_ENV_NAMES="$(gcloud run services describe "$CLOUD_RUN_SERVICE" \
+              --project "$GCP_PROJECT_ID" \
+              --region "$GCP_REGION" \
+              --format='value(spec.template.spec.containers[0].env[].name)' || true)"
+
+            if grep -qw "DATABASE_URL" <<< "$EXISTING_ENV_NAMES" && grep -qw "JWT_SECRET" <<< "$EXISTING_ENV_NAMES"; then
+              echo "Existing Cloud Run service already has DATABASE_URL and JWT_SECRET; preserving current runtime env."
+              echo "mode=preserve" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            echo "::error::Missing BUZZCART_DATABASE_URL/BUZZCART_JWT_SECRET and the existing Cloud Run service does not have both env vars to preserve."
             exit 1
           fi
 
@@ -147,17 +159,25 @@ jobs:
           FIREBASE_STORAGE_LOCATION: "us-east1"
           FIREBASE_STORAGE_PUBLIC_BASE_URL: "https://firebasestorage.googleapis.com/v0/b"
           EOF
+          echo "mode=file" >> "$GITHUB_OUTPUT"
 
       - name: Deploy backend to Cloud Run
         run: |
-          gcloud run deploy "$CLOUD_RUN_SERVICE" \
-            --project "$GCP_PROJECT_ID" \
-            --region "$GCP_REGION" \
-            --source projects/buzzcart/backend \
-            --allow-unauthenticated \
-            --service-account "$CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT" \
-            --add-cloudsql-instances "$CLOUD_SQL_INSTANCE" \
-            --env-vars-file "$RUNNER_TEMP/buzzcart-cloudrun-env.yaml"
+          DEPLOY_ARGS=(
+            run deploy "$CLOUD_RUN_SERVICE"
+            --project "$GCP_PROJECT_ID"
+            --region "$GCP_REGION"
+            --source projects/buzzcart/backend
+            --allow-unauthenticated
+            --service-account "$CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT"
+            --add-cloudsql-instances "$CLOUD_SQL_INSTANCE"
+          )
+
+          if [[ "${{ steps.env-config.outputs.mode }}" == "file" ]]; then
+            DEPLOY_ARGS+=(--env-vars-file "$RUNNER_TEMP/buzzcart-cloudrun-env.yaml")
+          fi
+
+          gcloud "${DEPLOY_ARGS[@]}"
 
       - name: Print Cloud Run logs on deploy failure
         if: ${{ failure() }}

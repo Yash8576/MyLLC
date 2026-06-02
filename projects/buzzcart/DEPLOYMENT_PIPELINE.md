@@ -94,12 +94,16 @@ gcloud iam service-accounts add-iam-policy-binding \
   --role="roles/iam.serviceAccountUser"
 ```
 
-Required runtime secrets/vars:
+Runtime secrets/vars:
 
 - Secret `BUZZCART_DATABASE_URL`
 - Secret `BUZZCART_JWT_SECRET`
 - Optional secret `BUZZCART_REDIS_URL`
 - Variable `BUZZCART_ALLOWED_FRONTEND_ORIGINS`
+
+If `BUZZCART_DATABASE_URL` and `BUZZCART_JWT_SECRET` are not configured in GitHub,
+the workflow preserves the existing Cloud Run service environment instead. That works
+for normal redeploys after the service has already been configured once.
 
 `BUZZCART_DATABASE_URL` should use the Cloud SQL Unix socket:
 
