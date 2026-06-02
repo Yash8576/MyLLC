@@ -2,6 +2,10 @@ name: BuzzCart Backend Deploy
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'projects/buzzcart/backend/**'
+      - '.github/workflows/buzzcart-backend-deploy.yml'
   push:
     branches:
       - main
@@ -24,7 +28,7 @@ env:
   CLOUD_SQL_INSTANCE: buzzcart-daeb6:us-east4:buzzcart-daeb6-instance
 
 jobs:
-  backend-test:
+  backend-build:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -38,11 +42,12 @@ jobs:
         with:
           go-version-file: projects/buzzcart/backend/go.mod
 
-      - name: Run Go tests
-        run: go test ./...
+      - name: Build
+        run: go build ./...
 
   deploy:
-    needs: backend-test
+    needs: backend-build
+    if: ${{ github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

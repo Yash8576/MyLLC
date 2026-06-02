@@ -1,4 +1,4 @@
-name: CI
+name: Frontend Cloudflare Build
 
 on:
   workflow_dispatch:
@@ -8,6 +8,8 @@ on:
     paths:
       - 'src/**'
       - 'public/**'
+      - 'projects/buzzcart/frontend/**'
+      - 'projects/nanolink/frontend/**'
       - 'scripts/build-cloudflare-pages.sh'
       - 'package.json'
       - 'package-lock.json'
@@ -20,6 +22,8 @@ on:
     paths:
       - 'src/**'
       - 'public/**'
+      - 'projects/buzzcart/frontend/**'
+      - 'projects/nanolink/frontend/**'
       - 'scripts/build-cloudflare-pages.sh'
       - 'package.json'
       - 'package-lock.json'
@@ -30,7 +34,8 @@ on:
       - '.github/workflows/ci.yml'
 
 jobs:
-  build:
+  cloudflare-build:
+    name: Cloudflare Pages build
     runs-on: ubuntu-latest
 
     steps:
