@@ -26,7 +26,7 @@ env:
   GCP_REGION: us-east4
   CLOUD_RUN_SERVICE: nanolink-backend
   CLOUD_SQL_INSTANCE: nanolink-498216:us-east4:nanolink-c1bc5-instance
-  PUBLIC_BASE_URL: https://nanolink-backend-837491606409.us-east4.run.app
+  PUBLIC_BASE_URL: https://nexacoreglobal.org
   FRONTEND_URL: https://nexacoreglobal.org/projects/nanolink
 
 jobs:

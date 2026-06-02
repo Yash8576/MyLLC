@@ -25,7 +25,7 @@ type SavedLink = {
 
 const apiBaseUrl = (
   process.env.NEXT_PUBLIC_NANOLINK_API_BASE_URL ??
-  'https://nanolink-backend-837491606409.us-east4.run.app'
+  'https://nexacoreglobal.org'
 ).replace(/\/$/, '')
 
 export default function NanolinkPage() {
