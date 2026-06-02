@@ -27,7 +27,7 @@ class CartScreen extends StatelessWidget {
               },
             ),
           ),
-          
+
           // Cart Summary
           Container(
             padding: const EdgeInsets.all(16),
@@ -145,7 +145,7 @@ class _CartItemCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            
+
             // Product Info
             Expanded(
               child: Column(

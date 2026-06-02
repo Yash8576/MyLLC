@@ -34,7 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _handleUploadButtonPressed(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    
+
     if (authProvider.isSeller) {
       // Show bottom sheet for sellers with two options
       _showSellerUploadOptions(context);
@@ -70,16 +70,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            
+
             // Title
             Text(
               'What would you like to do?',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             const SizedBox(height: 20),
-            
+
             // Add New Product option
             ListTile(
               leading: Container(
@@ -108,9 +108,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               },
             ),
-            
+
             const Divider(),
-            
+
             // Post New Content option
             ListTile(
               leading: Container(
@@ -139,7 +139,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               },
             ),
-            
+
             const SizedBox(height: 10),
           ],
         ),

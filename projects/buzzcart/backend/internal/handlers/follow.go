@@ -4,7 +4,6 @@ import (
 	"buzzcart/internal/models"
 	"database/sql"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -168,7 +167,7 @@ func getFollowList(db *sql.DB, c *gin.Context, followers bool) {
 		return
 	}
 
-	baseQuery := `
+	followersQuery := `
 		SELECT
 			u.id,
 			u.name,
@@ -181,20 +180,35 @@ func getFollowList(db *sql.DB, c *gin.Context, followers bool) {
 				SELECT 1 FROM user_follows WHERE follower_id = u.id AND following_id = NULLIF($2, '')::uuid
 			) END AS is_followed_by
 		FROM user_follows uf
-		JOIN users u ON u.id = %s
-		WHERE %s = $1
+		JOIN users u ON u.id = uf.follower_id
+		WHERE uf.following_id = $1
+		ORDER BY LOWER(u.name) ASC
+	`
+	followingQuery := `
+		SELECT
+			u.id,
+			u.name,
+			u.avatar,
+			COALESCE(u.bio, ''),
+			CASE WHEN NULLIF($2, '') IS NULL THEN false ELSE EXISTS(
+				SELECT 1 FROM user_follows WHERE follower_id = NULLIF($2, '')::uuid AND following_id = u.id
+			) END AS is_following,
+			CASE WHEN NULLIF($2, '') IS NULL THEN false ELSE EXISTS(
+				SELECT 1 FROM user_follows WHERE follower_id = u.id AND following_id = NULLIF($2, '')::uuid
+			) END AS is_followed_by
+		FROM user_follows uf
+		JOIN users u ON u.id = uf.following_id
+		WHERE uf.follower_id = $1
 		ORDER BY LOWER(u.name) ASC
 	`
 
-	joinField := "uf.follower_id"
-	filterField := "uf.following_id"
+	query := followersQuery
 	if !followers {
-		joinField = "uf.following_id"
-		filterField = "uf.follower_id"
+		query = followingQuery
 	}
 
 	rows, err := db.Query(
-		fmt.Sprintf(baseQuery, joinField, filterField),
+		query,
 		targetUserID,
 		requestingUserID,
 	)

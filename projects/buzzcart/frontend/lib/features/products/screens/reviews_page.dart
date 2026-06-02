@@ -127,9 +127,8 @@ class _ReviewsPageState extends State<ReviewsPage> {
 
   int _compareRecentReviews(ReviewModel a, ReviewModel b) {
     final currentUserId = context.read<AuthProvider>().user?.id;
-    final ownReviewSort =
-        (_isCurrentUserReview(b, currentUserId) ? 1 : 0)
-            .compareTo(_isCurrentUserReview(a, currentUserId) ? 1 : 0);
+    final ownReviewSort = (_isCurrentUserReview(b, currentUserId) ? 1 : 0)
+        .compareTo(_isCurrentUserReview(a, currentUserId) ? 1 : 0);
     if (ownReviewSort != 0) {
       return ownReviewSort;
     }

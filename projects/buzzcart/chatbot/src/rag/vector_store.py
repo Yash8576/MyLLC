@@ -61,20 +61,20 @@ class VectorStoreManager:
             except Exception:
                 logger.debug("Could not read CUDA memory info", exc_info=True)
 
-        logger.info("Loading embedding model: %s", settings.EMBEDDING_MODEL_NAME)
+        logger.info("Loading embedding model")
         self.embedding_model = SentenceTransformer(
             settings.EMBEDDING_MODEL_NAME,
             cache_folder=str(self.model_cache_dir),
             device=self.model_device,
         )
 
-        logger.info("Loading tokenizer: %s", settings.EMBEDDING_MODEL_NAME)
+        logger.info("Loading tokenizer")
         self.tokenizer = AutoTokenizer.from_pretrained(
             settings.EMBEDDING_MODEL_NAME,
             cache_dir=str(self.model_cache_dir),
         )
 
-        logger.info("Loading reranker model: %s", settings.RERANKER_MODEL_NAME)
+        logger.info("Loading reranker model")
         self.reranker = CrossEncoder(
             settings.RERANKER_MODEL_NAME,
             max_length=512,

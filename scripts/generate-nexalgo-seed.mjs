@@ -93,21 +93,31 @@ function stripMarkup(text) {
 }
 
 function extractSection(text, heading) {
-  const escaped = heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const regex = new RegExp(
-    `${escaped}\\n\\n([\\s\\S]*?)(?=\\n\\n(?:## |### |---|\\*\\*[^\\n]+\\*\\*)|$)`,
-    'i',
-  )
-  return text.match(regex)?.[1]?.trim() ?? ''
+  const lowerText = text.toLowerCase()
+  const marker = `${heading}\n\n`.toLowerCase()
+  const start = lowerText.indexOf(marker)
+  if (start === -1) return ''
+
+  const bodyStart = start + marker.length
+  const terminators = ['\n\n## ', '\n\n### ', '\n\n---', '\n\n**']
+    .map((value) => lowerText.indexOf(value, bodyStart))
+    .filter((index) => index !== -1)
+  const end = terminators.length > 0 ? Math.min(...terminators) : text.length
+  return text.slice(bodyStart, end).trim()
 }
 
 function extractBoldSection(text, heading) {
-  const escaped = heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const regex = new RegExp(
-    `\\*\\*${escaped}\\*\\*\\n\\n([\\s\\S]*?)(?=\\n\\n\\*\\*[^\\n]+\\*\\*|\\n\\n### |\\n\\n---|$)`,
-    'i',
-  )
-  return text.match(regex)?.[1]?.trim() ?? ''
+  const lowerText = text.toLowerCase()
+  const marker = `**${heading}**\n\n`.toLowerCase()
+  const start = lowerText.indexOf(marker)
+  if (start === -1) return ''
+
+  const bodyStart = start + marker.length
+  const terminators = ['\n\n**', '\n\n### ', '\n\n---']
+    .map((value) => lowerText.indexOf(value, bodyStart))
+    .filter((index) => index !== -1)
+  const end = terminators.length > 0 ? Math.min(...terminators) : text.length
+  return text.slice(bodyStart, end).trim()
 }
 
 function toLanguageMap(codeSnippets) {

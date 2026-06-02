@@ -29,22 +29,22 @@ class PostCard extends StatelessWidget {
       children: [
         // Header: Author info
         _buildHeader(context),
-        
+
         // Image/Video content
         _buildMedia(context),
-        
+
         // Action buttons (like, comment, share)
         _buildActions(context),
-        
+
         // Like count
         _buildLikeCount(context),
-        
+
         // Caption
         _buildCaption(context),
-        
+
         // Timestamp
         _buildTimestamp(context),
-        
+
         const Divider(height: 1, thickness: 0.5),
       ],
     );
@@ -68,7 +68,9 @@ class PostCard extends StatelessWidget {
               backgroundColor: AppColors.electricBlue,
               child: post.authorAvatar == null
                   ? Text(
-                      post.authorName.isNotEmpty ? post.authorName[0].toUpperCase() : 'U',
+                      post.authorName.isNotEmpty
+                          ? post.authorName[0].toUpperCase()
+                          : 'U',
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -77,7 +79,7 @@ class PostCard extends StatelessWidget {
                   : null,
             ),
             const SizedBox(width: 10),
-            
+
             // Author name
             Expanded(
               child: Row(
@@ -100,7 +102,7 @@ class PostCard extends StatelessWidget {
                 ],
               ),
             ),
-            
+
             // More options button
             IconButton(
               icon: const Icon(Icons.more_vert, size: 20),
@@ -148,7 +150,8 @@ class PostCard extends StatelessWidget {
                 ),
                 errorWidget: (context, url, error) => Container(
                   color: Colors.grey[200],
-                  child: const Center(child: Icon(Icons.broken_image, size: 64)),
+                  child:
+                      const Center(child: Icon(Icons.broken_image, size: 64)),
                 ),
               ),
             Center(
@@ -186,7 +189,7 @@ class PostCard extends StatelessWidget {
             onPressed: onLike,
             padding: const EdgeInsets.all(8),
           ),
-          
+
           // Comment button
           IconButton(
             icon: const Icon(Icons.mode_comment_outlined),
@@ -194,7 +197,7 @@ class PostCard extends StatelessWidget {
             onPressed: onComment ?? () {},
             padding: const EdgeInsets.all(8),
           ),
-          
+
           // Share button
           IconButton(
             icon: const Icon(Icons.send_outlined),
@@ -202,16 +205,17 @@ class PostCard extends StatelessWidget {
             onPressed: onShare ?? () {},
             padding: const EdgeInsets.all(8),
           ),
-          
+
           const Spacer(),
-          
+
           // View count (if > 0)
           if (post.viewCount > 0)
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: Row(
                 children: [
-                  const Icon(Icons.visibility_outlined, size: 16, color: Colors.grey),
+                  const Icon(Icons.visibility_outlined,
+                      size: 16, color: Colors.grey),
                   const SizedBox(width: 4),
                   Text(
                     _formatCount(post.viewCount),
@@ -227,7 +231,7 @@ class PostCard extends StatelessWidget {
 
   Widget _buildLikeCount(BuildContext context) {
     if (post.likeCount == 0) return const SizedBox.shrink();
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
       child: Text(
@@ -242,7 +246,7 @@ class PostCard extends StatelessWidget {
 
   Widget _buildCaption(BuildContext context) {
     if (post.caption.isEmpty) return const SizedBox.shrink();
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       child: RichText(
@@ -265,7 +269,7 @@ class PostCard extends StatelessWidget {
     try {
       final createdAt = DateTime.parse(post.createdAt);
       final timeAgo = timeago.format(createdAt, locale: 'en_short');
-      
+
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
         child: Text(

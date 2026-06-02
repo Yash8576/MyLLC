@@ -56,8 +56,29 @@ func GetFollowersFeed(db *sql.DB) gin.HandlerFunc {
 			}
 		}
 
+		var (
+			rows *sql.Rows
+			err  error
+		)
+
 		// Query pre-computed feed from user_feeds table
-		query := `
+		if cursorTime.IsZero() {
+			rows, err = db.Query(`
+			SELECT
+				p.id, p.user_id, p.media_id, p.caption, p.media_type, p.media_url,
+				p.thumbnail_url, p.is_private, p.visibility, p.like_count,
+				p.comment_count, p.share_count, p.view_count, p.created_at, p.updated_at,
+				u.name as author_name, u.avatar as author_avatar, u.is_verified as author_verified,
+				EXISTS(SELECT 1 FROM post_likes WHERE post_id = p.id AND user_id = $1) as is_liked,
+				uf.created_at as feed_created_at
+			FROM user_feeds uf
+			JOIN posts p ON uf.post_id = p.id
+			JOIN users u ON p.user_id = u.id
+			WHERE uf.user_id = $1
+			ORDER BY uf.created_at DESC LIMIT $2
+		`, userID, limit+1)
+		} else {
+			rows, err = db.Query(`
 			SELECT 
 				p.id, p.user_id, p.media_id, p.caption, p.media_type, p.media_url, 
 				p.thumbnail_url, p.is_private, p.visibility, p.like_count, 
@@ -69,20 +90,10 @@ func GetFollowersFeed(db *sql.DB) gin.HandlerFunc {
 			JOIN posts p ON uf.post_id = p.id
 			JOIN users u ON p.user_id = u.id
 			WHERE uf.user_id = $1
-		`
-		args := []interface{}{userID}
-		argIndex := 2
-
-		if !cursorTime.IsZero() {
-			query += fmt.Sprintf(" AND uf.created_at < $%d", argIndex)
-			args = append(args, cursorTime)
-			argIndex++
+				AND uf.created_at < $2
+			ORDER BY uf.created_at DESC LIMIT $3
+		`, userID, cursorTime, limit+1)
 		}
-
-		query += " ORDER BY uf.created_at DESC LIMIT $" + strconv.Itoa(argIndex)
-		args = append(args, limit+1) // Fetch one extra to check if there are more
-
-		rows, err := db.Query(query, args...)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch feed"})
 			return
@@ -720,25 +731,85 @@ func Search(db *sql.DB) gin.HandlerFunc {
 
 		// Search products by product name only, using the same projection as the
 		// product listing endpoints so search stays compatible with both schemas.
-		productQuery := productSelectBaseQuery(db) + `
+		productRows, productErr := db.Query(`
+		SELECT
+			p.id,
+			p.title,
+			COALESCE(p.description, ''),
+			p.price,
+			p.compare_at_price,
+			COALESCE(p.currency, 'USD'),
+			p.sku,
+			COALESCE(p.stock_quantity, 0),
+			COALESCE(p.condition, 'new'),
+			COALESCE((
+				SELECT ARRAY_AGG(pi.image_url ORDER BY pi.display_order)
+				FROM product_images pi
+				WHERE pi.product_id = p.id
+			), ARRAY[]::TEXT[]),
+			COALESCE(c.name, ''),
+			COALESCE(p.tags, ARRAY[]::TEXT[]),
+			p.seller_id,
+			COALESCE(u.name, u.username, ''),
+			COALESCE((
+				SELECT ROUND(AVG(pr.rating)::NUMERIC, 1)::FLOAT8
+				FROM product_ratings pr
+				WHERE pr.product_id = p.id
+					AND pr.is_private = false
+					AND pr.moderation_status = 'approved'
+			), 0),
+			COALESCE((
+				SELECT COUNT(*)
+				FROM product_ratings pr
+				WHERE pr.product_id = p.id
+					AND pr.is_private = false
+					AND pr.moderation_status = 'approved'
+			), 0),
+			COALESCE((
+				SELECT SUM(pa.view_count)
+				FROM product_analytics pa
+				WHERE pa.product_id = p.id
+			), 0),
+			0,
+			COALESCE(p.metadata, '{}'::jsonb),
+			p.created_at
+		FROM products p
+		LEFT JOIN categories c ON c.id = p.category_id
+		LEFT JOIN users u ON u.id = p.seller_id
+		WHERE p.is_active = true
 		 AND (
 			p.title ILIKE $1
 			OR regexp_replace(lower(p.title), '[^a-z0-9]+', '', 'g')
 			   LIKE '%' || regexp_replace(lower($1), '[^a-z0-9%]+', '', 'g') || '%'
 		 )
-		 ORDER BY p.created_at DESC LIMIT 10`
-		productRows, productErr := db.Query(productQuery, searchPattern)
+		 ORDER BY p.created_at DESC LIMIT 10`, searchPattern)
 		useLegacyProductScan := false
 		var products []models.Product
 		if productErr != nil {
-			legacyQuery := productSelectLegacyQuery(db) + `
-			 WHERE (
+			productRows, productErr = db.Query(`
+			SELECT
+				p.id,
+				p.title,
+				COALESCE(p.description, ''),
+				p.price,
+				p.images,
+				COALESCE(p.category, ''),
+				COALESCE(p.tags, ARRAY[]::TEXT[]),
+				p.seller_id,
+				COALESCE(p.seller_name, u.name, ''),
+				COALESCE(p.rating, 0),
+				COALESCE(p.reviews_count, 0),
+				COALESCE(p.views, 0),
+				0,
+				p.created_at
+			FROM products p
+			LEFT JOIN users u ON u.id = p.seller_id
+			WHERE (
 				p.title ILIKE $1
 				OR regexp_replace(lower(p.title), '[^a-z0-9]+', '', 'g')
 				   LIKE '%' || regexp_replace(lower($1), '[^a-z0-9%]+', '', 'g') || '%'
 			 )
-			 ORDER BY p.created_at DESC LIMIT 10`
-			productRows, productErr = db.Query(legacyQuery, searchPattern)
+			 ORDER BY p.created_at DESC LIMIT 10`, searchPattern)
 			useLegacyProductScan = productErr == nil
 		}
 		if productRows != nil && productErr == nil {

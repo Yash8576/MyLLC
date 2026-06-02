@@ -18,7 +18,10 @@ class AppConfig {
 
   static String get _defaultApiOrigin => 'http://$_baseHost:$_port';
 
-  static String get _defaultWebSocketOrigin => 'ws://$_baseHost:$_port';
+  static String get _defaultWebSocketOrigin {
+    final scheme = isProduction ? 'wss' : 'ws';
+    return '$scheme://$_baseHost:$_port';
+  }
 
   static String _normalizeBaseUrl(String value) {
     return value.trim().replaceFirst(RegExp(r'/+$'), '');
@@ -60,10 +63,11 @@ class AppConfig {
 
     final apiOrigin = _originFromUrl(apiBaseUrl);
     if (apiOrigin.startsWith('https://')) {
-      return '${apiOrigin.replaceFirst('https://', 'wss://')}/ws';
+      return 'wss://${apiOrigin.substring('https://'.length)}/ws';
     }
     if (apiOrigin.startsWith('http://')) {
-      return '${apiOrigin.replaceFirst('http://', 'ws://')}/ws';
+      final scheme = isProduction ? 'wss' : 'ws';
+      return '$scheme://${apiOrigin.substring('http://'.length)}/ws';
     }
 
     return '$_defaultWebSocketOrigin/ws';

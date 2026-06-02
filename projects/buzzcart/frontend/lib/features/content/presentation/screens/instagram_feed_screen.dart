@@ -21,7 +21,7 @@ class _InstagramFeedScreenState extends State<InstagramFeedScreen> {
   final ApiService _api = ApiService();
   final ScrollController _scrollController = ScrollController();
   final List<PostModel> _posts = [];
-  
+
   bool _loading = true;
   bool _loadingMore = false;
   bool _hasMore = true;
@@ -54,7 +54,7 @@ class _InstagramFeedScreenState extends State<InstagramFeedScreen> {
   /// Initial feed load
   Future<void> _loadFeed() async {
     if (!mounted) return;
-    
+
     setState(() {
       _loading = true;
       _error = null;
@@ -69,7 +69,7 @@ class _InstagramFeedScreenState extends State<InstagramFeedScreen> {
       }
 
       if (!mounted) return;
-      
+
       setState(() {
         _posts.clear();
         _posts.addAll(response.posts);
@@ -107,7 +107,7 @@ class _InstagramFeedScreenState extends State<InstagramFeedScreen> {
       }
 
       if (!mounted) return;
-      
+
       setState(() {
         _posts.addAll(response.posts);
         _nextCursor = response.nextCursor;
@@ -188,7 +188,8 @@ class _InstagramFeedScreenState extends State<InstagramFeedScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.photo_library_outlined, size: 64, color: Colors.grey),
+            const Icon(Icons.photo_library_outlined,
+                size: 64, color: Colors.grey),
             const SizedBox(height: 16),
             Text(
               widget.isDiscovery

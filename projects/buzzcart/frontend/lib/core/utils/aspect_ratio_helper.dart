@@ -41,7 +41,8 @@ class AspectRatioHelper {
   );
 
   /// Get aspect ratio for content type
-  static AspectRatioOption getAspectRatioForType(String contentType, {String? photoRatio}) {
+  static AspectRatioOption getAspectRatioForType(String contentType,
+      {String? photoRatio}) {
     switch (contentType) {
       case 'reel':
         return reelAspectRatio;

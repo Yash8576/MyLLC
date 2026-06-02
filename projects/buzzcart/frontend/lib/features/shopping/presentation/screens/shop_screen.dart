@@ -25,7 +25,7 @@ class ShopScreen extends StatelessWidget {
         children: [
           // What your network bought
           const NetworkPurchasesSection(),
-          
+
           // Categories
           SizedBox(
             height: 60,
@@ -42,7 +42,7 @@ class ShopScreen extends StatelessWidget {
               ],
             ),
           ),
-          
+
           // Products Grid
           Expanded(
             child: GridView.builder(
@@ -113,8 +113,10 @@ class _ProductCard extends StatelessWidget {
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        Colors.primaries[index % Colors.primaries.length].withValues(alpha: 0.3),
-                        Colors.primaries[(index + 1) % Colors.primaries.length].withValues(alpha: 0.3),
+                        Colors.primaries[index % Colors.primaries.length]
+                            .withValues(alpha: 0.3),
+                        Colors.primaries[(index + 1) % Colors.primaries.length]
+                            .withValues(alpha: 0.3),
                       ],
                     ),
                   ),
@@ -128,7 +130,8 @@ class _ProductCard extends StatelessWidget {
                   top: 8,
                   right: 8,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: AppColors.destructive,
                       borderRadius: BorderRadius.circular(12),
@@ -158,7 +161,7 @@ class _ProductCard extends StatelessWidget {
               ],
             ),
           ),
-          
+
           // Product Info
           Expanded(
             flex: 2,

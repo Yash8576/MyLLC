@@ -78,7 +78,12 @@ router.get("/r/:code", async (req, res, next) => {
       code,
     ]);
 
-    return res.redirect(302, result.rows[0].long_url as string);
+    const longUrl = String(result.rows[0].long_url ?? "");
+    if (!isValidUrl(longUrl)) {
+      return res.status(410).send("Destination unavailable");
+    }
+
+    return res.redirect(302, longUrl);
   } catch (error) {
     return next(error);
   }

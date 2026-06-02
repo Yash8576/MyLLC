@@ -118,6 +118,11 @@ func registerFailedLoginAttempt(c *gin.Context, key string, state *loginAttemptS
 }
 
 func buildUserSelectQuery(filterColumn string) string {
+	whereClause := "id = $1"
+	if filterColumn == "email" {
+		whereClause = "email = $1"
+	}
+
 	return fmt.Sprintf(`
 		SELECT id, email, password_hash, name, avatar,
 			COALESCE(bio, ''),
@@ -132,8 +137,8 @@ func buildUserSelectQuery(filterColumn string) string {
 			COALESCE(followers_count, 0),
 			COALESCE(following_count, 0),
 			created_at
-		FROM users WHERE %s = $1
-	`, defaultVisibilityMode, defaultVisibilityPrefs, filterColumn)
+		FROM users WHERE %s
+	`, defaultVisibilityMode, defaultVisibilityPrefs, whereClause)
 }
 
 func generateUniqueUsername(db *sql.DB, email string) (string, error) {

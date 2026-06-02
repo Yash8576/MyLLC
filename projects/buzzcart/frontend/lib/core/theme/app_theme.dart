@@ -12,7 +12,7 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.light,
       scaffoldBackgroundColor: AppColors.lightBackground,
-      
+
       // Color scheme
       colorScheme: const ColorScheme.light(
         primary: AppColors.electricBlue,
@@ -85,7 +85,8 @@ class AppTheme {
           borderRadius: BorderRadius.circular(borderRadius),
           borderSide: const BorderSide(color: AppColors.destructive),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
 
       // Buttons
@@ -198,7 +199,7 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.dark,
       scaffoldBackgroundColor: AppColors.darkBackground,
-      
+
       // Color scheme
       colorScheme: const ColorScheme.dark(
         primary: AppColors.electricBlue,
@@ -271,7 +272,8 @@ class AppTheme {
           borderRadius: BorderRadius.circular(borderRadius),
           borderSide: const BorderSide(color: AppColors.destructive),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
 
       // Buttons
@@ -309,7 +311,9 @@ class AppTheme {
       ),
 
       // Typography
-      textTheme: GoogleFonts.plusJakartaSansTextTheme(ThemeData.dark().textTheme).copyWith(
+      textTheme:
+          GoogleFonts.plusJakartaSansTextTheme(ThemeData.dark().textTheme)
+              .copyWith(
         displayLarge: GoogleFonts.plusJakartaSans(
           fontSize: 32,
           fontWeight: FontWeight.bold,

@@ -287,8 +287,7 @@ class ProductModel {
       rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
       reviewsCount: json['reviews_count'] as int? ?? 0,
       views: json['views'] as int? ?? 0,
-      salesCount:
-          json['sales_count'] as int? ?? json['buys'] as int? ?? 0,
+      salesCount: json['sales_count'] as int? ?? json['buys'] as int? ?? 0,
       metadata: metadata,
       createdAt: json['created_at'] as String,
     );

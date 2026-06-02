@@ -4,7 +4,7 @@ import '../services/api_service.dart';
 
 class CartProvider extends ChangeNotifier {
   final ApiService _api;
-  
+
   CartModel _cart = CartModel.empty();
   bool _isLoading = false;
   final Map<String, int> _resolvedStockByProductId = {};
@@ -74,7 +74,7 @@ class CartProvider extends ChangeNotifier {
     try {
       _isLoading = true;
       notifyListeners();
-      
+
       _cart = await _api.getCart();
       await _hydrateStockLimits(_cart.items);
     } catch (e) {
@@ -92,7 +92,8 @@ class CartProvider extends ChangeNotifier {
     int? maxQuantity,
   }) async {
     try {
-      final resolvedMaxQuantity = await _resolveMaxQuantity(productId, maxQuantity);
+      final resolvedMaxQuantity =
+          await _resolveMaxQuantity(productId, maxQuantity);
       final safeQuantity = _clampQuantity(quantity, resolvedMaxQuantity);
       if (safeQuantity < 1) {
         return false;
@@ -113,7 +114,8 @@ class CartProvider extends ChangeNotifier {
     int? maxQuantity,
   }) async {
     try {
-      final resolvedMaxQuantity = await _resolveMaxQuantity(productId, maxQuantity);
+      final resolvedMaxQuantity =
+          await _resolveMaxQuantity(productId, maxQuantity);
       final safeQuantity = _clampQuantity(quantity, resolvedMaxQuantity);
       if (safeQuantity < 1) {
         return false;

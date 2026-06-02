@@ -22,7 +22,7 @@ class _EnhancedProfileScreenState extends State<EnhancedProfileScreen>
     with SingleTickerProviderStateMixin {
   final ApiService _api = ApiService();
   late TabController _tabController;
-  
+
   UserModel? _user;
   bool _loading = true;
   bool _isOwnProfile = false;
@@ -144,10 +144,10 @@ class _EnhancedProfileScreenState extends State<EnhancedProfileScreen>
                               ),
                             ],
                           ),
-                          
+
                           // Videos tab
                           const Center(child: Text('Videos coming soon')),
-                          
+
                           // Saved tab
                           const Center(child: Text('Saved posts coming soon')),
                         ],
@@ -182,7 +182,7 @@ class _EnhancedProfileScreenState extends State<EnhancedProfileScreen>
                 : null,
           ),
           const SizedBox(width: 20),
-          
+
           // Username and verification badge
           Expanded(
             child: Column(
@@ -213,7 +213,8 @@ class _EnhancedProfileScreenState extends State<EnhancedProfileScreen>
                 if (_user!.isSeller)
                   Container(
                     margin: const EdgeInsets.only(top: 4),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
                       color: AppColors.electricBlue.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(4),
@@ -241,7 +242,8 @@ class _EnhancedProfileScreenState extends State<EnhancedProfileScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          const _StatItem(label: 'Posts', value: '0'), // TODO: Get actual post count
+          const _StatItem(
+              label: 'Posts', value: '0'), // TODO: Get actual post count
           _StatItem(
             label: 'Followers',
             value: _formatCount(_user!.followersCount),
@@ -361,7 +363,7 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   double get minExtent => _tabBar.preferredSize.height;
-  
+
   @override
   double get maxExtent => _tabBar.preferredSize.height;
 

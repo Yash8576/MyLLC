@@ -24,7 +24,7 @@ class _ProfileGalleryWidgetState extends State<ProfileGalleryWidget> {
   final ScrollController _scrollController = ScrollController();
   final List<PostModel> _posts = [];
   final Set<String> _deletingPostIds = <String>{};
-  
+
   bool _loading = true;
   bool _loadingMore = false;
   bool _hasMore = true;
@@ -55,7 +55,7 @@ class _ProfileGalleryWidgetState extends State<ProfileGalleryWidget> {
 
   Future<void> _loadPosts() async {
     if (!mounted) return;
-    
+
     setState(() {
       _loading = true;
       _error = null;
@@ -68,7 +68,7 @@ class _ProfileGalleryWidgetState extends State<ProfileGalleryWidget> {
       );
 
       if (!mounted) return;
-      
+
       setState(() {
         _posts.clear();
         _posts.addAll(response.posts);
@@ -98,7 +98,7 @@ class _ProfileGalleryWidgetState extends State<ProfileGalleryWidget> {
       );
 
       if (!mounted) return;
-      
+
       setState(() {
         _posts.addAll(response.posts);
         _nextCursor = response.nextCursor;
@@ -116,7 +116,8 @@ class _ProfileGalleryWidgetState extends State<ProfileGalleryWidget> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete post?'),
-        content: const Text('This will permanently remove this published post.'),
+        content:
+            const Text('This will permanently remove this published post.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -197,14 +198,17 @@ class _ProfileGalleryWidgetState extends State<ProfileGalleryWidget> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                widget.isOwnProfile ? Icons.add_photo_alternate : Icons.photo_library_outlined,
+                widget.isOwnProfile
+                    ? Icons.add_photo_alternate
+                    : Icons.photo_library_outlined,
                 size: 64,
                 color: Colors.grey,
               ),
               const SizedBox(height: 16),
               Text(
                 widget.isOwnProfile ? 'No posts yet' : 'No posts',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
               Text(
@@ -335,7 +339,7 @@ class _GridItem extends StatelessWidget {
               ),
             ),
           ),
-          
+
           // Video indicator
           if (post.isVideo)
             Positioned(
@@ -385,7 +389,7 @@ class _GridItem extends StatelessWidget {
                 ),
               ),
             ),
-          
+
           // Engagement overlay (shown on hover/press)
           Positioned.fill(
             child: Material(
@@ -400,7 +404,8 @@ class _GridItem extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.favorite, color: Colors.white, size: 20),
+                        const Icon(Icons.favorite,
+                            color: Colors.white, size: 20),
                         const SizedBox(width: 4),
                         Text(
                           _formatCount(post.likeCount),
@@ -410,7 +415,8 @@ class _GridItem extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 16),
-                        const Icon(Icons.mode_comment, color: Colors.white, size: 20),
+                        const Icon(Icons.mode_comment,
+                            color: Colors.white, size: 20),
                         const SizedBox(width: 4),
                         Text(
                           _formatCount(post.commentCount),

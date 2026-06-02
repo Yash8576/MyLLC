@@ -29,5 +29,8 @@
     "prisma": "^6.8.2",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3"
+  },
+  "overrides": {
+    "uuid": "^11.1.0"
   }
 }

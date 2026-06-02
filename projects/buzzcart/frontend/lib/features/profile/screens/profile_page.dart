@@ -1906,10 +1906,12 @@ class _ProfilePageState extends State<ProfilePage>
                         child: const Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.broken_image, color: Colors.grey, size: 32),
+                            Icon(Icons.broken_image,
+                                color: Colors.grey, size: 32),
                             SizedBox(height: 4),
                             Text('Error',
-                                style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                style: TextStyle(
+                                    fontSize: 10, color: Colors.grey)),
                           ],
                         ),
                       ),
@@ -2067,7 +2069,8 @@ class _ProfilePageState extends State<ProfilePage>
                             fit: BoxFit.cover,
                             errorWidget: Container(
                               color: Colors.grey[300],
-                              child: const Icon(Icons.video_camera_back, size: 36),
+                              child:
+                                  const Icon(Icons.video_camera_back, size: 36),
                             ),
                           )
                         : Container(

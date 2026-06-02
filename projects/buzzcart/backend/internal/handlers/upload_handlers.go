@@ -645,27 +645,29 @@ func GetUserMedia(db *sql.DB) gin.HandlerFunc {
 			c.JSON(http.StatusOK, []gin.H{})
 			return
 		}
+		var (
+			rows *sql.Rows
+		)
+
 		// Query from user_media table
-		query := `
+		if mediaType == "" {
+			rows, err = db.QueryContext(ctx, `
+			SELECT um.id, um.content_id, um.media_type, um.media_url, um.thumbnail_url, um.caption,
+			       COALESCE(um.view_count, 0), COALESCE(um.like_count, 0), COALESCE(um.comment_count, 0), um.created_at
+			FROM user_media um
+			WHERE um.user_id = $1
+			ORDER BY um.created_at DESC LIMIT $2
+		`, userID, limit)
+		} else {
+			rows, err = db.QueryContext(ctx, `
 			SELECT um.id, um.content_id, um.media_type, um.media_url, um.thumbnail_url, um.caption, 
 			       COALESCE(um.view_count, 0), COALESCE(um.like_count, 0), COALESCE(um.comment_count, 0), um.created_at
 			FROM user_media um
 			WHERE um.user_id = $1
-		`
-
-		args := []interface{}{userID}
-
-		argIndex := len(args) + 1
-		if mediaType != "" {
-			query += fmt.Sprintf(" AND um.media_type = $%d", argIndex)
-			args = append(args, mediaType)
-			argIndex++
+				AND um.media_type = $2
+			ORDER BY um.created_at DESC LIMIT $3
+		`, userID, mediaType, limit)
 		}
-
-		query += " ORDER BY um.created_at DESC LIMIT $" + fmt.Sprint(argIndex)
-		args = append(args, limit)
-
-		rows, err := db.QueryContext(ctx, query, args...)
 		if err != nil {
 			log.Printf("[GetUserMedia] Database query failed for user %s: %v", userID, err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch media"})

@@ -44,8 +44,7 @@ GoRouter createAppRouter(AuthProvider authProvider) {
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
-    initialLocation:
-        useInitialRouteOverride ? initialRouteOverride : '/splash',
+    initialLocation: useInitialRouteOverride ? initialRouteOverride : '/splash',
     overridePlatformDefaultLocation: useInitialRouteOverride,
     refreshListenable: authProvider,
     redirect: (context, state) {
@@ -98,11 +97,10 @@ GoRouter createAppRouter(AuthProvider authProvider) {
 
       // Protected routes with persistent tab caching
       StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) =>
-            MainLayout(
-              navigationShell: navigationShell,
-              currentPath: state.uri.path,
-            ),
+        builder: (context, state, navigationShell) => MainLayout(
+          navigationShell: navigationShell,
+          currentPath: state.uri.path,
+        ),
         branches: [
           StatefulShellBranch(
             navigatorKey: _homeBranchNavigatorKey,

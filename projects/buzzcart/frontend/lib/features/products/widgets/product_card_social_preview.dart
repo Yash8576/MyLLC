@@ -45,8 +45,7 @@ class ProductCardSocialPreview extends StatelessWidget {
       final api = context.read<ApiService>();
       final buyers = List<ProductBuyerModel>.from(
         await api.getProductBuyers(productId),
-      )
-        ..sort(_compareBuyers);
+      )..sort(_compareBuyers);
 
       return _ProductCardSocialPreviewData(
         buyers: buyers,
@@ -73,8 +72,8 @@ class ProductCardSocialPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final productVersion =
-        context.select<AppRefreshProvider, int>((provider) => provider.productVersion);
+    final productVersion = context
+        .select<AppRefreshProvider, int>((provider) => provider.productVersion);
 
     return FutureBuilder<_ProductCardSocialPreviewData>(
       future: _loadPreview(context, productVersion),

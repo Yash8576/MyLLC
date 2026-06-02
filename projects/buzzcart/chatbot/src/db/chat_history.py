@@ -4,7 +4,7 @@ from datetime import datetime
 import json
 import uuid
 
-from sqlalchemy import create_engine, Column, String, DateTime, JSON, Text, text
+from sqlalchemy import Column, String, DateTime, JSON, Text, delete, select
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
@@ -79,30 +79,25 @@ class ChatHistoryManager:
         """Get conversation history by conversation ID."""
         try:
             async with self.SessionLocal() as session:
-                result = await session.execute(
-                    text(f"""
-                    SELECT id, conversation_id, user_id, user_message, 
-                           bot_response, timestamp, metadata
-                    FROM {settings.CHAT_HISTORY_TABLE}
-                    WHERE conversation_id = :conv_id
-                    ORDER BY timestamp DESC
-                    LIMIT :limit
-                    """),
-                    {"conv_id": conversation_id, "limit": limit}
+                result = await session.scalars(
+                    select(ChatMessage)
+                    .where(ChatMessage.conversation_id == conversation_id)
+                    .order_by(ChatMessage.timestamp.desc())
+                    .limit(limit)
                 )
-                rows = result.fetchall()
+                messages = result.all()
                 
                 return [
                     {
-                        "id": row[0],
-                        "conversation_id": row[1],
-                        "user_id": row[2],
-                        "user_message": row[3],
-                        "bot_response": row[4],
-                        "timestamp": row[5],
-                        "metadata": row[6]
+                        "id": message.id,
+                        "conversation_id": message.conversation_id,
+                        "user_id": message.user_id,
+                        "user_message": message.user_message,
+                        "bot_response": message.bot_response,
+                        "timestamp": message.timestamp,
+                        "metadata": message.metadata
                     }
-                    for row in reversed(rows)
+                    for message in reversed(messages)
                 ]
         except Exception as e:
             logger.error(f"Error getting conversation history: {e}")
@@ -116,30 +111,25 @@ class ChatHistoryManager:
         """Get all chat history for a user."""
         try:
             async with self.SessionLocal() as session:
-                result = await session.execute(
-                    text(f"""
-                    SELECT id, conversation_id, user_id, user_message,
-                           bot_response, timestamp, metadata
-                    FROM {settings.CHAT_HISTORY_TABLE}
-                    WHERE user_id = :user_id
-                    ORDER BY timestamp DESC
-                    LIMIT :limit
-                    """),
-                    {"user_id": user_id, "limit": limit}
+                result = await session.scalars(
+                    select(ChatMessage)
+                    .where(ChatMessage.user_id == user_id)
+                    .order_by(ChatMessage.timestamp.desc())
+                    .limit(limit)
                 )
-                rows = result.fetchall()
+                messages = result.all()
                 
                 return [
                     {
-                        "id": row[0],
-                        "conversation_id": row[1],
-                        "user_id": row[2],
-                        "user_message": row[3],
-                        "bot_response": row[4],
-                        "timestamp": row[5],
-                        "metadata": row[6]
+                        "id": message.id,
+                        "conversation_id": message.conversation_id,
+                        "user_id": message.user_id,
+                        "user_message": message.user_message,
+                        "bot_response": message.bot_response,
+                        "timestamp": message.timestamp,
+                        "metadata": message.metadata
                     }
-                    for row in rows
+                    for message in messages
                 ]
         except Exception as e:
             logger.error(f"Error getting user history: {e}")
@@ -150,11 +140,9 @@ class ChatHistoryManager:
         try:
             async with self.SessionLocal() as session:
                 await session.execute(
-                    text(f"""
-                    DELETE FROM {settings.CHAT_HISTORY_TABLE}
-                    WHERE conversation_id = :conv_id
-                    """),
-                    {"conv_id": conversation_id}
+                    delete(ChatMessage).where(
+                        ChatMessage.conversation_id == conversation_id
+                    )
                 )
                 await session.commit()
                 logger.info(f"Deleted conversation {conversation_id}")

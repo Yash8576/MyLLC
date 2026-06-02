@@ -48,7 +48,8 @@ class _CartPageState extends State<CartPage> {
           top: false,
           child: Center(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24 + contentTopPadding, 24, 24),
+              padding:
+                  const EdgeInsets.fromLTRB(24, 24 + contentTopPadding, 24, 24),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 360),
                 child: Column(
@@ -104,7 +105,8 @@ class _CartPageState extends State<CartPage> {
               context: context,
               removeTop: true,
               child: ListView.builder(
-                padding: const EdgeInsets.fromLTRB(16, contentTopPadding, 16, 16),
+                padding:
+                    const EdgeInsets.fromLTRB(16, contentTopPadding, 16, 16),
                 itemCount: cart.items.length,
                 itemBuilder: (context, index) {
                   final item = cart.items[index];
