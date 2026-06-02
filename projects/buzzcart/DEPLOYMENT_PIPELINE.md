@@ -34,8 +34,9 @@ Frontend-only changes do not trigger the Cloud Run deploy workflow.
 
 Secrets:
 
-- `GCP_WORKLOAD_IDENTITY_PROVIDER`
-- `GCP_SERVICE_ACCOUNT_EMAIL`
+- `BUZZCART_GCP_WORKLOAD_IDENTITY_PROVIDER`
+- `BUZZCART_GCP_SERVICE_ACCOUNT_EMAIL`
+  - OR `BUZZCART_GCP_CREDENTIALS_JSON` if using a service account key instead of Workload Identity Federation
 - `BUZZCART_DATABASE_URL`
 - `BUZZCART_JWT_SECRET`
 - `BUZZCART_REDIS_URL`
@@ -43,6 +44,38 @@ Secrets:
 Repository variables:
 
 - `BUZZCART_ALLOWED_FRONTEND_ORIGINS`
+
+Do not reuse the shared `GCP_*` secrets from another project. BuzzCart deploys target project
+`buzzcart-daeb6`, so the deploy identity must belong to or be granted roles in that project.
+
+Minimum IAM grants for the BuzzCart deploy service account:
+
+```bash
+PROJECT_ID=buzzcart-daeb6
+DEPLOY_SA=YOUR_BUZZCART_DEPLOY_SERVICE_ACCOUNT_EMAIL
+
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:$DEPLOY_SA" \
+  --role="roles/run.admin"
+
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:$DEPLOY_SA" \
+  --role="roles/cloudbuild.builds.editor"
+
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:$DEPLOY_SA" \
+  --role="roles/artifactregistry.writer"
+
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:$DEPLOY_SA" \
+  --role="roles/cloudsql.client"
+
+gcloud iam service-accounts add-iam-policy-binding \
+  "$PROJECT_ID-compute@developer.gserviceaccount.com" \
+  --project="$PROJECT_ID" \
+  --member="serviceAccount:$DEPLOY_SA" \
+  --role="roles/iam.serviceAccountUser"
+```
 
 ## Rollback
 
