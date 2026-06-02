@@ -26,6 +26,7 @@ env:
   GCP_REGION: us-east4
   CLOUD_RUN_SERVICE: buzzcart-backend
   CLOUD_SQL_INSTANCE: buzzcart-daeb6:us-east4:buzzcart-daeb6-instance
+  CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT: all-permissions@buzzcart-daeb6.iam.gserviceaccount.com
 
 jobs:
   backend-build:
@@ -120,12 +121,27 @@ jobs:
 
       - name: Write Cloud Run env file
         shell: bash
+        env:
+          BUZZCART_DATABASE_URL: ${{ secrets.BUZZCART_DATABASE_URL }}
+          BUZZCART_JWT_SECRET: ${{ secrets.BUZZCART_JWT_SECRET }}
+          BUZZCART_REDIS_URL: ${{ secrets.BUZZCART_REDIS_URL }}
+          BUZZCART_ALLOWED_FRONTEND_ORIGINS: ${{ vars.BUZZCART_ALLOWED_FRONTEND_ORIGINS }}
         run: |
+          missing=()
+          [[ -z "$BUZZCART_DATABASE_URL" ]] && missing+=("BUZZCART_DATABASE_URL")
+          [[ -z "$BUZZCART_JWT_SECRET" ]] && missing+=("BUZZCART_JWT_SECRET")
+          [[ -z "$BUZZCART_ALLOWED_FRONTEND_ORIGINS" ]] && missing+=("BUZZCART_ALLOWED_FRONTEND_ORIGINS")
+
+          if (( ${#missing[@]} > 0 )); then
+            echo "::error::Missing required BuzzCart deploy secrets/vars: ${missing[*]}"
+            exit 1
+          fi
+
           cat <<EOF > "$RUNNER_TEMP/buzzcart-cloudrun-env.yaml"
-          DATABASE_URL: "${{ secrets.BUZZCART_DATABASE_URL }}"
-          JWT_SECRET: "${{ secrets.BUZZCART_JWT_SECRET }}"
-          REDIS_URL: "${{ secrets.BUZZCART_REDIS_URL }}"
-          ALLOWED_FRONTEND_ORIGINS: "${{ vars.BUZZCART_ALLOWED_FRONTEND_ORIGINS }}"
+          DATABASE_URL: "${BUZZCART_DATABASE_URL}"
+          JWT_SECRET: "${BUZZCART_JWT_SECRET}"
+          REDIS_URL: "${BUZZCART_REDIS_URL}"
+          ALLOWED_FRONTEND_ORIGINS: "${BUZZCART_ALLOWED_FRONTEND_ORIGINS}"
           FIREBASE_PROJECT_ID: "buzzcart-daeb6"
           FIREBASE_STORAGE_BUCKET: "gs://buzzcart-daeb6.firebasestorage.app"
           FIREBASE_STORAGE_LOCATION: "us-east1"
@@ -139,8 +155,19 @@ jobs:
             --region "$GCP_REGION" \
             --source projects/buzzcart/backend \
             --allow-unauthenticated \
+            --service-account "$CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT" \
             --add-cloudsql-instances "$CLOUD_SQL_INSTANCE" \
             --env-vars-file "$RUNNER_TEMP/buzzcart-cloudrun-env.yaml"
+
+      - name: Print Cloud Run logs on deploy failure
+        if: ${{ failure() }}
+        shell: bash
+        run: |
+          gcloud logging read \
+            "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"$CLOUD_RUN_SERVICE\"" \
+            --project "$GCP_PROJECT_ID" \
+            --limit 80 \
+            --format "value(timestamp,severity,textPayload,jsonPayload.message)" || true
 
       - name: Fetch deployed service URL
         id: service-url

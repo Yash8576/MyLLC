@@ -77,6 +77,36 @@ gcloud iam service-accounts add-iam-policy-binding \
   --role="roles/iam.serviceAccountUser"
 ```
 
+The workflow deploys Cloud Run with this runtime identity:
+
+```text
+all-permissions@buzzcart-daeb6.iam.gserviceaccount.com
+```
+
+The deploy service account also needs `roles/iam.serviceAccountUser` on that runtime service
+account if the deploy identity is not the same account:
+
+```bash
+gcloud iam service-accounts add-iam-policy-binding \
+  "all-permissions@buzzcart-daeb6.iam.gserviceaccount.com" \
+  --project="$PROJECT_ID" \
+  --member="serviceAccount:$DEPLOY_SA" \
+  --role="roles/iam.serviceAccountUser"
+```
+
+Required runtime secrets/vars:
+
+- Secret `BUZZCART_DATABASE_URL`
+- Secret `BUZZCART_JWT_SECRET`
+- Optional secret `BUZZCART_REDIS_URL`
+- Variable `BUZZCART_ALLOWED_FRONTEND_ORIGINS`
+
+`BUZZCART_DATABASE_URL` should use the Cloud SQL Unix socket:
+
+```text
+postgres://buzzcart_app:YOUR_DB_PASSWORD@/buzzcart-daeb6-database?host=/cloudsql/buzzcart-daeb6:us-east4:buzzcart-daeb6-instance
+```
+
 ## Rollback
 
 If a bad backend release reaches production:
