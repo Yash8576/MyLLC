@@ -6,5 +6,4 @@
 # Do not add a wildcard rewrite for /nexacore/BuzzCart/* here.
 # Cloudflare Pages detects that rule as an infinite loop and ignores it.
 
-/api/* https://nanolink-backend-837491606409.us-east4.run.app/api/:splat 200
-/r/* https://nanolink-backend-837491606409.us-east4.run.app/r/:splat 200
+/r/* https://nanolink-backend-837491606409.us-east4.run.app/r/:splat 302

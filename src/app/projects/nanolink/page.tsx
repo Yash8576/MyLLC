@@ -25,7 +25,7 @@ type SavedLink = {
 
 const apiBaseUrl = (
   process.env.NEXT_PUBLIC_NANOLINK_API_BASE_URL ??
-  'https://nexacoreglobal.org'
+  'https://nanolink-backend-837491606409.us-east4.run.app'
 ).replace(/\/$/, '')
 
 export default function NanolinkPage() {
@@ -93,7 +93,10 @@ export default function NanolinkPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ longUrl }),
       })
-      const data = (await response.json()) as {
+      const responseText = await response.text()
+      const data = (responseText
+        ? JSON.parse(responseText)
+        : {}) as {
         shortUrl?: string
         longUrl?: string
         code?: string
@@ -101,7 +104,7 @@ export default function NanolinkPage() {
       }
 
       if (!response.ok || !data.shortUrl || !data.code || !data.longUrl) {
-        throw new Error(data.error ?? 'Could not shorten URL')
+        throw new Error(data.error ?? `Could not shorten URL (${response.status})`)
       }
 
       setShortUrl(data.shortUrl)
