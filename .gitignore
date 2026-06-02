@@ -70,3 +70,4 @@ projects/**/frontend/macos/Flutter/ephemeral/
 projects/**/frontend/windows/flutter/ephemeral/
 projects/**/storage/media/*
 !projects/**/storage/media/.gitkeep
+/*.tex

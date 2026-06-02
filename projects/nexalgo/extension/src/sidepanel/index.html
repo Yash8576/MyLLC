@@ -8,67 +8,81 @@
       body {
         margin: 0;
         font-family:
+           "Sora",
           "Aptos",
           "Segoe UI",
           sans-serif;
-        background: #f5f1e8;
-        color: #20201d;
+        background: #f6faff;
+        color: #222c44;
       }
 
       .shell {
         min-height: 100vh;
         background:
-          linear-gradient(135deg, rgba(22, 108, 84, 0.14), transparent 34%),
-          linear-gradient(180deg, #fffaf0 0%, #f5f1e8 100%);
+          radial-gradient(circle at top left, rgba(101, 86, 255, 0.1), transparent 38%),
+          linear-gradient(180deg, #ffffff 0%, #f6faff 60%, #ffffff 100%);
       }
 
       .topbar {
         position: sticky;
         top: 0;
         z-index: 1;
-        padding: 14px;
-        border-bottom: 1px solid rgba(32, 32, 29, 0.12);
-        background: rgba(255, 250, 240, 0.92);
-        backdrop-filter: blur(12px);
+        padding: 16px 18px;
+        border-bottom: 1px solid rgba(101, 86, 255, 0.12);
+        background: rgba(255, 255, 255, 0.94);
+        backdrop-filter: blur(18px);
+        box-shadow: 0 12px 24px rgba(101, 86, 255, 0.08);
       }
 
       h1 {
         margin: 0;
         font-size: 20px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
       }
 
       #status {
         margin: 6px 0 0;
         font-size: 12px;
+        color: rgba(101, 86, 255, 0.84);
       }
 
       .panel {
-        padding: 14px;
+        padding: 16px;
       }
 
       section {
         margin: 0 0 18px;
       }
 
+      #content > section:not(.hero) {
+        border: 1px solid rgba(101, 86, 255, 0.1);
+        border-radius: 16px;
+        padding: 12px;
+        background: #ffffff;
+        box-shadow: 0 12px 24px rgba(101, 86, 255, 0.08);
+      }
+
       .hero {
-        margin: -14px -14px 16px;
-        padding: 18px 14px;
-        border-bottom: 1px solid rgba(32, 32, 29, 0.12);
+        margin: -16px -16px 16px;
+        padding: 18px 16px;
+        border-bottom: 1px solid rgba(101, 86, 255, 0.12);
       }
 
       .hero.published {
-        background: linear-gradient(135deg, #10483a, #20201d);
-        color: #fffaf0;
+        background: linear-gradient(135deg, #6556ff, #2c2669);
+        color: #ffffff;
       }
 
       .hero.missing {
-        background: linear-gradient(135deg, #7c3f21, #20201d);
-        color: #fffaf0;
+        background: linear-gradient(135deg, #4c47b8, #1f2346);
+        color: #ffffff;
       }
 
       .hero.idle {
-        background: #20201d;
-        color: #fffaf0;
+        background: linear-gradient(135deg, #222c44, #1a2040);
+        color: #ffffff;
       }
 
       .eyebrow {
@@ -76,7 +90,7 @@
         margin-bottom: 8px;
         font-size: 11px;
         font-weight: 800;
-        letter-spacing: 0;
+        letter-spacing: 0.12em;
         text-transform: uppercase;
         opacity: 0.78;
       }
@@ -113,7 +127,7 @@
       }
 
       dt {
-        color: rgba(32, 32, 29, 0.62);
+        color: rgba(34, 44, 68, 0.64);
         font-weight: 700;
       }
 
@@ -128,12 +142,23 @@
       button {
         width: 100%;
         border: 0;
-        border-radius: 6px;
+        border-radius: 14px;
         padding: 10px 12px;
-        background: #20201d;
+        background: #6556ff;
         color: white;
         cursor: pointer;
         font: inherit;
+        font-weight: 600;
+        box-shadow: 0 10px 22px rgba(101, 86, 255, 0.18);
+        transition:
+          transform 0.2s ease,
+          box-shadow 0.2s ease,
+          background 0.2s ease;
+      }
+
+      button:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 14px 26px rgba(101, 86, 255, 0.22);
       }
 
       button:disabled {
@@ -142,14 +167,17 @@
       }
 
       button.secondary {
-        background: #ece8dc;
-        color: #20201d;
+        background: linear-gradient(180deg, #ffffff 0%, #eef3ff 100%);
+        color: #6556ff;
+        border: 1px solid rgba(101, 86, 255, 0.2);
+        box-shadow: 0 10px 22px rgba(101, 86, 255, 0.12);
       }
 
       button.ghost {
         background: transparent;
-        color: #20201d;
-        border: 1px solid rgba(32, 32, 29, 0.2);
+        color: #6556ff;
+        border: 1px solid rgba(101, 86, 255, 0.2);
+        box-shadow: none;
       }
 
       button.small {
@@ -169,9 +197,9 @@
       }
 
       #auth {
-        padding: 12px 14px;
-        border-bottom: 1px solid rgba(32, 32, 29, 0.12);
-        background: rgba(255, 250, 240, 0.7);
+        padding: 12px 16px;
+        border-bottom: 1px solid rgba(101, 86, 255, 0.12);
+        background: rgba(255, 255, 255, 0.7);
       }
 
       .auth-form {
@@ -190,11 +218,11 @@
       input {
         box-sizing: border-box;
         width: 100%;
-        border: 1px solid rgba(32, 32, 29, 0.18);
-        border-radius: 6px;
+        border: 1px solid rgba(101, 86, 255, 0.2);
+        border-radius: 12px;
         padding: 10px;
-        background: #fffdf8;
-        color: #20201d;
+        background: #f6faff;
+        color: #222c44;
         font: inherit;
       }
 
@@ -203,9 +231,9 @@
         overflow: auto;
         white-space: pre-wrap;
         overflow-wrap: anywhere;
-        background: #20201d;
-        color: #fffaf0;
-        border-radius: 6px;
+        background: #1a2040;
+        color: #f6faff;
+        border-radius: 12px;
         padding: 10px;
         font-size: 12px;
       }
@@ -219,26 +247,27 @@
       .chips span,
       .difficulty {
         display: inline-flex;
-        border: 1px solid rgba(32, 32, 29, 0.14);
+        border: 1px solid rgba(101, 86, 255, 0.14);
         border-radius: 999px;
         padding: 5px 8px;
-        background: rgba(255, 255, 255, 0.62);
+        background: rgba(255, 255, 255, 0.88);
         font-size: 12px;
+        color: #6556ff;
       }
 
       .difficulty.easy {
-        background: #dff5e7;
-        color: #13552c;
+        background: rgba(22, 128, 60, 0.12);
+        color: #16803c;
       }
 
       .difficulty.medium {
-        background: #fff1bd;
-        color: #6e4d00;
+        background: rgba(217, 119, 6, 0.15);
+        color: #d97706;
       }
 
       .difficulty.hard {
-        background: #ffe0d8;
-        color: #8d2513;
+        background: rgba(197, 48, 48, 0.14);
+        color: #c53030;
       }
 
       .code-panel {
@@ -252,21 +281,23 @@
       }
 
       .muted {
-        color: rgba(34, 34, 51, 0.68);
+        color: rgba(34, 44, 68, 0.68);
       }
 
       .error {
-        border-left: 3px solid #9c2f20;
+        border-left: 3px solid #c53030;
         padding: 8px 10px;
-        background: #fff1ed;
-        color: #9c2f20;
+        background: rgba(197, 48, 48, 0.1);
+        color: #c53030;
+        border-radius: 10px;
       }
 
       .message {
-        border-left: 3px solid #166c54;
+        border-left: 3px solid #6556ff;
         padding: 8px 10px;
-        background: #e7f6ef;
-        color: #10483a;
+        background: rgba(101, 86, 255, 0.12);
+        color: #4c47b8;
+        border-radius: 10px;
       }
     </style>
   </head>
