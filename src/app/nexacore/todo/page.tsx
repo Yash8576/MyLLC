@@ -27,6 +27,7 @@ export default function TodoPage() {
     const pathname = usePathname()
     const router = useRouter()
     const isProjectsRoute = pathname?.startsWith('/projects/')
+    const backLinkHref = isProjectsRoute ? '/#projects' : '/'
 
     useEffect(() => {
         if (pathname?.startsWith('/nexacore/')) {
@@ -262,7 +263,7 @@ export default function TodoPage() {
             
             {/* --- TOP BAR / HEADER --- */}
             <header className="top-bar">
-                <Link href="/" className="back-to-nexacore">
+                <Link href={backLinkHref} className="back-to-nexacore">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M19 12H5"/>
                         <path d="M12 19l-7-7 7-7"/>

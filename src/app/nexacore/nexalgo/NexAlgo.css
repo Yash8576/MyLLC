@@ -37,6 +37,34 @@
   justify-content: flex-end;
 }
 
+.back-to-nexacore {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #5000ca;
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  background: rgba(80, 0, 202, 0.2);
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.25s ease;
+}
+
+.back-to-nexacore:hover {
+  background: rgba(80, 0, 202, 0.4);
+  color: #5000ca;
+  transform: translateX(-4px);
+}
+
+.back-to-nexacore svg {
+  transition: transform 0.25s ease;
+}
+
+.back-to-nexacore:hover svg {
+  transform: translateX(-3px);
+}
+
 .nexalgo-back-link {
   display: inline-flex;
   align-items: center;

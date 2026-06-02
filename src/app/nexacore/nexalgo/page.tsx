@@ -525,9 +525,20 @@ export default function NexAlgoPage() {
       <div className='nexalgo-shell'>
         <header className='nexalgo-topbar'>
           <div className='nexalgo-topbar-left'>
-            <Link href={backLinkHref} className='nexalgo-back-link'>
-              <span aria-hidden='true'>&larr;</span>
-              <span className='nexalgo-back-link-text'>Back to Projects</span>
+            <Link href={backLinkHref} className='back-to-nexacore'>
+              <svg
+                width='24'
+                height='24'
+                viewBox='0 0 24 24'
+                fill='none'
+                stroke='currentColor'
+                strokeWidth='2'
+                strokeLinecap='round'
+                strokeLinejoin='round'>
+                <path d='M19 12H5' />
+                <path d='M12 19l-7-7 7-7' />
+              </svg>
+              Back to Projects
             </Link>
           </div>
           <div className='nexalgo-brand'>
@@ -555,11 +566,20 @@ export default function NexAlgoPage() {
     <div className='nexalgo-shell'>
       <header className='nexalgo-topbar'>
         <div className='nexalgo-topbar-left'>
-          <Link href={backLinkHref} className='nexalgo-back-link'>
-            <span aria-hidden='true'>&larr;</span>
-            <span className='nexalgo-back-link-text'>
-              {isProjectsRoute ? 'Back to Projects' : 'Back to Nexacore'}
-            </span>
+          <Link href={backLinkHref} className='back-to-nexacore'>
+            <svg
+              width='24'
+              height='24'
+              viewBox='0 0 24 24'
+              fill='none'
+              stroke='currentColor'
+              strokeWidth='2'
+              strokeLinecap='round'
+              strokeLinejoin='round'>
+              <path d='M19 12H5' />
+              <path d='M12 19l-7-7 7-7' />
+            </svg>
+            {isProjectsRoute ? 'Back to Projects' : 'Back to Nexacore'}
           </Link>
         </div>
         <div className='nexalgo-brand'>
