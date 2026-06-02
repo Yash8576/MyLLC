@@ -18,6 +18,7 @@ export const HeaderData: HeaderType[] = [
     submenu: [
       { label: 'BuzzCart', href: '/projects/buzzcart' },
       { label: 'NexAlgo', href: '/projects/nexalgo' },
+      { label: 'Nanolink', href: '/projects/nanolink' },
       { label: 'Todo App', href: '/projects/todo' },
       { label: 'Digital Clock', href: '/projects/digitalclock' },
     ]
@@ -41,6 +42,14 @@ export const ProjectData: ProjectType[] = [
     tags: ['Next.js', 'Firebase', 'LeetCode'],
     status: 'New',
     link: '/projects/nexalgo',
+  },
+  {
+    title: 'Nanolink',
+    description: 'A production URL shortener with Cloud Run, Cloud SQL Postgres, Firebase authentication, and saved link history.',
+    imgSrc: '/images/portfolio/Nexa-core-modified.png',
+    tags: ['Next.js', 'Cloud Run', 'Postgres'],
+    status: 'Live',
+    link: '/projects/nanolink',
   },
   {
     title: 'Todo Flow',

@@ -1,0 +1,151 @@
+name: Nanolink Backend Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'projects/nanolink/backend/**'
+      - '.github/workflows/nanolink-backend-deploy.yml'
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: nanolink-backend-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GCP_PROJECT_ID: nanolink-498216
+  GCP_REGION: us-east4
+  CLOUD_RUN_SERVICE: nanolink-backend
+  CLOUD_SQL_INSTANCE: nanolink-498216:us-east4:nanolink-c1bc5-instance
+  PUBLIC_BASE_URL: https://nanolink-backend-837491606409.us-east4.run.app
+  FRONTEND_URL: https://nexacoreglobal.org/projects/nanolink
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: projects/nanolink/backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: projects/nanolink/backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve Google auth configuration
+        id: auth-config
+        shell: bash
+        env:
+          NANOLINK_GCP_CREDENTIALS_JSON: ${{ secrets.NANOLINK_GCP_CREDENTIALS_JSON }}
+          GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          GCP_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+          GCP_CREDENTIALS_JSON: ${{ secrets.GCP_CREDENTIALS_JSON }}
+        run: |
+          if [[ -n "$NANOLINK_GCP_CREDENTIALS_JSON" ]]; then
+            echo "mode=nanolink_credentials_json" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [[ -n "$GCP_CREDENTIALS_JSON" ]]; then
+            echo "mode=credentials_json" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [[ -n "$GCP_WORKLOAD_IDENTITY_PROVIDER" && -n "$GCP_SERVICE_ACCOUNT_EMAIL" ]]; then
+            echo "mode=workload_identity" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "::error::Configure NANOLINK_GCP_CREDENTIALS_JSON, GCP_CREDENTIALS_JSON, or the workload identity secrets."
+          exit 1
+
+      - name: Authenticate to Google Cloud with Nanolink service account JSON
+        if: ${{ steps.auth-config.outputs.mode == 'nanolink_credentials_json' }}
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.NANOLINK_GCP_CREDENTIALS_JSON }}
+
+      - name: Authenticate to Google Cloud with Workload Identity
+        if: ${{ steps.auth-config.outputs.mode == 'workload_identity' }}
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+
+      - name: Authenticate to Google Cloud with service account JSON
+        if: ${{ steps.auth-config.outputs.mode == 'credentials_json' }}
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS_JSON }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Write Cloud Run env file
+        shell: bash
+        env:
+          NANOLINK_DB_PASS: ${{ secrets.NANOLINK_DB_PASS }}
+        run: |
+          if [[ -z "$NANOLINK_DB_PASS" ]]; then
+            echo "::error::Configure the NANOLINK_DB_PASS GitHub secret."
+            exit 1
+          fi
+
+          cat <<EOF > "$RUNNER_TEMP/nanolink-cloudrun-env.yaml"
+          NODE_ENV: "production"
+          PUBLIC_BASE_URL: "$PUBLIC_BASE_URL"
+          CORS_ORIGIN: "$FRONTEND_URL"
+          DB_HOST: "/cloudsql/$CLOUD_SQL_INSTANCE"
+          DB_PORT: "5432"
+          DB_USER: "nanolink_app"
+          DB_PASS: "$NANOLINK_DB_PASS"
+          DB_NAME: "nanolink-c1bc5-database"
+          DB_SSL: "false"
+          EOF
+
+      - name: Deploy backend to Cloud Run
+        shell: bash
+        run: |
+          gcloud run deploy "$CLOUD_RUN_SERVICE" \
+            --project "$GCP_PROJECT_ID" \
+            --region "$GCP_REGION" \
+            --source projects/nanolink/backend \
+            --allow-unauthenticated \
+            --add-cloudsql-instances "$CLOUD_SQL_INSTANCE" \
+            --env-vars-file "$RUNNER_TEMP/nanolink-cloudrun-env.yaml"
+
+      - name: Verify health endpoint
+        shell: bash
+        run: |
+          SERVICE_URL="$(gcloud run services describe "$CLOUD_RUN_SERVICE" \
+            --project "$GCP_PROJECT_ID" \
+            --region "$GCP_REGION" \
+            --format='value(status.url)')"
+          curl --fail --show-error --silent "$SERVICE_URL/health"
+          echo "Nanolink backend URL: $SERVICE_URL"
+
