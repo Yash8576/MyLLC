@@ -1,58 +1,72 @@
 'use client'
-import React, { useState } from "react";
+import React from "react";
 import './styles/Project.scss';
 
+const projects = [
+    {
+        title: "BuzzCart",
+        image: "/images/portfolio/Buzzcart-image.png",
+        href: "https://nexacoreglobal.org/projects/buzzcart",
+        description: "A social commerce platform with video-first shopping, product discovery, authentication, backend APIs, and storage workflows built for a production-style deployment.",
+        tech: ["Flutter", "Go", "PostgreSQL", "MongoDB", "MinIO", "Docker", "Kubernetes", "FastAPI", "OpenAI"]
+    },
+    {
+        title: "NexAlgo",
+        image: "/images/portfolio/NexAlgo.png",
+        href: "https://nexacoreglobal.org/projects/nexalgo",
+        description: "A coding practice and interview preparation product that combines problem workflows, generated guidance, extension tooling, and backend services.",
+        tech: ["Next.js", "TypeScript", "Firebase", "Cloud Run", "Node.js", "Chrome Extension"]
+    },
+    {
+        title: "NanoLink",
+        image: "/images/portfolio/NanoLink.png",
+        href: "https://nexacoreglobal.org/projects/nanolink",
+        description: "A lightweight link management experience focused on clean sharing flows, fast redirects, analytics-ready architecture, and a polished frontend.",
+        tech: ["Next.js", "TypeScript", "Firebase", "Tailwind CSS", "API Routes"]
+    },
+    {
+        title: "Todo",
+        image: "/images/portfolio/ToDo.png",
+        href: "https://nexacoreglobal.org/projects/todo",
+        description: "A task management app with authentication, task state handling, and a simple interface for creating, tracking, and completing daily work.",
+        tech: ["React", "Firebase", "CSS", "Authentication", "Firestore"]
+    },
+    {
+        title: "Digital Clock",
+        image: "/images/portfolio/DigitalClock.png",
+        href: "https://nexacoreglobal.org/projects/digitalclock",
+        description: "A focused clock interface with responsive presentation and clean time display, built as a compact frontend utility project.",
+        tech: ["React", "TypeScript", "CSS", "Responsive UI"]
+    }
+];
+
 function Project() {
-    const [expandedProject, setExpandedProject] = useState<number | null>(null);
-
-    const toggleDescription = (projectId: number) => {
-        setExpandedProject(expandedProject === projectId ? null : projectId);
-    };
-
     return(
     <div className="projects-container" id="projects">
-        <h1>Projects</h1>
-        <div className="projects-grid">
-            <div className="project">
-                <a href="https://nexacoreglobal.org/projects/buzzcart" target="_blank" rel="noreferrer" className="project-image-link">
-                    <img src="/images/portfolio/Buzzcart-image.png" className="project-thumbnail" alt="BuzzCart thumbnail"/>
-                </a>
-                <div className="project-info">
-                    <a href="https://github.com/Yash8576/BuzzCart" target="_blank" rel="noreferrer">
-                        <h2>BuzzCart (Like2Buy)</h2>
+        <div className="section-heading">
+            <h1>Projects</h1>
+            <p>Nexacore products and focused builds, presented with the technologies behind each one.</p>
+        </div>
+        <div className="projects-list">
+            {projects.map((project, index) => (
+                <article className="project-row" key={project.title}>
+                    <a href={project.href} target="_blank" rel="noreferrer" className="project-media" aria-label={`Open ${project.title}`}>
+                        <img src={project.image} className="project-thumbnail" alt={`${project.title} screenshot`}/>
                     </a>
-                    <button 
-                        className="description-toggle"
-                        onClick={() => toggleDescription(1)}
-                        aria-expanded={expandedProject === 1}
-                    >
-                        {expandedProject === 1 ? 'Show Less ▲' : 'Show Description ▼'}
-                    </button>
-                    <div className={`project-description ${expandedProject === 1 ? 'expanded' : ''}`}>
-                        <p>Production-grade social commerce platform with Flutter frontend and Go backend, featuring video reels, shopping integration, and 20+ RESTful APIs. Architected microservices backend using Go/Gin framework, PostgreSQL, MongoDB, and MinIO S3-compatible storage, all containerized with Docker & Kubernetes. Built RAG-powered chatbot service using FastAPI with ChromaDB vector database and OpenAI integration, supporting multiple document formats and maintaining conversation history.</p>
+                    <div className="project-info">
+                        <span className="project-number">{String(index + 1).padStart(2, "0")}</span>
+                        <a href={project.href} target="_blank" rel="noreferrer">
+                            <h2>{project.title}</h2>
+                        </a>
+                        <p>{project.description}</p>
+                        <div className="project-tech" aria-label={`${project.title} technologies`}>
+                            {project.tech.map((tech) => (
+                                <span key={tech}>{tech}</span>
+                            ))}
+                        </div>
                     </div>
-                </div>
-            </div>
-            <div className="project">
-                <a href="https://github.com/Yash8576/RideShareApp" target="_blank" rel="noreferrer" className="project-image-link">
-                    <img src="/images/portfolio/Rideshare.png" className="project-thumbnail" alt="RideShare App thumbnail"/>
-                </a>
-                <div className="project-info">
-                    <a href="https://github.com/Yash8576/RideShareApp" target="_blank" rel="noreferrer">
-                        <h2>RideShare App</h2>
-                    </a>
-                    <button 
-                        className="description-toggle"
-                        onClick={() => toggleDescription(2)}
-                        aria-expanded={expandedProject === 2}
-                    >
-                        {expandedProject === 2 ? 'Show Less ▲' : 'Show Description ▼'}
-                    </button>
-                    <div className={`project-description ${expandedProject === 2 ? 'expanded' : ''}`}>
-                        <p>Engineered ride-sharing Android application using Java with real-time location tracking, automated ride matching, secure payment integration, and driver-passenger communication. Established Firebase Authentication for secure user management and Firestore for distributed data storage. Leveraged Google Maps API achieving 95% location accuracy and optimized routing. Managed version control using Git workflows with branching and pull requests, resolving 20+ merge conflicts across 50+ commits.</p>
-                    </div>
-                </div>
-            </div>
+                </article>
+            ))}
         </div>
     </div>
     );
