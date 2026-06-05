@@ -1,4 +1,4 @@
-const RESUME_PATH = '/resume/Yaswanth_Ravi_Teja_Dammalapati_Software_Engineer_2.pdf'
+const RESUME_PATH = '/resume/Yaswanth_Dammalapati_SDE.pdf'
 
 export default function ResumeViewerContent() {
   return (

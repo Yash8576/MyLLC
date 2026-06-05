@@ -17,32 +17,20 @@ function Timeline() {
             className="vertical-timeline-element--work"
             contentStyle={{ background: 'white', color: 'rgb(39, 40, 34)' }}
             contentArrowStyle={{ borderRight: '7px solid  white' }}
-            date="Jan 2026 - May 2026"
+            date="Aug 2025 - May 2026"
             iconStyle={{ background: '#5000ca', color: 'rgb(39, 40, 34)' }}
             icon={<FontAwesomeIcon icon={faBriefcase} />}
           >
-            <h3 className="vertical-timeline-element-title">Software Engineer</h3>
+            <h3 className="vertical-timeline-element-title">Graduate Research Assistant - IoT & Environmental Monitoring Systems</h3>
             <h4 className="vertical-timeline-element-subtitle">University of Georgia, Athens, GA</h4>
             <p>
-              Built a smart IoT system with Redis and InfluxDB.
+              Led a full rebuild of an environmental monitoring platform, replacing fragile laptop-based scripts and CSV workflows with a production Raspberry Pi edge stack.
             </p>
             <p>
-              Built real-time web apps and containerized the stack with Docker.
-            </p>
-          </VerticalTimelineElement>
-          <VerticalTimelineElement
-            className="vertical-timeline-element--work"
-            date="Aug 2025 - Dec 2025"
-            iconStyle={{ background: '#5000ca', color: 'rgb(39, 40, 34)' }}
-            icon={<FontAwesomeIcon icon={faBriefcase} />}
-          >
-            <h3 className="vertical-timeline-element-title">Embedded Systems Engineer</h3>
-            <h4 className="vertical-timeline-element-subtitle">University of Georgia, Athens, GA</h4>
-            <p>
-              Designed ESP32-based monitoring systems with Python and GCP integration.
+              Redesigned ESP32 hardware, sensor placement, PCB layout, and enclosure geometry to reduce device footprint and improve field accuracy.
             </p>
             <p>
-              Reduced form factor by 66% and validated the system in field use.
+              Deployed Dockerized InfluxDB, Grafana, Firebase handoff, and hybrid ESP-NOW/Wi-Fi ingestion pipelines for reliable data capture across greenhouses, growth chambers, and poultry farms.
             </p>
           </VerticalTimelineElement>
           <VerticalTimelineElement
