@@ -8,7 +8,7 @@ const HeaderLink = ({ item }: { item: HeaderType }) => {
   const [isOpen, setIsOpen] = useState(false)
   const pathname = usePathname()
 
-  const scrollToTop = (e: React.MouseEvent<HTMLAnchorElement>) => {
+  const handleSamePageScroll = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (item.href === '/' || item.href === '#') {
       if (pathname !== '/') {
         return
@@ -19,6 +19,16 @@ const HeaderLink = ({ item }: { item: HeaderType }) => {
         top: 0,
         behavior: 'smooth',
       })
+      return
+    }
+
+    if (item.href.startsWith('/#') && pathname === '/') {
+      const section = document.querySelector(item.href.slice(1))
+
+      if (section) {
+        e.preventDefault()
+        section.scrollIntoView({ behavior: 'smooth' })
+      }
     }
   }
 
@@ -28,9 +38,10 @@ const HeaderLink = ({ item }: { item: HeaderType }) => {
         className='relative group'
         onMouseEnter={() => setIsOpen(true)}
         onMouseLeave={() => setIsOpen(false)}>
-        <button
-          type='button'
-          className='appearance-none border-0 bg-transparent p-0 text-black hover:text-primary text-base font-medium transition-colors duration-300 flex items-center gap-1 py-2'>
+        <Link
+          href={item.href}
+          onClick={handleSamePageScroll}
+          className='text-black hover:text-primary text-base font-medium transition-colors duration-300 flex items-center gap-1 py-2'>
           {item.label}
           <svg
             aria-hidden='true'
@@ -43,7 +54,7 @@ const HeaderLink = ({ item }: { item: HeaderType }) => {
             strokeLinejoin='round'>
             <path d='M4 6l4 4 4-4' />
           </svg>
-        </button>
+        </Link>
         {isOpen && (
           <div className='absolute top-full left-0 pt-2'>
             <div className='bg-white shadow-lg rounded-lg py-2 min-w-[180px] z-50'>
@@ -65,7 +76,7 @@ const HeaderLink = ({ item }: { item: HeaderType }) => {
   return (
     <Link
       href={item.href}
-      onClick={scrollToTop}
+      onClick={handleSamePageScroll}
       className='text-black hover:text-primary text-base font-medium transition-all duration-300 hover:-translate-y-0.5 inline-block'>
       {item.label}
     </Link>
