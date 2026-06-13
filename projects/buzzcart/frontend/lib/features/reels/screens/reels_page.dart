@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:buzz_social_cart/core/utils/app_snack_bar.dart';
@@ -47,6 +49,9 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
   AppRefreshProvider? _appRefreshProvider;
   int _lastContentVersion = 0;
   String? _lastRequestedReelId;
+  bool? _lastReelsBranchActive;
+  int _playbackSyncGeneration = 0;
+  Timer? _playbackSyncRetryTimer;
 
   @override
   void initState() {
@@ -72,6 +77,7 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
   void dispose() {
     _appRefreshProvider?.removeListener(_handleContentRefresh);
     WidgetsBinding.instance.removeObserver(this);
+    _playbackSyncRetryTimer?.cancel();
     _pageController.removeListener(_handlePagePositionChanged);
     _pageController.dispose();
     super.dispose();
@@ -89,6 +95,7 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
     setState(() {
       _isAppActive = isAppActive;
     });
+    _syncCurrentReelPlayback();
   }
 
   void _handleContentRefresh() {
@@ -196,16 +203,48 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
   }
 
   void _syncCurrentReelPlayback() {
+    final generation = ++_playbackSyncGeneration;
+    _playbackSyncRetryTimer?.cancel();
+    _applyCurrentReelPlayback();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || _reels.isEmpty || _currentIndex >= _reels.length) {
+      if (!mounted || generation != _playbackSyncGeneration) {
         return;
       }
-      for (final entry in _reelKeys.entries) {
-        entry.value.currentState?.syncActivePlayback(
-          shouldPlay: entry.key == _reels[_currentIndex].id && _isAppActive,
-        );
-      }
+      _applyCurrentReelPlayback();
+      _playbackSyncRetryTimer = Timer(const Duration(milliseconds: 120), () {
+        if (!mounted || generation != _playbackSyncGeneration) {
+          return;
+        }
+        _applyCurrentReelPlayback();
+      });
     });
+  }
+
+  void _applyCurrentReelPlayback() {
+    if (!mounted || _reels.isEmpty || _currentIndex >= _reels.length) {
+      return;
+    }
+    final canPlayActiveReel =
+        _isAppActive && (_lastReelsBranchActive ?? false);
+    final activeReelId = canPlayActiveReel ? _reels[_currentIndex].id : null;
+    final preparedReelIds = <String>{};
+    if (_lastReelsBranchActive ?? false) {
+      for (final index in <int>[
+        _currentIndex - 1,
+        _currentIndex,
+        _currentIndex + 1,
+      ]) {
+        if (index >= 0 && index < _reels.length) {
+          preparedReelIds.add(_reels[index].id);
+        }
+      }
+    }
+    for (final entry in _reelKeys.entries) {
+      entry.value.currentState?.syncActivePlayback(
+        shouldPlay: entry.key == activeReelId,
+        shouldPrepare: preparedReelIds.contains(entry.key),
+      );
+    }
   }
 
   void _handleMuteChanged(bool isMuted) {
@@ -281,6 +320,14 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
         (currentPath == '/reels' || currentPath.startsWith('/reels/'));
     final showDesktopNavArrows =
         kIsWeb || defaultTargetPlatform == TargetPlatform.windows;
+    if (_lastReelsBranchActive != isReelsBranchActive) {
+      _lastReelsBranchActive = isReelsBranchActive;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _syncCurrentReelPlayback();
+        }
+      });
+    }
 
     if (_loading) {
       return const Scaffold(
@@ -444,6 +491,10 @@ class _ReelControllerCache {
 class _ReelViewportState extends State<_ReelViewport> {
   VideoPlayerController? _controller;
   bool _initializing = false;
+  bool _shouldPlay = false;
+  bool _shouldPrepare = false;
+  int _playbackGeneration = 0;
+  Timer? _playbackRetryTimer;
   bool _liked = false;
   int _commentCount = 0;
 
@@ -451,9 +502,10 @@ class _ReelViewportState extends State<_ReelViewport> {
   void initState() {
     super.initState();
     _commentCount = widget.reel.commentCount;
-    if (widget.isActive) {
-      _resumeActiveController();
-    }
+    _syncDesiredPlayback(
+      shouldPlay: widget.isActive,
+      shouldPrepare: widget.isActive,
+    );
   }
 
   @override
@@ -466,15 +518,15 @@ class _ReelViewportState extends State<_ReelViewport> {
     if (oldWidget.reel.id != widget.reel.id) {
       _releaseController(cacheForReuse: true, cacheKey: oldWidget.reel.id);
     }
-    if (widget.isActive) {
-      _resumeActiveController();
-    } else if (!widget.isActive && _controller != null) {
-      _controller!.pause();
-    }
+    _syncDesiredPlayback(
+      shouldPlay: widget.isActive,
+      shouldPrepare: widget.isActive,
+    );
   }
 
   @override
   void dispose() {
+    _playbackRetryTimer?.cancel();
     _releaseController(cacheForReuse: true);
     super.dispose();
   }
@@ -495,41 +547,80 @@ class _ReelViewportState extends State<_ReelViewport> {
     }
   }
 
-  void _resumeActiveController() {
+  void syncActivePlayback({
+    required bool shouldPlay,
+    required bool shouldPrepare,
+  }) {
+    _syncDesiredPlayback(
+      shouldPlay: shouldPlay,
+      shouldPrepare: shouldPrepare,
+    );
+  }
+
+  void _syncDesiredPlayback({
+    required bool shouldPlay,
+    required bool shouldPrepare,
+  }) {
+    _shouldPlay = shouldPlay;
+    _shouldPrepare = shouldPrepare || shouldPlay;
+    final generation = ++_playbackGeneration;
+    _playbackRetryTimer?.cancel();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !widget.isActive) {
+      if (!mounted || generation != _playbackGeneration) {
         return;
       }
-      final controller = _controller;
-      if (controller == null) {
-        _ensureController();
-        return;
-      }
-      if (!controller.value.isInitialized) {
-        return;
-      }
-      controller.setVolume(widget.isMuted ? 0 : 1);
-      controller.play();
+      _applyDesiredPlayback(generation);
     });
   }
 
-  void syncActivePlayback({required bool shouldPlay}) {
-    final controller = _controller;
-    if (shouldPlay) {
-      if (controller == null) {
-        _ensureController();
-        return;
-      }
-      if (!controller.value.isInitialized) {
-        return;
-      }
-      controller.setVolume(widget.isMuted ? 0 : 1);
-      controller.play();
+  Future<void> _applyDesiredPlayback(int generation) async {
+    if (!mounted || generation != _playbackGeneration) {
       return;
     }
-    if (controller != null && controller.value.isInitialized) {
-      controller.pause();
+
+    if (!_shouldPlay && !_shouldPrepare) {
+      final controller = _controller;
+      if (controller != null && controller.value.isInitialized) {
+        await controller.pause();
+      }
+      return;
     }
+
+    if (_controller == null) {
+      await _ensureController();
+      if (!mounted || generation != _playbackGeneration) {
+        return;
+      }
+    }
+
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) {
+      return;
+    }
+    await controller.setVolume(widget.isMuted ? 0 : 1);
+    if (!_shouldPlay) {
+      await controller.pause();
+      return;
+    }
+    await controller.play();
+    _schedulePlaybackRetry(generation);
+  }
+
+  void _schedulePlaybackRetry(int generation) {
+    _playbackRetryTimer?.cancel();
+    _playbackRetryTimer = Timer(const Duration(milliseconds: 180), () {
+      if (!mounted || generation != _playbackGeneration || !_shouldPlay) {
+        return;
+      }
+      final controller = _controller;
+      if (controller == null || !controller.value.isInitialized) {
+        return;
+      }
+      if (!controller.value.isPlaying) {
+        unawaited(controller.play());
+      }
+    });
   }
 
   Future<void> _ensureController() async {
@@ -548,7 +639,7 @@ class _ReelViewportState extends State<_ReelViewport> {
       }
       await controller.setLooping(true);
       await controller.setVolume(widget.isMuted ? 0 : 1);
-      if (widget.isActive) {
+      if (_shouldPlay) {
         await controller.play();
       } else {
         await controller.pause();
@@ -585,9 +676,16 @@ class _ReelViewportState extends State<_ReelViewport> {
       return;
     }
     if (controller.value.isPlaying) {
+      _shouldPlay = false;
+      _playbackGeneration++;
+      _playbackRetryTimer?.cancel();
       await controller.pause();
     } else {
+      _shouldPlay = true;
+      _shouldPrepare = true;
+      final generation = ++_playbackGeneration;
       await controller.play();
+      _schedulePlaybackRetry(generation);
     }
     if (mounted) {
       setState(() {});
