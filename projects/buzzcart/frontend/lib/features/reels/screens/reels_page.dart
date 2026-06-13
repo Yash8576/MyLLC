@@ -91,14 +91,22 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
 
   Future<void> _fetchReels() async {
     try {
-      setState(() => _loading = true);
+      if (_reels.isEmpty) {
+        setState(() => _loading = true);
+      }
       final requestedReelId = _requestedReelId();
       final reels = await _api.getReels();
       final hydratedReels = await _hydrateRequestedReel(
         reels,
         requestedReelId,
       );
-      final targetIndex = _indexForReelId(hydratedReels, requestedReelId);
+      final currentReelId = _reels.isNotEmpty && _currentIndex < _reels.length
+          ? _reels[_currentIndex].id
+          : null;
+      final targetIndex = _indexForReelId(
+        hydratedReels,
+        requestedReelId ?? currentReelId,
+      );
       if (!mounted) {
         return;
       }
@@ -111,7 +119,9 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
         if (!mounted || !_pageController.hasClients) {
           return;
         }
-        _pageController.jumpToPage(targetIndex);
+        if ((_pageController.page?.round() ?? _currentIndex) != targetIndex) {
+          _pageController.jumpToPage(targetIndex);
+        }
       });
     } catch (_) {
       if (!mounted) {
@@ -326,7 +336,7 @@ class _ReelControllerCacheEntry {
 }
 
 class _ReelControllerCache {
-  static const int _maxEntries = 2;
+  static const int _maxEntries = 5;
   static final Map<String, _ReelControllerCacheEntry> _entries = {};
 
   static VideoPlayerController? take(String reelId) {
@@ -361,11 +371,6 @@ class _ReelViewportState extends State<_ReelViewport> {
   bool _liked = false;
   int _commentCount = 0;
 
-  bool get _shouldCacheController =>
-      !kIsWeb &&
-      defaultTargetPlatform != TargetPlatform.android &&
-      defaultTargetPlatform != TargetPlatform.iOS;
-
   @override
   void initState() {
     super.initState();
@@ -383,7 +388,7 @@ class _ReelViewportState extends State<_ReelViewport> {
       _commentCount = widget.reel.commentCount;
     }
     if (oldWidget.reel.id != widget.reel.id) {
-      _disposeController(cacheForReuse: _shouldCacheController);
+      _releaseController(cacheForReuse: true, cacheKey: oldWidget.reel.id);
     }
     if (widget.isActive && _controller == null) {
       _ensureController();
@@ -391,23 +396,26 @@ class _ReelViewportState extends State<_ReelViewport> {
       _controller!.setVolume(widget.isMuted ? 0 : 1);
       _controller!.play();
     } else if (!widget.isActive && _controller != null) {
-      _disposeController(cacheForReuse: _shouldCacheController);
+      _controller!.pause();
     }
   }
 
   @override
   void dispose() {
-    _disposeController(cacheForReuse: _shouldCacheController);
+    _releaseController(cacheForReuse: true);
     super.dispose();
   }
 
-  void _disposeController({bool cacheForReuse = false}) {
+  void _releaseController({
+    bool cacheForReuse = false,
+    String? cacheKey,
+  }) {
     final controller = _controller;
     _controller = null;
     if (controller != null) {
       if (cacheForReuse && controller.value.isInitialized) {
         controller.pause();
-        _ReelControllerCache.store(widget.reel.id, controller);
+        _ReelControllerCache.store(cacheKey ?? widget.reel.id, controller);
       } else {
         controller.dispose();
       }
