@@ -134,18 +134,26 @@ jobs:
 
           if [[ -z "$BUZZCART_DATABASE_URL" || -z "$BUZZCART_JWT_SECRET" ]]; then
             echo "GitHub runtime secrets are not fully configured; checking the existing Cloud Run service env."
-            EXISTING_ENV_NAMES="$(gcloud run services describe "$CLOUD_RUN_SERVICE" \
+            EXISTING_ENV_JSON="$(gcloud run services describe "$CLOUD_RUN_SERVICE" \
               --project "$GCP_PROJECT_ID" \
               --region "$GCP_REGION" \
-              --format='value(spec.template.spec.containers[0].env[].name)' || true)"
+              --format='json(spec.template.spec.containers[0].env)' || true)"
 
-            if grep -qw "DATABASE_URL" <<< "$EXISTING_ENV_NAMES" && grep -qw "JWT_SECRET" <<< "$EXISTING_ENV_NAMES"; then
-              echo "Existing Cloud Run service already has DATABASE_URL and JWT_SECRET; preserving current runtime env."
+            EXISTING_DATABASE_URL="$(jq -r '.spec.template.spec.containers[0].env[]? | select(.name == "DATABASE_URL") | .value // ""' <<< "$EXISTING_ENV_JSON")"
+            EXISTING_JWT_SECRET="$(jq -r '.spec.template.spec.containers[0].env[]? | select(.name == "JWT_SECRET") | .value // ""' <<< "$EXISTING_ENV_JSON")"
+
+            if [[ -n "$EXISTING_DATABASE_URL" && -n "$EXISTING_JWT_SECRET" ]]; then
+              echo "Existing Cloud Run service already has non-empty DATABASE_URL and JWT_SECRET; preserving current runtime env."
               echo "mode=preserve" >> "$GITHUB_OUTPUT"
               exit 0
             fi
 
-            echo "::error::Missing BUZZCART_DATABASE_URL/BUZZCART_JWT_SECRET and the existing Cloud Run service does not have both env vars to preserve."
+            echo "::error::Missing BUZZCART_DATABASE_URL/BUZZCART_JWT_SECRET and the existing Cloud Run service does not have non-empty values to preserve."
+            exit 1
+          fi
+
+          if [[ "$BUZZCART_DATABASE_URL" == *"localhost"* || "$BUZZCART_DATABASE_URL" == *"127.0.0.1"* ]]; then
+            echo "::error::BUZZCART_DATABASE_URL points at localhost; Cloud Run needs the Cloud SQL Unix socket DATABASE_URL."
             exit 1
           fi
 
@@ -159,6 +167,8 @@ jobs:
           FIREBASE_STORAGE_LOCATION: "us-east1"
           FIREBASE_STORAGE_PUBLIC_BASE_URL: "https://firebasestorage.googleapis.com/v0/b"
           EOF
+
+          node -e "const fs=require('fs');const env=fs.readFileSync(process.argv[1],'utf8');for (const key of ['DATABASE_URL','JWT_SECRET']) { const match=env.match(new RegExp('^'+key+':\\s*\"([^\"]*)\"','m')); if (!match || !match[1]) { console.error(key+' is empty in generated Cloud Run env file.'); process.exit(1); } }" "$RUNNER_TEMP/buzzcart-cloudrun-env.yaml"
           echo "mode=file" >> "$GITHUB_OUTPUT"
 
       - name: Deploy backend to Cloud Run
