@@ -172,6 +172,7 @@ func main() {
 			videos.POST("/:video_id/comments", middleware.Auth(cfg.JWTSecret), handlers.CreateVideoComment(db))
 			videos.DELETE("/:video_id", middleware.Auth(cfg.JWTSecret), handlers.DeleteVideo(db))
 			videos.POST("/:video_id/like", middleware.Auth(cfg.JWTSecret), handlers.LikeVideo(db))
+			videos.GET("/:video_id/likes", middleware.Auth(cfg.JWTSecret), handlers.GetVideoLikes(db))
 		}
 
 		// Reel routes
@@ -184,6 +185,7 @@ func main() {
 			reels.POST("/:reel_id/comments", middleware.Auth(cfg.JWTSecret), handlers.CreateReelComment(db))
 			reels.DELETE("/:reel_id", middleware.Auth(cfg.JWTSecret), handlers.DeleteReel(db))
 			reels.POST("/:reel_id/like", middleware.Auth(cfg.JWTSecret), handlers.LikeReel(db))
+			reels.GET("/:reel_id/likes", middleware.Auth(cfg.JWTSecret), handlers.GetReelLikes(db))
 		}
 
 		// Cart routes

@@ -42,6 +42,12 @@ func videoQueryBase(whereClause string) string {
 			COALESCE(ci.duration_seconds, 0) AS duration_seconds,
 			COALESCE(ci.view_count, 0) AS view_count,
 			COALESCE(ci.like_count, 0) AS like_count,
+			CASE WHEN NULLIF($2, '') IS NULL THEN false ELSE EXISTS(
+				SELECT 1
+				FROM content_likes cl
+				WHERE cl.content_id = ci.id
+				  AND cl.user_id = NULLIF($2, '')::uuid
+			) END AS is_liked,
 			COALESCE(ci.comment_count, 0) AS comment_count,
 			ci.creator_id,
 			COALESCE(u.name, '') AS name,
@@ -69,6 +75,7 @@ func decodeVideo(rows scanner) (models.Video, error) {
 		&video.Duration,
 		&video.Views,
 		&video.Likes,
+		&video.IsLiked,
 		&video.CommentCount,
 		&video.CreatorID,
 		&video.CreatorName,
@@ -319,6 +326,11 @@ func CreateVideo(db *sql.DB) gin.HandlerFunc {
 
 func GetVideos(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if err := ensureContentLikesSchema(db); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to prepare likes"})
+			return
+		}
+
 		userID := c.GetString("user_id")
 		normalizedViewerID := ""
 		if normalized := normalizedUUIDString(userID); normalized != nil {
@@ -335,6 +347,12 @@ func GetVideos(db *sql.DB) gin.HandlerFunc {
 				COALESCE(ci.duration_seconds, 0) AS duration_seconds,
 				COALESCE(ci.view_count, 0) AS view_count,
 				COALESCE(ci.like_count, 0) AS like_count,
+				CASE WHEN NULLIF($1, '') IS NULL THEN false ELSE EXISTS(
+					SELECT 1
+					FROM content_likes cl
+					WHERE cl.content_id = ci.id
+					  AND cl.user_id = NULLIF($1, '')::uuid
+				) END AS is_liked,
 				COALESCE(ci.comment_count, 0) AS comment_count,
 				ci.creator_id,
 				COALESCE(u.name, '') AS name,
@@ -398,6 +416,11 @@ func GetVideos(db *sql.DB) gin.HandlerFunc {
 
 func GetVideo(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if err := ensureContentLikesSchema(db); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to prepare likes"})
+			return
+		}
+
 		userID := c.GetString("user_id")
 		videoID, err := resolveVideoContentID(db, c.Param("video_id"))
 		if err == sql.ErrNoRows {
@@ -425,6 +448,7 @@ func GetVideo(db *sql.DB) gin.HandlerFunc {
 				  AND ci.content_type = 'video'
 			`),
 			videoID,
+			userID,
 		)
 
 		video, err := decodeVideo(row)
@@ -654,12 +678,33 @@ func LikeVideo(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		_, err = db.Exec("UPDATE content_items SET like_count = like_count + 1 WHERE id = $1 AND content_type = 'video'", videoID)
+		likeContent(db, c, videoID)
+	}
+}
+
+func GetVideoLikes(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID := c.GetString("user_id")
+		videoID, err := resolveVideoContentID(db, c.Param("video_id"))
+		if err == sql.ErrNoRows {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Video not found"})
+			return
+		}
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to like video"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch likes"})
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{"message": "Video liked"})
+		canAccess, err := canAccessVideo(db, videoID, userID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch likes"})
+			return
+		}
+		if !canAccess {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Video not found"})
+			return
+		}
+
+		getConnectionLikes(db, c, videoID)
 	}
 }

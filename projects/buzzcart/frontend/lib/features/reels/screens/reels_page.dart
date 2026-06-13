@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -496,11 +497,14 @@ class _ReelViewportState extends State<_ReelViewport> {
   int _playbackGeneration = 0;
   Timer? _playbackRetryTimer;
   bool _liked = false;
+  int _likeCount = 0;
   int _commentCount = 0;
 
   @override
   void initState() {
     super.initState();
+    _liked = widget.reel.isLiked;
+    _likeCount = widget.reel.likes;
     _commentCount = widget.reel.commentCount;
     _syncDesiredPlayback(
       shouldPlay: widget.isActive,
@@ -514,6 +518,10 @@ class _ReelViewportState extends State<_ReelViewport> {
     if (oldWidget.reel.id != widget.reel.id ||
         oldWidget.reel.commentCount != widget.reel.commentCount) {
       _commentCount = widget.reel.commentCount;
+    }
+    if (oldWidget.reel.id != widget.reel.id) {
+      _liked = widget.reel.isLiked;
+      _likeCount = widget.reel.likes;
     }
     if (oldWidget.reel.id != widget.reel.id) {
       _releaseController(cacheForReuse: true, cacheKey: oldWidget.reel.id);
@@ -696,14 +704,31 @@ class _ReelViewportState extends State<_ReelViewport> {
     if (_liked) {
       return;
     }
-    setState(() => _liked = true);
+    setState(() {
+      _liked = true;
+      _likeCount += 1;
+    });
     try {
-      await context.read<ApiService>().likeReel(widget.reel.id);
+      final likeCount =
+          await context.read<ApiService>().likeReel(widget.reel.id);
+      if (mounted) {
+        setState(() => _likeCount = likeCount);
+      }
     } catch (_) {
       if (mounted) {
-        setState(() => _liked = false);
+        setState(() {
+          _liked = false;
+          _likeCount = math.max(0, _likeCount - 1);
+        });
       }
     }
+  }
+
+  Future<void> _openLikes() {
+    return content_sheets.showContentLikesSheet(
+      context: context,
+      loadLikes: () => context.read<ApiService>().getReelLikes(widget.reel.id),
+    );
   }
 
   Future<void> _openComments() async {
@@ -845,8 +870,9 @@ class _ReelViewportState extends State<_ReelViewport> {
               _ReelActionButton(
                 icon: _liked ? Icons.favorite : Icons.favorite_border,
                 color: _liked ? AppColors.vibrantPink : Colors.white,
-                count: widget.reel.likes + (_liked ? 1 : 0),
+                count: _likeCount,
                 onTap: _likeReel,
+                onCountTap: _openLikes,
               ),
               const SizedBox(height: 18),
               _ReelActionButton(
@@ -968,12 +994,14 @@ class _ReelActionButton extends StatelessWidget {
     required this.color,
     required this.onTap,
     this.count,
+    this.onCountTap,
   });
 
   final IconData icon;
   final Color color;
   final int? count;
   final VoidCallback? onTap;
+  final VoidCallback? onCountTap;
 
   @override
   Widget build(BuildContext context) {
@@ -995,12 +1023,19 @@ class _ReelActionButton extends StatelessWidget {
         ),
         if (count != null) ...[
           const SizedBox(height: 6),
-          Text(
-            '$count',
-            style: TextStyle(
-              color: onTap == null ? Colors.white38 : Colors.white,
-              fontWeight: FontWeight.w700,
-              fontSize: 12,
+          InkWell(
+            onTap: onCountTap,
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              child: Text(
+                '$count',
+                style: TextStyle(
+                  color: onTap == null ? Colors.white38 : Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                ),
+              ),
             ),
           ),
         ],

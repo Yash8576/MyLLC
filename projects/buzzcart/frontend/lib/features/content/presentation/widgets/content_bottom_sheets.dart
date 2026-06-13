@@ -40,6 +40,176 @@ Future<int?> showContentCommentsSheet({
   );
 }
 
+Future<void> showContentLikesSheet({
+  required BuildContext context,
+  required Future<List<ContentLikeUserModel>> Function() loadLikes,
+}) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => _ContentLikesSheet(loadLikes: loadLikes),
+  );
+}
+
+class _ContentLikesSheet extends StatefulWidget {
+  const _ContentLikesSheet({required this.loadLikes});
+
+  final Future<List<ContentLikeUserModel>> Function() loadLikes;
+
+  @override
+  State<_ContentLikesSheet> createState() => _ContentLikesSheetState();
+}
+
+class _ContentLikesSheetState extends State<_ContentLikesSheet> {
+  List<ContentLikeUserModel> _likes = <ContentLikeUserModel>[];
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLikes();
+  }
+
+  Future<void> _loadLikes() async {
+    try {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+      final likes = await widget.loadLikes();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _likes = likes;
+        _loading = false;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _loading = false;
+        _error = '$error';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return FractionallySizedBox(
+      heightFactor: 0.72,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: theme.scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            children: [
+              const SizedBox(height: 10),
+              Container(
+                width: 44,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: theme.dividerColor,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 8, 12),
+                child: Row(
+                  children: [
+                    const Icon(Icons.people_outline, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Connections who liked this',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
+                ),
+              ),
+              Divider(height: 1, color: theme.dividerColor),
+              Expanded(child: _buildBody()),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null) {
+      return Center(child: Text(_error!));
+    }
+    if (_likes.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: _loadLikes,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: const [
+            SizedBox(height: 120),
+            Icon(Icons.people_outline, size: 48, color: Colors.grey),
+            SizedBox(height: 12),
+            Center(
+              child: Text(
+                'No connections have liked this yet',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadLikes,
+      child: ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: _likes.length,
+        separatorBuilder: (_, __) => const Divider(height: 20),
+        itemBuilder: (context, index) {
+          final like = _likes[index];
+          return ListTile(
+            contentPadding: EdgeInsets.zero,
+            onTap: () {
+              Navigator.of(context).pop();
+              context.push('/profile/${like.userId}');
+            },
+            leading: AppAvatar(
+              name: like.username,
+              avatarUrl: like.userAvatar,
+              radius: 22,
+            ),
+            title: Text(
+              like.username,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+            subtitle: Text(timeago.format(DateTime.parse(like.likedAt))),
+            trailing: const _MiniBadge(label: 'Connection'),
+          );
+        },
+      ),
+    );
+  }
+}
+
 class _ContentCommentsSheet extends StatefulWidget {
   const _ContentCommentsSheet({
     required this.title,

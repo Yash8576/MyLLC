@@ -759,6 +759,25 @@ class ApiService {
     }
   }
 
+  Future<int> likeVideo(String videoId) async {
+    try {
+      final response = await _dio.post('/videos/$videoId/like');
+      return (response.data as Map<String, dynamic>)['likes'] as int;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<List<ContentLikeUserModel>> getVideoLikes(String videoId) async {
+    final response = await _dio.get('/videos/$videoId/likes');
+    return (response.data as List? ?? [])
+        .map(
+          (item) =>
+              ContentLikeUserModel.fromJson(item as Map<String, dynamic>),
+        )
+        .toList();
+  }
+
   Future<List<ContentCommentModel>> getVideoComments(String videoId) async {
     try {
       final response = await _dio.get('/videos/$videoId/comments');
@@ -840,12 +859,23 @@ class ApiService {
     }
   }
 
-  Future<void> likeReel(String reelId) async {
+  Future<int> likeReel(String reelId) async {
     try {
-      await _dio.post('/reels/$reelId/like');
+      final response = await _dio.post('/reels/$reelId/like');
+      return (response.data as Map<String, dynamic>)['likes'] as int;
     } catch (e) {
       rethrow;
     }
+  }
+
+  Future<List<ContentLikeUserModel>> getReelLikes(String reelId) async {
+    final response = await _dio.get('/reels/$reelId/likes');
+    return (response.data as List? ?? [])
+        .map(
+          (item) =>
+              ContentLikeUserModel.fromJson(item as Map<String, dynamic>),
+        )
+        .toList();
   }
 
   Future<List<ReelCommentModel>> getReelComments(String reelId) async {

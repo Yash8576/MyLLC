@@ -226,6 +226,7 @@ type Video struct {
 	Duration      int             `json:"duration" db:"duration"`
 	Views         int             `json:"views" db:"views"`
 	Likes         int             `json:"likes" db:"likes"`
+	IsLiked       bool            `json:"is_liked" db:"-"`
 	CommentCount  int             `json:"comment_count" db:"comment_count"`
 	CreatorID     string          `json:"creator_id" db:"creator_id"`
 	CreatorName   string          `json:"creator_name" db:"creator_name"`
@@ -250,6 +251,7 @@ type Reel struct {
 	Caption       string          `json:"caption" db:"caption"`
 	Views         int             `json:"views" db:"views"`
 	Likes         int             `json:"likes" db:"likes"`
+	IsLiked       bool            `json:"is_liked" db:"-"`
 	CommentCount  int             `json:"comment_count" db:"comment_count"`
 	Width         int             `json:"width" db:"width"`
 	Height        int             `json:"height" db:"height"`
@@ -301,6 +303,13 @@ type ContentComment struct {
 
 type ContentCommentCreate struct {
 	CommentText string `json:"comment_text" binding:"required,min=1,max=2000"`
+}
+
+type ContentLikeUser struct {
+	UserID     string    `json:"user_id"`
+	Username   string    `json:"username"`
+	UserAvatar *string   `json:"user_avatar,omitempty"`
+	LikedAt    time.Time `json:"liked_at"`
 }
 
 type ProductSimple struct {

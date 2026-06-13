@@ -529,6 +529,7 @@ class VideoModel {
   final int duration;
   final int views;
   final int likes;
+  final bool isLiked;
   final int commentCount;
   final String creatorId;
   final String creatorName;
@@ -545,6 +546,7 @@ class VideoModel {
     required this.duration,
     this.views = 0,
     this.likes = 0,
+    this.isLiked = false,
     this.commentCount = 0,
     required this.creatorId,
     required this.creatorName,
@@ -563,6 +565,7 @@ class VideoModel {
       duration: json['duration'] as int,
       views: json['views'] as int? ?? 0,
       likes: json['likes'] as int? ?? 0,
+      isLiked: json['is_liked'] as bool? ?? false,
       commentCount: json['comment_count'] as int? ?? 0,
       creatorId: json['creator_id'] as String,
       creatorName: json['creator_name'] as String,
@@ -609,6 +612,7 @@ class ReelModel {
   final String caption;
   final int views;
   final int likes;
+  final bool isLiked;
   final int commentCount;
   final int width;
   final int height;
@@ -625,6 +629,7 @@ class ReelModel {
     required this.caption,
     this.views = 0,
     this.likes = 0,
+    this.isLiked = false,
     this.commentCount = 0,
     this.width = 0,
     this.height = 0,
@@ -643,6 +648,7 @@ class ReelModel {
       caption: json['caption'] as String? ?? '',
       views: json['views'] as int? ?? 0,
       likes: json['likes'] as int? ?? 0,
+      isLiked: json['is_liked'] as bool? ?? false,
       commentCount: json['comment_count'] as int? ?? 0,
       width: json['width'] as int? ?? 0,
       height: json['height'] as int? ?? 0,
@@ -762,6 +768,29 @@ class ContentCommentModel {
       userAvatar: json['user_avatar'] as String?,
       isFollowing: json['is_following'] as bool? ?? false,
       isCurrentUser: json['is_current_user'] as bool? ?? false,
+    );
+  }
+}
+
+class ContentLikeUserModel {
+  final String userId;
+  final String username;
+  final String? userAvatar;
+  final String likedAt;
+
+  ContentLikeUserModel({
+    required this.userId,
+    required this.username,
+    this.userAvatar,
+    required this.likedAt,
+  });
+
+  factory ContentLikeUserModel.fromJson(Map<String, dynamic> json) {
+    return ContentLikeUserModel(
+      userId: json['user_id'] as String,
+      username: json['username'] as String? ?? 'Unknown',
+      userAvatar: json['user_avatar'] as String?,
+      likedAt: json['liked_at'] as String,
     );
   }
 }

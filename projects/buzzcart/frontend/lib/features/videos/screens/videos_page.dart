@@ -421,6 +421,9 @@ class _VideoDetailViewState extends State<_VideoDetailView> {
   int _resolvedDuration = 0;
   bool _resumeAfterFullscreen = false;
   bool _showInlineControls = false;
+  bool _liked = false;
+  bool _liking = false;
+  int _likeCount = 0;
   Timer? _inlineControlsHideTimer;
 
   bool get _supportsHoverControls =>
@@ -432,6 +435,8 @@ class _VideoDetailViewState extends State<_VideoDetailView> {
   @override
   void initState() {
     super.initState();
+    _liked = widget.video.isLiked;
+    _likeCount = widget.video.likes;
     _lockPortrait();
     _initializePlayer();
   }
@@ -566,6 +571,50 @@ class _VideoDetailViewState extends State<_VideoDetailView> {
       return;
     }
     setState(() => _isMuted = nextMuted);
+  }
+
+  Future<void> _likeVideo() async {
+    if (_liked || _liking) {
+      return;
+    }
+
+    setState(() {
+      _liked = true;
+      _liking = true;
+      _likeCount += 1;
+    });
+
+    try {
+      final likeCount =
+          await context.read<ApiService>().likeVideo(widget.video.id);
+      if (mounted) {
+        setState(() => _likeCount = likeCount);
+      }
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _liked = false;
+        _likeCount = math.max(0, _likeCount - 1);
+      });
+      ScaffoldMessenger.of(context).showSingleSnackBar(
+        SnackBar(content: Text('Failed to like video: $error')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _liking = false);
+      }
+    }
+  }
+
+  Future<void> _openLikes() {
+    return content_sheets.showContentLikesSheet(
+      context: context,
+      loadLikes: () => context.read<ApiService>().getVideoLikes(
+            widget.video.id,
+          ),
+    );
   }
 
   Future<void> _lockPortrait() async {
@@ -745,6 +794,26 @@ class _VideoDetailViewState extends State<_VideoDetailView> {
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 14),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        OutlinedButton(
+                          onPressed: _liked || _liking ? null : _likeVideo,
+                          child: Icon(
+                            _liked ? Icons.thumb_up : Icons.thumb_up_outlined,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        TextButton(
+                          onPressed: _openLikes,
+                          child: Text('$_likeCount likes'),
+                        ),
+                      ],
+                    ),
                   ),
                   if (widget.video.description.trim().isNotEmpty) ...[
                     const SizedBox(height: 16),

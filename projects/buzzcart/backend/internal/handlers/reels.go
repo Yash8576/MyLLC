@@ -2,8 +2,8 @@ package handlers
 
 import (
 	"buzzcart/internal/cache"
-	"context"
 	"buzzcart/internal/models"
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -402,6 +402,12 @@ func reelQueryBase(whereClause string) string {
 			ci.description,
 			ci.view_count,
 			ci.like_count,
+			CASE WHEN NULLIF($2, '') IS NULL THEN false ELSE EXISTS(
+				SELECT 1
+				FROM content_likes cl
+				WHERE cl.content_id = ci.id
+				  AND cl.user_id = NULLIF($2, '')::uuid
+			) END AS is_liked,
 			ci.comment_count,
 			COALESCE(ci.width, 0) AS width,
 			COALESCE(ci.height, 0) AS height,
@@ -554,6 +560,11 @@ func CreateReel(db *sql.DB) gin.HandlerFunc {
 
 func GetReels(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if err := ensureContentLikesSchema(db); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to prepare likes"})
+			return
+		}
+
 		userID := c.GetString("user_id")
 		cacheKey := reelListCacheKey(userID)
 
@@ -576,6 +587,12 @@ func GetReels(db *sql.DB) gin.HandlerFunc {
 				ci.description,
 				ci.view_count,
 				ci.like_count,
+				CASE WHEN NULLIF($1, '') IS NULL THEN false ELSE EXISTS(
+					SELECT 1
+					FROM content_likes cl
+					WHERE cl.content_id = ci.id
+					  AND cl.user_id = NULLIF($1, '')::uuid
+				) END AS is_liked,
 				ci.comment_count,
 				COALESCE(ci.width, 0) AS width,
 				COALESCE(ci.height, 0) AS height,
@@ -628,6 +645,7 @@ func GetReels(db *sql.DB) gin.HandlerFunc {
 				&reel.Caption,
 				&reel.Views,
 				&reel.Likes,
+				&reel.IsLiked,
 				&reel.CommentCount,
 				&reel.Width,
 				&reel.Height,
@@ -659,6 +677,11 @@ func GetReels(db *sql.DB) gin.HandlerFunc {
 
 func GetReel(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if err := ensureContentLikesSchema(db); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to prepare likes"})
+			return
+		}
+
 		reelID := c.Param("reel_id")
 		userID := c.GetString("user_id")
 		resolvedReelID, err := resolveReelContentID(db, reelID)
@@ -697,6 +720,7 @@ func GetReel(db *sql.DB) gin.HandlerFunc {
 				  AND ci.content_type = 'reel'
 			`),
 			resolvedReelID,
+			userID,
 		).Scan(
 			&reel.ID,
 			&reel.URL,
@@ -704,6 +728,7 @@ func GetReel(db *sql.DB) gin.HandlerFunc {
 			&reel.Caption,
 			&reel.Views,
 			&reel.Likes,
+			&reel.IsLiked,
 			&reel.CommentCount,
 			&reel.Width,
 			&reel.Height,
@@ -946,7 +971,15 @@ func CreateReelComment(db *sql.DB) gin.HandlerFunc {
 
 func LikeReel(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		reelID := c.Param("reel_id")
+		reelID, err := resolveReelContentID(db, c.Param("reel_id"))
+		if err == sql.ErrNoRows {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Reel not found"})
+			return
+		}
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to like reel"})
+			return
+		}
 		userID := c.GetString("user_id")
 
 		canAccess, err := canAccessReel(db, reelID, userID)
@@ -959,15 +992,38 @@ func LikeReel(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		_, err = db.Exec("UPDATE content_items SET like_count = like_count + 1 WHERE id = $1 AND content_type = 'reel'", reelID)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to like reel"})
-			return
-		}
-
 		invalidateReelListCache()
 		invalidateReelDetailCache(reelID)
 
-		c.JSON(http.StatusOK, gin.H{"message": "Reel liked"})
+		likeContent(db, c, reelID)
+		invalidateReelListCache()
+		invalidateReelDetailCache(reelID)
+	}
+}
+
+func GetReelLikes(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		reelID, err := resolveReelContentID(db, c.Param("reel_id"))
+		if err == sql.ErrNoRows {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Reel not found"})
+			return
+		}
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch likes"})
+			return
+		}
+
+		userID := c.GetString("user_id")
+		canAccess, err := canAccessReel(db, reelID, userID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch likes"})
+			return
+		}
+		if !canAccess {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Reel not found"})
+			return
+		}
+
+		getConnectionLikes(db, c, reelID)
 	}
 }
