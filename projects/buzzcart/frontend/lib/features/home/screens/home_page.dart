@@ -873,16 +873,18 @@ class _HomePageState extends State<HomePage> {
               final section = _sections[index];
               final isInlineReelActive =
                   isHomeTabActive && _activeInlineReelSectionIndex == index;
+              late final Widget child;
               switch (section.type) {
                 case _HomeSectionType.productRail:
-                  return _buildProductRail(
+                  child = _buildProductRail(
                     index,
                     section.data as List<ProductModel>,
                     constraints.maxWidth,
                     cartItems,
                   );
+                  break;
                 case _HomeSectionType.post:
-                  return KeyedSubtree(
+                  child = KeyedSubtree(
                     key: _sectionContainsInlineReel(section)
                         ? _getInlineReelSectionKey(index)
                         : null,
@@ -892,8 +894,9 @@ class _HomePageState extends State<HomePage> {
                       isInlineReelActive,
                     ),
                   );
+                  break;
                 case _HomeSectionType.reel:
-                  return KeyedSubtree(
+                  child = KeyedSubtree(
                     key: _getInlineReelSectionKey(index),
                     child: _buildReelCard(
                       section.data as ReelModel,
@@ -901,12 +904,18 @@ class _HomePageState extends State<HomePage> {
                       isInlineReelActive,
                     ),
                   );
+                  break;
                 case _HomeSectionType.video:
-                  return _buildVideoCard(
+                  child = _buildVideoCard(
                     section.data as VideoModel,
                     constraints.maxWidth,
                   );
+                  break;
               }
+              return _KeepAliveHomeSection(
+                key: ValueKey(section.stableKey),
+                child: child,
+              );
             },
           ),
         );
@@ -2051,6 +2060,30 @@ String _formatVideoDuration(int totalSeconds) {
   return '${duration.inMinutes}:$seconds';
 }
 
+class _KeepAliveHomeSection extends StatefulWidget {
+  const _KeepAliveHomeSection({
+    super.key,
+    required this.child,
+  });
+
+  final Widget child;
+
+  @override
+  State<_KeepAliveHomeSection> createState() => _KeepAliveHomeSectionState();
+}
+
+class _KeepAliveHomeSectionState extends State<_KeepAliveHomeSection>
+    with AutomaticKeepAliveClientMixin<_KeepAliveHomeSection> {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
+  }
+}
+
 enum _HomeSectionType {
   productRail,
   post,
@@ -2066,4 +2099,19 @@ class _HomeSection {
 
   final _HomeSectionType type;
   final Object data;
+
+  String get stableKey {
+    switch (type) {
+      case _HomeSectionType.productRail:
+        final products = data as List<ProductModel>;
+        final ids = products.map((product) => product.id).join(',');
+        return 'productRail:$ids';
+      case _HomeSectionType.post:
+        return 'post:${(data as PostModel).id}';
+      case _HomeSectionType.reel:
+        return 'reel:${(data as ReelModel).id}';
+      case _HomeSectionType.video:
+        return 'video:${(data as VideoModel).id}';
+    }
+  }
 }

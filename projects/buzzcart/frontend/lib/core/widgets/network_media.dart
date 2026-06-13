@@ -78,6 +78,9 @@ class AppCachedImage extends StatelessWidget {
         fit: fit,
         alignment: alignment,
         fadeInDuration: const Duration(milliseconds: 120),
+        fadeOutDuration: Duration.zero,
+        placeholderFadeInDuration: Duration.zero,
+        useOldImageOnUrlChange: true,
         memCacheWidth:
             width != null && width!.isFinite ? width!.round() * 2 : null,
         memCacheHeight:
