@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -29,6 +30,9 @@ class VideosPage extends StatefulWidget {
 }
 
 class _VideosPageState extends State<VideosPage> {
+  static const double _desktopVideoTileTargetWidth = 340;
+  static const double _videoTileSpacing = 18;
+
   final ApiService _api = ApiService();
   List<VideoModel> _videos = <VideoModel>[];
   VideoModel? _videoDetail;
@@ -161,13 +165,41 @@ class _VideosPageState extends State<VideosPage> {
                 )
               : RefreshIndicator(
                   onRefresh: _fetchVideos,
-                  child: ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
-                    itemCount: _videos.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final video = _videos[index];
-                      return _VideoListCard(video: video);
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isCompact = constraints.maxWidth < 700;
+                      if (isCompact) {
+                        return ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
+                          itemCount: _videos.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            final video = _videos[index];
+                            return _VideoListCard(video: video);
+                          },
+                        );
+                      }
+
+                      final availableWidth = constraints.maxWidth - 40;
+                      final columnCount = math.max(
+                        2,
+                        (availableWidth / _desktopVideoTileTargetWidth).floor(),
+                      );
+                      return GridView.builder(
+                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: columnCount,
+                          mainAxisSpacing: _videoTileSpacing,
+                          crossAxisSpacing: _videoTileSpacing,
+                          childAspectRatio: 1.12,
+                        ),
+                        itemCount: _videos.length,
+                        itemBuilder: (context, index) {
+                          final video = _videos[index];
+                          return _VideoListCard(video: video);
+                        },
+                      );
                     },
                   ),
                 ),
