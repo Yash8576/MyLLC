@@ -152,6 +152,17 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
     );
   }
 
+  void _syncVisiblePage() {
+    if (!_pageController.hasClients || _reels.isEmpty || !mounted) {
+      return;
+    }
+    final visiblePage = _pageController.page?.round() ?? _currentIndex;
+    final clampedIndex = visiblePage.clamp(0, _reels.length - 1).toInt();
+    setState(() {
+      _currentIndex = clampedIndex;
+    });
+  }
+
   void _handleMuteChanged(bool isMuted) {
     if (_areReelsMuted == isMuted || !mounted) {
       return;
@@ -275,31 +286,39 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
       backgroundColor: Colors.black,
       body: RefreshIndicator(
         onRefresh: _fetchReels,
-        child: PageView.builder(
-          controller: _pageController,
-          scrollDirection: Axis.vertical,
-          physics: const AlwaysScrollableScrollPhysics(
-            parent: PageScrollPhysics(),
-          ),
-          itemCount: _reels.length,
-          onPageChanged: (index) => setState(() => _currentIndex = index),
-          itemBuilder: (context, index) {
-            final reel = _reels[index];
-            return _ReelViewport(
-              key: ValueKey(reel.id),
-              reel: reel,
-              isActive:
-                  index == _currentIndex && isReelsBranchActive && _isAppActive,
-              isMuted: _areReelsMuted,
-              onMuteChanged: _handleMuteChanged,
-              showNavigationArrows: showDesktopNavArrows,
-              canGoPrevious: index > 0,
-              canGoNext: index < _reels.length - 1,
-              onPrevious: index > 0 ? () => _goToReel(index - 1) : null,
-              onNext:
-                  index < _reels.length - 1 ? () => _goToReel(index + 1) : null,
-            );
+        child: NotificationListener<ScrollEndNotification>(
+          onNotification: (_) {
+            _syncVisiblePage();
+            return false;
           },
+          child: PageView.builder(
+            controller: _pageController,
+            scrollDirection: Axis.vertical,
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: PageScrollPhysics(),
+            ),
+            itemCount: _reels.length,
+            onPageChanged: (index) => setState(() => _currentIndex = index),
+            itemBuilder: (context, index) {
+              final reel = _reels[index];
+              return _ReelViewport(
+                key: ValueKey(reel.id),
+                reel: reel,
+                isActive: index == _currentIndex &&
+                    isReelsBranchActive &&
+                    _isAppActive,
+                isMuted: _areReelsMuted,
+                onMuteChanged: _handleMuteChanged,
+                showNavigationArrows: showDesktopNavArrows,
+                canGoPrevious: index > 0,
+                canGoNext: index < _reels.length - 1,
+                onPrevious: index > 0 ? () => _goToReel(index - 1) : null,
+                onNext: index < _reels.length - 1
+                    ? () => _goToReel(index + 1)
+                    : null,
+              );
+            },
+          ),
         ),
       ),
     );
@@ -385,7 +404,7 @@ class _ReelViewportState extends State<_ReelViewport> {
     super.initState();
     _commentCount = widget.reel.commentCount;
     if (widget.isActive) {
-      _ensureController();
+      _resumeActiveController();
     }
   }
 
@@ -399,11 +418,8 @@ class _ReelViewportState extends State<_ReelViewport> {
     if (oldWidget.reel.id != widget.reel.id) {
       _releaseController(cacheForReuse: true, cacheKey: oldWidget.reel.id);
     }
-    if (widget.isActive && _controller == null) {
-      _ensureController();
-    } else if (widget.isActive && _controller != null) {
-      _controller!.setVolume(widget.isMuted ? 0 : 1);
-      _controller!.play();
+    if (widget.isActive) {
+      _resumeActiveController();
     } else if (!widget.isActive && _controller != null) {
       _controller!.pause();
     }
@@ -429,6 +445,24 @@ class _ReelViewportState extends State<_ReelViewport> {
         controller.dispose();
       }
     }
+  }
+
+  void _resumeActiveController() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !widget.isActive) {
+        return;
+      }
+      final controller = _controller;
+      if (controller == null) {
+        _ensureController();
+        return;
+      }
+      if (!controller.value.isInitialized) {
+        return;
+      }
+      controller.setVolume(widget.isMuted ? 0 : 1);
+      controller.play();
+    });
   }
 
   Future<void> _ensureController() async {
