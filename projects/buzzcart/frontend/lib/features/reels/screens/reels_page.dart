@@ -15,6 +15,12 @@ import '../../content/presentation/widgets/content_bottom_sheets.dart'
     as content_sheets;
 import '../../layout/main_layout.dart';
 
+bool get _allowDesktopWebBackgroundPlayback =>
+    kIsWeb &&
+    (defaultTargetPlatform == TargetPlatform.windows ||
+        defaultTargetPlatform == TargetPlatform.macOS ||
+        defaultTargetPlatform == TargetPlatform.linux);
+
 class ReelsPage extends StatefulWidget {
   const ReelsPage({
     super.key,
@@ -68,6 +74,9 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (_allowDesktopWebBackgroundPlayback) {
+      return;
+    }
     final isAppActive = state == AppLifecycleState.resumed;
     if (_isAppActive == isAppActive || !mounted) {
       return;

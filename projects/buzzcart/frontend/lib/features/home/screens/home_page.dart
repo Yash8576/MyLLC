@@ -20,6 +20,12 @@ import '../../products/widgets/product_card_social_preview.dart';
 
 final Map<String, int> _homeVideoDurationCache = <String, int>{};
 
+bool get _allowDesktopWebBackgroundPlayback =>
+    kIsWeb &&
+    (defaultTargetPlatform == TargetPlatform.windows ||
+        defaultTargetPlatform == TargetPlatform.macOS ||
+        defaultTargetPlatform == TargetPlatform.linux);
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -1844,6 +1850,9 @@ class _InlineReelMediaState extends State<_InlineReelMedia>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (_allowDesktopWebBackgroundPlayback) {
+      return;
+    }
     final isAppActive = state == AppLifecycleState.resumed;
     _isAppActive = isAppActive;
     if (!isAppActive) {
