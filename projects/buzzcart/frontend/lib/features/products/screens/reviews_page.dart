@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:buzz_social_cart/core/utils/app_snack_bar.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../core/providers/auth_provider.dart';
@@ -194,7 +195,7 @@ class _ReviewsPageState extends State<ReviewsPage> {
       await _fetchReviews(showLoading: false, forceRefresh: true);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context).showSingleSnackBar(
           SnackBar(content: Text('Error: ${e.toString()}')),
         );
       }

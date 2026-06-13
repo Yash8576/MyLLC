@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:buzz_social_cart/core/utils/app_snack_bar.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
@@ -99,7 +100,7 @@ class _UploadContentScreenState extends State<UploadContentScreen> {
           }
           // Show loading indicator while preparing cropper
           if (kIsWeb) {
-            ScaffoldMessenger.of(context).showSnackBar(
+            ScaffoldMessenger.of(context).showSingleSnackBar(
               const SnackBar(
                 content: Text('Preparing image cropper...'),
                 duration: Duration(seconds: 2),
@@ -123,7 +124,7 @@ class _UploadContentScreenState extends State<UploadContentScreen> {
               return;
             }
             if (dimensions == null || !_isValidReelAspectRatio(dimensions)) {
-              ScaffoldMessenger.of(context).showSnackBar(
+              ScaffoldMessenger.of(context).showSingleSnackBar(
                 const SnackBar(
                   content: Text(
                     'Reels must be vertical 9:16 videos.',
@@ -135,7 +136,7 @@ class _UploadContentScreenState extends State<UploadContentScreen> {
             }
           }
           provider.addFile(video);
-          ScaffoldMessenger.of(context).showSnackBar(
+          ScaffoldMessenger.of(context).showSingleSnackBar(
             SnackBar(
               content: Text(
                   '${contentType == 'reel' ? 'Reel' : 'Video'} selected successfully!'),
@@ -147,7 +148,7 @@ class _UploadContentScreenState extends State<UploadContentScreen> {
         // For audio, we'll use a file picker or let user record
         // For now, showing a message
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          ScaffoldMessenger.of(context).showSingleSnackBar(
             const SnackBar(content: Text('Audio upload coming soon!')),
           );
         }
@@ -155,7 +156,7 @@ class _UploadContentScreenState extends State<UploadContentScreen> {
     } catch (e) {
       debugPrint('Media Picker Error: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context).showSingleSnackBar(
           SnackBar(
             content: Text('Error picking media: ${e.toString()}'),
             backgroundColor: Colors.red,
@@ -267,7 +268,7 @@ class _UploadContentScreenState extends State<UploadContentScreen> {
       if (Platform.isWindows) {
         if (mounted) {
           provider.addFile(originalImage);
-          ScaffoldMessenger.of(context).showSnackBar(
+          ScaffoldMessenger.of(context).showSingleSnackBar(
             const SnackBar(
               content: Text('Image added without cropping on Windows'),
               duration: Duration(seconds: 1),
@@ -328,7 +329,7 @@ class _UploadContentScreenState extends State<UploadContentScreen> {
           } else {
             provider.addFile(XFile(croppedFile.path));
           }
-          ScaffoldMessenger.of(context).showSnackBar(
+          ScaffoldMessenger.of(context).showSingleSnackBar(
             const SnackBar(
               content: Text('Image cropped successfully!'),
               duration: Duration(seconds: 1),
@@ -410,7 +411,7 @@ class _UploadContentScreenState extends State<UploadContentScreen> {
   Future<void> _uploadContent(UploadContentProvider provider) async {
     if (provider.selectedFiles.isEmpty) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context).showSingleSnackBar(
           const SnackBar(content: Text('Please select a file to upload')),
         );
       }
@@ -422,7 +423,7 @@ class _UploadContentScreenState extends State<UploadContentScreen> {
     final caption = _captionController.text.trim();
     if (contentType == 'video' && title.isEmpty) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context).showSingleSnackBar(
           const SnackBar(content: Text('Video title is required')),
         );
       }
@@ -455,7 +456,7 @@ class _UploadContentScreenState extends State<UploadContentScreen> {
             _activeVideoSelectionKey = null;
             _activeReelSelectionKey = null;
             appRefresh.notifyContentPublished();
-            ScaffoldMessenger.of(context).showSnackBar(
+            ScaffoldMessenger.of(context).showSingleSnackBar(
               SnackBar(
                 content: Text(result['post_created'] == true
                     ? 'Photo posted successfully!'
@@ -500,7 +501,7 @@ class _UploadContentScreenState extends State<UploadContentScreen> {
             _activeVideoSelectionKey = null;
             _activeReelSelectionKey = null;
             appRefresh.notifyContentPublished();
-            ScaffoldMessenger.of(context).showSnackBar(
+            ScaffoldMessenger.of(context).showSingleSnackBar(
               const SnackBar(content: Text('Video uploaded successfully!')),
             );
             context.go('/profile');
@@ -544,7 +545,7 @@ class _UploadContentScreenState extends State<UploadContentScreen> {
             _activeVideoSelectionKey = null;
             _activeReelSelectionKey = null;
             appRefresh.notifyContentPublished();
-            ScaffoldMessenger.of(context).showSnackBar(
+            ScaffoldMessenger.of(context).showSingleSnackBar(
               const SnackBar(content: Text('Reel uploaded successfully!')),
             );
             context.go('/profile');
@@ -553,7 +554,7 @@ class _UploadContentScreenState extends State<UploadContentScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context).showSingleSnackBar(
           SnackBar(content: Text('Upload failed: $e')),
         );
       }

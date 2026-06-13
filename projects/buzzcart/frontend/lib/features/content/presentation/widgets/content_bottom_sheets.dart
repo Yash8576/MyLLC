@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:buzz_social_cart/core/utils/app_snack_bar.dart';
 import 'package:go_router/go_router.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
@@ -124,7 +125,7 @@ class _ContentCommentsSheetState extends State<_ContentCommentsSheet> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSingleSnackBar(
         SnackBar(content: Text('$error')),
       );
     } finally {

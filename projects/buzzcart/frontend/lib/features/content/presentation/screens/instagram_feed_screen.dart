@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:buzz_social_cart/core/utils/app_snack_bar.dart';
 import '../../../../core/models/models.dart';
 import '../../../../core/services/api_service.dart';
 import '../widgets/post_card.dart';
@@ -117,7 +118,7 @@ class _InstagramFeedScreenState extends State<InstagramFeedScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _loadingMore = false);
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSingleSnackBar(
         SnackBar(content: Text('Failed to load more posts: ${e.toString()}')),
       );
     }
@@ -153,7 +154,7 @@ class _InstagramFeedScreenState extends State<InstagramFeedScreen> {
         }
       });
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSingleSnackBar(
         SnackBar(content: Text('Failed to update like: ${e.toString()}')),
       );
     }

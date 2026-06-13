@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:buzz_social_cart/core/utils/app_snack_bar.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../core/providers/cart_provider.dart';
@@ -106,7 +107,7 @@ class _SearchPageState extends State<SearchPage> {
     } catch (e) {
       setState(() => _loading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context).showSingleSnackBar(
           const SnackBar(content: Text('Search failed')),
         );
       }
@@ -832,7 +833,7 @@ class _ProductCardState extends State<_ProductCard> {
     final currentQuantity = _currentCartQuantity(cartProvider.cart.items);
     final remainingStock = _remainingStock(currentQuantity);
     if (remainingStock <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSingleSnackBar(
         const SnackBar(content: Text('Max stock already in cart')),
       );
       return;
@@ -854,7 +855,7 @@ class _ProductCardState extends State<_ProductCard> {
       _isUpdating = false;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
+    ScaffoldMessenger.of(context).showSingleSnackBar(
       SnackBar(
         content: Text(added ? 'Added to cart!' : 'Failed to add to cart'),
       ),
@@ -898,7 +899,7 @@ class _ProductCardState extends State<_ProductCard> {
     });
 
     if (!updated) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSingleSnackBar(
         const SnackBar(content: Text('Failed to update cart')),
       );
     }

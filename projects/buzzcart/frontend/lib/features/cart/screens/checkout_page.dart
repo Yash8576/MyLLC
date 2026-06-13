@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:buzz_social_cart/core/utils/app_snack_bar.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -54,7 +55,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
     final cartProvider = context.read<CartProvider>();
     if (cartProvider.cart.items.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSingleSnackBar(
         const SnackBar(content: Text('Your cart is empty')),
       );
       return;
@@ -82,7 +83,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSingleSnackBar(
         SnackBar(
           content: Text(
             'Purchase successful. Order ${result['order_number'] as String}',
@@ -99,7 +100,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
       final message = e is Exception
           ? e.toString().replaceFirst('Exception: ', '')
           : 'Checkout failed';
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSingleSnackBar(
         SnackBar(
           content: Text(message),
           backgroundColor: AppColors.destructive,

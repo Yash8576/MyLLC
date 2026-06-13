@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:buzz_social_cart/core/utils/app_snack_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/providers/theme_provider.dart';
@@ -95,7 +96,7 @@ class _SettingsPageState extends State<SettingsPage> {
       });
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSingleSnackBar(
         SnackBar(
           content: Text(
             value
@@ -109,7 +110,7 @@ class _SettingsPageState extends State<SettingsPage> {
       setState(() {
         _isHibernated = previousValue;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSingleSnackBar(
         SnackBar(content: Text('Failed to update hibernate mode: $e')),
       );
     } finally {
@@ -159,13 +160,13 @@ class _SettingsPageState extends State<SettingsPage> {
       });
 
       if (showSuccessMessage) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context).showSingleSnackBar(
           const SnackBar(content: Text('Visibility settings saved')),
         );
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSingleSnackBar(
         SnackBar(content: Text('Failed to save visibility settings: $e')),
       );
     } finally {
@@ -544,7 +545,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   title: const Text('Change Password'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    ScaffoldMessenger.of(context).showSingleSnackBar(
                       const SnackBar(content: Text('Coming soon')),
                     );
                   },
@@ -599,7 +600,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   authProvider.logout();
                   if (mounted) {
                     navigator.pushReplacementNamed('/Login');
-                    scaffoldMessenger.showSnackBar(
+                    scaffoldMessenger.showSingleSnackBar(
                       const SnackBar(content: Text('Logged out successfully')),
                     );
                   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:buzz_social_cart/core/utils/app_snack_bar.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -76,7 +77,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           _isLoadingMedia = false;
         });
         // Show error to user
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context).showSingleSnackBar(
           SnackBar(
             content: Text('Failed to load photos: $e'),
             backgroundColor: Colors.red,

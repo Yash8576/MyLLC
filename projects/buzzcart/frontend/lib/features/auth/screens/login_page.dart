@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:buzz_social_cart/core/utils/app_snack_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
@@ -60,7 +61,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _showError(String message, {bool showRetry = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
+    ScaffoldMessenger.of(context).showSingleSnackBar(
       SnackBar(
         content: Text(message),
         backgroundColor: AppColors.destructive,

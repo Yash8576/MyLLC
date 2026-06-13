@@ -6,6 +6,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:buzz_social_cart/core/utils/app_snack_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
@@ -380,7 +381,7 @@ class _ProfilePageState extends State<ProfilePage>
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSingleSnackBar(
         SnackBar(
           content: Text(
             isFollowing ? 'Failed to unfollow user' : 'Failed to follow user',
@@ -499,14 +500,14 @@ class _ProfilePageState extends State<ProfilePage>
       final message = e.response?.statusCode == 403
           ? 'This list is private'
           : 'Failed to load $title';
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSingleSnackBar(
         SnackBar(content: Text(message)),
       );
     } catch (_) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSingleSnackBar(
         SnackBar(content: Text('Failed to load $title')),
       );
     }
@@ -575,7 +576,7 @@ class _ProfilePageState extends State<ProfilePage>
       });
       _storeCurrentProfileCache();
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSingleSnackBar(
         SnackBar(content: Text('${_capitalizeLabel(itemLabel)} deleted')),
       );
     } catch (e) {
@@ -583,7 +584,7 @@ class _ProfilePageState extends State<ProfilePage>
         return;
       }
       setState(() => _deletingItemIds.remove(deletingKey));
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSingleSnackBar(
         SnackBar(content: Text('Failed to delete $itemLabel')),
       );
     }
@@ -609,7 +610,7 @@ class _ProfilePageState extends State<ProfilePage>
       });
       _storeCurrentProfileCache();
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSingleSnackBar(
         const SnackBar(content: Text('Product deleted')),
       );
     } catch (e) {
@@ -617,7 +618,7 @@ class _ProfilePageState extends State<ProfilePage>
         return;
       }
       setState(() => _deletingItemIds.remove(deletingKey));
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSingleSnackBar(
         const SnackBar(content: Text('Failed to delete product')),
       );
     }
@@ -880,7 +881,7 @@ class _ProfilePageState extends State<ProfilePage>
               final messenger = ScaffoldMessenger.of(context);
               final updatedName = nameController.text.trim();
               if (updatedName.isEmpty) {
-                messenger.showSnackBar(
+                messenger.showSingleSnackBar(
                   const SnackBar(content: Text('Name cannot be empty')),
                 );
                 return;
@@ -900,7 +901,7 @@ class _ProfilePageState extends State<ProfilePage>
                 if (!mounted) {
                   return;
                 }
-                messenger.showSnackBar(
+                messenger.showSingleSnackBar(
                   SnackBar(content: Text('Failed to update profile: $e')),
                 );
               }
@@ -914,7 +915,7 @@ class _ProfilePageState extends State<ProfilePage>
     nameController.dispose();
 
     if (didSave == true && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSingleSnackBar(
         const SnackBar(content: Text('Profile updated!')),
       );
     }
@@ -1062,7 +1063,7 @@ class _ProfilePageState extends State<ProfilePage>
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
+    ScaffoldMessenger.of(context).showSingleSnackBar(
       SnackBar(content: Text(message)),
     );
   }

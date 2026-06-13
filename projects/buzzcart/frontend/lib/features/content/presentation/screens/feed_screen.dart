@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:buzz_social_cart/core/utils/app_snack_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -49,7 +50,7 @@ class _FeedScreenState extends State<FeedScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
+    ScaffoldMessenger.of(context).showSingleSnackBar(
       SnackBar(
         content: Text(added ? 'Added to cart!' : 'Failed to add to cart'),
       ),

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:buzz_social_cart/core/utils/app_snack_bar.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:provider/provider.dart';
@@ -48,7 +49,7 @@ class _WriteReviewDialogState extends State<WriteReviewDialog> {
 
   Future<void> _pickImage(ImageSource source) async {
     if (_selectedImages.length >= _maxImages) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSingleSnackBar(
         const SnackBar(content: Text('Maximum $_maxImages images allowed')),
       );
       return;
@@ -69,7 +70,7 @@ class _WriteReviewDialogState extends State<WriteReviewDialog> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context).showSingleSnackBar(
           SnackBar(content: Text('Error picking image: ${e.toString()}')),
         );
       }
@@ -100,7 +101,7 @@ class _WriteReviewDialogState extends State<WriteReviewDialog> {
 
   Future<void> _submitReview() async {
     if (_rating == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSingleSnackBar(
         const SnackBar(content: Text('Please select a rating')),
       );
       return;
@@ -142,14 +143,14 @@ class _WriteReviewDialogState extends State<WriteReviewDialog> {
 
       if (mounted) {
         Navigator.of(context).pop(true); // Return true to indicate success
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context).showSingleSnackBar(
           const SnackBar(content: Text('Review submitted successfully!')),
         );
       }
     } catch (e) {
       if (mounted) {
         setState(() => _submitting = false);
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context).showSingleSnackBar(
           SnackBar(content: Text('Error: ${e.toString()}')),
         );
       }

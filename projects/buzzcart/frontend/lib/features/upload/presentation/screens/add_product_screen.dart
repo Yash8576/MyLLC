@@ -1,6 +1,7 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:buzz_social_cart/core/utils/app_snack_bar.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -522,7 +523,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     final authProvider = context.read<AuthProvider>();
 
     if (_mediaQueue.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSingleSnackBar(
         const SnackBar(
           content: Text('Add at least one product photo or video.'),
         ),
@@ -531,7 +532,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     }
 
     if (_specificationPdf == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSingleSnackBar(
         const SnackBar(
           content:
               Text('Upload the product specification PDF before publishing.'),
@@ -763,7 +764,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
       context.read<AddProductProvider>().clearAll();
       context.read<AppRefreshProvider>().notifyProductPublished();
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSingleSnackBar(
         SnackBar(
           content: Text(
             _isEditing
@@ -790,7 +791,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSingleSnackBar(
         SnackBar(
           content: Text(
             _isEditing

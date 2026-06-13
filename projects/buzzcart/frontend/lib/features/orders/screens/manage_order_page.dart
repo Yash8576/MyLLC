@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:buzz_social_cart/core/utils/app_snack_bar.dart';
 import 'package:dio/dio.dart';
 import 'package:provider/provider.dart';
 
@@ -217,7 +218,7 @@ class _ManageOrderPageState extends State<ManageOrderPage> {
         _didChangeRating = true;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSingleSnackBar(
         SnackBar(
           content: Text(
             hadExistingReview
@@ -230,7 +231,7 @@ class _ManageOrderPageState extends State<ManageOrderPage> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSingleSnackBar(
         SnackBar(content: Text(_saveErrorMessage(error))),
       );
     } finally {
@@ -578,7 +579,7 @@ class _ManageOrderPageState extends State<ManageOrderPage> {
 
                         if (reviewUpdate.rating == previousRating &&
                             nextReviewText == previousReviewText) {
-                          messenger.showSnackBar(
+                          messenger.showSingleSnackBar(
                             const SnackBar(
                               content: Text(
                                 'Please change rating or review before updating',

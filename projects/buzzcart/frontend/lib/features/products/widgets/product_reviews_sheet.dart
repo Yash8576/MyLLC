@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:buzz_social_cart/core/utils/app_snack_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
@@ -315,7 +316,7 @@ class _ProductReviewsSheetState extends State<_ProductReviewsSheet> {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSingleSnackBar(
         SnackBar(
           content: Text(
             hadExistingReview ? 'Review updated' : 'Review posted',
@@ -326,7 +327,7 @@ class _ProductReviewsSheetState extends State<_ProductReviewsSheet> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSingleSnackBar(
         SnackBar(content: Text(_errorMessage(error))),
       );
     } finally {

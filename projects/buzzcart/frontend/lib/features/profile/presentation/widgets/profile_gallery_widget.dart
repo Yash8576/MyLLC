@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:buzz_social_cart/core/utils/app_snack_bar.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/models/models.dart';
 import '../../../../core/services/api_service.dart';
@@ -149,7 +150,7 @@ class _ProfileGalleryWidgetState extends State<ProfileGalleryWidget> {
         _posts.removeWhere((item) => item.id == post.id);
         _deletingPostIds.remove(post.id);
       });
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSingleSnackBar(
         const SnackBar(content: Text('Post deleted')),
       );
     } catch (_) {
@@ -157,7 +158,7 @@ class _ProfileGalleryWidgetState extends State<ProfileGalleryWidget> {
         return;
       }
       setState(() => _deletingPostIds.remove(post.id));
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSingleSnackBar(
         const SnackBar(content: Text('Failed to delete post')),
       );
     }

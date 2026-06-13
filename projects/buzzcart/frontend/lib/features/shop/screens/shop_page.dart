@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:buzz_social_cart/core/utils/app_snack_bar.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -309,7 +310,7 @@ class _ShopPageState extends State<ShopPage> {
 
     if (remainingStock <= 0) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context).showSingleSnackBar(
           const SnackBar(content: Text('Max stock already in cart')),
         );
       }
@@ -335,7 +336,7 @@ class _ShopPageState extends State<ShopPage> {
       _updatingCartProductIds.remove(product.id);
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
+    ScaffoldMessenger.of(context).showSingleSnackBar(
       SnackBar(
         content: Text(
           added ? 'Added to cart!' : 'Failed to add to cart',
@@ -396,7 +397,7 @@ class _ShopPageState extends State<ShopPage> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
+    ScaffoldMessenger.of(context).showSingleSnackBar(
       const SnackBar(content: Text('Failed to update cart')),
     );
   }
@@ -512,7 +513,7 @@ class _ShopPageState extends State<ShopPage> {
     final quantityToAdd = math.min(_quantity, remainingStock);
     if (quantityToAdd < 1) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context).showSingleSnackBar(
           const SnackBar(content: Text('Max stock already in cart')),
         );
       }
@@ -528,7 +529,7 @@ class _ShopPageState extends State<ShopPage> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
+    ScaffoldMessenger.of(context).showSingleSnackBar(
       SnackBar(
         content: Text(
           added
@@ -717,7 +718,7 @@ class _ShopPageState extends State<ShopPage> {
         ? ' Product PDF support is already saved for future rollout.'
         : '';
 
-    ScaffoldMessenger.of(context).showSnackBar(
+    ScaffoldMessenger.of(context).showSingleSnackBar(
       SnackBar(content: Text('Coming soon.$detail')),
     );
   }
