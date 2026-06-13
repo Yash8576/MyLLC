@@ -36,6 +36,8 @@ class ReelsPage extends StatefulWidget {
 class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
   final ApiService _api = ApiService();
   final PageController _pageController = PageController();
+  final Map<String, GlobalKey<_ReelViewportState>> _reelKeys =
+      <String, GlobalKey<_ReelViewportState>>{};
   List<ReelModel> _reels = <ReelModel>[];
   bool _loading = true;
   int _currentIndex = 0;
@@ -49,6 +51,7 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _pageController.addListener(_handlePagePositionChanged);
     _fetchReels();
   }
 
@@ -68,6 +71,7 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
   void dispose() {
     _appRefreshProvider?.removeListener(_handleContentRefresh);
     WidgetsBinding.instance.removeObserver(this);
+    _pageController.removeListener(_handlePagePositionChanged);
     _pageController.dispose();
     super.dispose();
   }
@@ -119,11 +123,14 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
       if (!mounted) {
         return;
       }
+      final reelIds = hydratedReels.map((reel) => reel.id).toSet();
+      _reelKeys.removeWhere((reelId, _) => !reelIds.contains(reelId));
       setState(() {
         _reels = hydratedReels;
         _currentIndex = targetIndex;
         _loading = false;
       });
+      _syncCurrentReelPlayback();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || !_pageController.hasClients) {
           return;
@@ -131,6 +138,7 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
         if ((_pageController.page?.round() ?? _currentIndex) != targetIndex) {
           _pageController.jumpToPage(targetIndex);
         }
+        _syncCurrentReelPlayback();
       });
     } catch (_) {
       if (!mounted) {
@@ -152,14 +160,50 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
     );
   }
 
+  void _handlePagePositionChanged() {
+    if (!_pageController.hasClients || _reels.isEmpty || !mounted) {
+      return;
+    }
+    final page = _pageController.page;
+    if (page == null) {
+      return;
+    }
+    final visibleIndex = page.round().clamp(0, _reels.length - 1).toInt();
+    if (visibleIndex == _currentIndex) {
+      return;
+    }
+    _setCurrentIndex(visibleIndex);
+  }
+
   void _syncVisiblePage() {
     if (!_pageController.hasClients || _reels.isEmpty || !mounted) {
       return;
     }
     final visiblePage = _pageController.page?.round() ?? _currentIndex;
     final clampedIndex = visiblePage.clamp(0, _reels.length - 1).toInt();
-    setState(() {
-      _currentIndex = clampedIndex;
+    _setCurrentIndex(clampedIndex);
+  }
+
+  void _setCurrentIndex(int index) {
+    final clampedIndex = index.clamp(0, _reels.length - 1).toInt();
+    if (_currentIndex != clampedIndex) {
+      setState(() {
+        _currentIndex = clampedIndex;
+      });
+    }
+    _syncCurrentReelPlayback();
+  }
+
+  void _syncCurrentReelPlayback() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _reels.isEmpty || _currentIndex >= _reels.length) {
+        return;
+      }
+      for (final entry in _reelKeys.entries) {
+        entry.value.currentState?.syncActivePlayback(
+          shouldPlay: entry.key == _reels[_currentIndex].id && _isAppActive,
+        );
+      }
     });
   }
 
@@ -215,9 +259,7 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
         return;
       }
       _pageController.jumpToPage(targetIndex);
-      setState(() {
-        _currentIndex = targetIndex;
-      });
+      _setCurrentIndex(targetIndex);
     });
   }
 
@@ -233,8 +275,9 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     _syncRequestedReel();
     final activeScope = ActiveBranchScope.maybeOf(context);
+    final currentPath = activeScope?.currentPath ?? '';
     final isReelsBranchActive = (activeScope?.currentIndex ?? 0) == 2 &&
-        (activeScope?.currentPath ?? '') == '/reels';
+        (currentPath == '/reels' || currentPath.startsWith('/reels/'));
     final showDesktopNavArrows =
         kIsWeb || defaultTargetPlatform == TargetPlatform.windows;
 
@@ -298,11 +341,15 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
               parent: PageScrollPhysics(),
             ),
             itemCount: _reels.length,
-            onPageChanged: (index) => setState(() => _currentIndex = index),
+            onPageChanged: _setCurrentIndex,
             itemBuilder: (context, index) {
               final reel = _reels[index];
+              final key = _reelKeys.putIfAbsent(
+                reel.id,
+                () => GlobalKey<_ReelViewportState>(),
+              );
               return _ReelViewport(
-                key: ValueKey(reel.id),
+                key: key,
                 reel: reel,
                 isActive: index == _currentIndex &&
                     isReelsBranchActive &&
@@ -463,6 +510,25 @@ class _ReelViewportState extends State<_ReelViewport> {
       controller.setVolume(widget.isMuted ? 0 : 1);
       controller.play();
     });
+  }
+
+  void syncActivePlayback({required bool shouldPlay}) {
+    final controller = _controller;
+    if (shouldPlay) {
+      if (controller == null) {
+        _ensureController();
+        return;
+      }
+      if (!controller.value.isInitialized) {
+        return;
+      }
+      controller.setVolume(widget.isMuted ? 0 : 1);
+      controller.play();
+      return;
+    }
+    if (controller != null && controller.value.isInitialized) {
+      controller.pause();
+    }
   }
 
   Future<void> _ensureController() async {
