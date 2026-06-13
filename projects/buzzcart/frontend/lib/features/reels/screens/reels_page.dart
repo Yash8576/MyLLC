@@ -508,6 +508,7 @@ class _ReelViewportState extends State<_ReelViewport> {
   int _playbackGeneration = 0;
   Timer? _playbackRetryTimer;
   bool _liked = false;
+  bool _liking = false;
   int _likeCount = 0;
   int _commentCount = 0;
 
@@ -712,18 +713,24 @@ class _ReelViewportState extends State<_ReelViewport> {
   }
 
   Future<void> _likeReel() async {
+    if (_liking) return;
     final wasLiked = _liked;
     setState(() {
       _liked = !wasLiked;
+      _liking = true;
       _likeCount = math.max(0, _likeCount + (wasLiked ? -1 : 1));
     });
     try {
       final result = await context.read<ApiService>().likeReel(widget.reel.id);
       if (mounted) {
-        setState(() {
-          _liked = result.isLiked;
-          _likeCount = result.likes;
-        });
+        final needsUpdate =
+            result.isLiked != _liked || result.likes != _likeCount;
+        if (needsUpdate) {
+          setState(() {
+            _liked = result.isLiked;
+            _likeCount = result.likes;
+          });
+        }
         widget.onLikeChanged?.call(result.isLiked, result.likes);
       }
     } catch (_) {
@@ -733,6 +740,8 @@ class _ReelViewportState extends State<_ReelViewport> {
           _likeCount = math.max(0, _likeCount + (wasLiked ? 1 : -1));
         });
       }
+    } finally {
+      if (mounted) setState(() => _liking = false);
     }
   }
 

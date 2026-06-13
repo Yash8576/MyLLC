@@ -3,6 +3,7 @@ package handlers
 import (
 	"buzzcart/internal/models"
 	"database/sql"
+	"log"
 	"net/http"
 	"sync"
 
@@ -47,10 +48,12 @@ func EnsureContentLikesSchema(db *sql.DB) error {
 		}
 		for _, stmt := range statements {
 			if _, err := db.Exec(stmt); err != nil {
+				log.Printf("[content_likes] schema init failed: %v", err)
 				contentLikesErr = err
 				return
 			}
 		}
+		log.Println("[content_likes] schema ready")
 	})
 	return contentLikesErr
 }
@@ -114,11 +117,15 @@ func toggleLikeContent(db *sql.DB, c *gin.Context, contentID string) {
 
 func getConnectionLikes(db *sql.DB, c *gin.Context, contentID string) {
 	if err := ensureContentLikesSchema(db); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to prepare likes"})
+		log.Printf("[content_likes] getConnectionLikes: schema not ready: %v", err)
+		c.JSON(http.StatusOK, []models.ContentLikeUser{})
 		return
 	}
 
 	userID := c.GetString("user_id")
+
+	// Only query connections (mutual follows) who liked this content.
+	// Returns [] when nobody liked it or viewer has no connections — not a 500.
 	rows, err := db.Query(
 		`SELECT
 			u.id,
@@ -127,21 +134,26 @@ func getConnectionLikes(db *sql.DB, c *gin.Context, contentID string) {
 			cl.created_at
 		FROM content_likes cl
 		JOIN users u ON u.id = cl.user_id
-		JOIN user_follows viewer_follows_liker
-			ON viewer_follows_liker.follower_id = NULLIF($2, '')::uuid
-			AND viewer_follows_liker.following_id = cl.user_id
-		JOIN user_follows liker_follows_viewer
-			ON liker_follows_viewer.follower_id = cl.user_id
-			AND liker_follows_viewer.following_id = NULLIF($2, '')::uuid
 		WHERE cl.content_id = $1
 		  AND cl.user_id <> NULLIF($2, '')::uuid
 		  AND COALESCE(u.status::text, 'active') = 'active'
+		  AND EXISTS(
+			SELECT 1 FROM user_follows
+			WHERE follower_id = NULLIF($2, '')::uuid
+			  AND following_id = cl.user_id
+		  )
+		  AND EXISTS(
+			SELECT 1 FROM user_follows
+			WHERE follower_id = cl.user_id
+			  AND following_id = NULLIF($2, '')::uuid
+		  )
 		ORDER BY cl.created_at DESC`,
 		contentID,
 		userID,
 	)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch likes"})
+		log.Printf("[content_likes] getConnectionLikes query failed content=%s user=%s: %v", contentID, userID, err)
+		c.JSON(http.StatusOK, []models.ContentLikeUser{})
 		return
 	}
 	defer rows.Close()
@@ -150,15 +162,14 @@ func getConnectionLikes(db *sql.DB, c *gin.Context, contentID string) {
 	for rows.Next() {
 		var like models.ContentLikeUser
 		if err := rows.Scan(&like.UserID, &like.Username, &like.UserAvatar, &like.LikedAt); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode likes"})
-			return
+			log.Printf("[content_likes] getConnectionLikes scan failed: %v", err)
+			continue
 		}
 		like.UserAvatar = readableMediaURLPtr(like.UserAvatar)
 		likes = append(likes, like)
 	}
 	if err := rows.Err(); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch likes"})
-		return
+		log.Printf("[content_likes] getConnectionLikes rows error: %v", err)
 	}
 
 	c.JSON(http.StatusOK, likes)
