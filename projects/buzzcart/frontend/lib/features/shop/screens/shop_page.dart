@@ -13,6 +13,7 @@ import '../../../core/providers/cart_provider.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/url_helper.dart';
+import '../../../core/widgets/network_media.dart';
 import '../../products/widgets/product_card_social_preview.dart';
 import '../../products/widgets/product_buyers_sheet.dart';
 import '../../products/widgets/product_reviews_sheet.dart';
@@ -690,6 +691,7 @@ class _ShopPageState extends State<ShopPage> {
     return CachedNetworkImage(
       imageUrl: resolvedUrl,
       cacheKey: resolvedUrl,
+      cacheManager: AppMediaCacheManager.instance,
       fit: fit,
       fadeInDuration: Duration.zero,
       fadeOutDuration: Duration.zero,
@@ -1745,13 +1747,12 @@ class _BuyerPreviewAvatar extends StatelessWidget {
     final displayName =
         buyer.buyerName.trim().isEmpty ? 'Unknown' : buyer.buyerName.trim();
     final avatarUrl = (buyer.buyerAvatar ?? '').trim();
+    final provider = AppImageProviders.network(avatarUrl);
 
     return CircleAvatar(
       radius: 13,
-      backgroundImage: avatarUrl.isNotEmpty
-          ? CachedNetworkImageProvider(UrlHelper.getPlatformUrl(avatarUrl))
-          : null,
-      child: avatarUrl.isEmpty
+      backgroundImage: provider,
+      child: provider == null
           ? Text(
               displayName.substring(0, 1).toUpperCase(),
               style: const TextStyle(fontSize: 11),
@@ -1852,13 +1853,12 @@ class _ReviewPreviewAvatar extends StatelessWidget {
     final displayName =
         review.username.trim().isEmpty ? 'Unknown' : review.username.trim();
     final avatarUrl = (review.userAvatar ?? '').trim();
+    final provider = AppImageProviders.network(avatarUrl);
 
     return CircleAvatar(
       radius: 13,
-      backgroundImage: avatarUrl.isNotEmpty
-          ? CachedNetworkImageProvider(UrlHelper.getPlatformUrl(avatarUrl))
-          : null,
-      child: avatarUrl.isEmpty
+      backgroundImage: provider,
+      child: provider == null
           ? Text(
               displayName.substring(0, 1).toUpperCase(),
               style: const TextStyle(fontSize: 11),

@@ -33,6 +33,7 @@ class UrlHelperPlatform {
         decodedPath.endsWith('.png') ||
         decodedPath.endsWith('.gif') ||
         decodedPath.endsWith('.webp') ||
+        decodedPath.endsWith('.bmp') ||
         decodedPath.endsWith('.heic') ||
         decodedPath.endsWith('.heif');
   }

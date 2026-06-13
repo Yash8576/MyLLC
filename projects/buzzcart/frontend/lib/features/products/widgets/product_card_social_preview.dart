@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../core/models/models.dart';
 import '../../../core/providers/app_refresh_provider.dart';
 import '../../../core/services/api_service.dart';
-import '../../../core/utils/url_helper.dart';
+import '../../../core/widgets/network_media.dart';
 
 class ProductCardSocialPreview extends StatelessWidget {
   const ProductCardSocialPreview({
@@ -193,13 +192,12 @@ class _CompactAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final safeLabel = label.trim().isEmpty ? 'Unknown' : label.trim();
+    final provider = AppImageProviders.network(imageUrl);
 
     return CircleAvatar(
       radius: 9,
-      backgroundImage: imageUrl.isNotEmpty
-          ? CachedNetworkImageProvider(UrlHelper.getPlatformUrl(imageUrl))
-          : null,
-      child: imageUrl.isEmpty
+      backgroundImage: provider,
+      child: provider == null
           ? Text(
               safeLabel.substring(0, 1).toUpperCase(),
               style: const TextStyle(fontSize: 8),

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../../../../core/models/models.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/url_helper.dart';
+import '../../../../core/widgets/network_media.dart';
 
 /// Instagram-style post card widget
 class PostCard extends StatelessWidget {
@@ -58,25 +57,11 @@ class PostCard extends StatelessWidget {
         child: Row(
           children: [
             // Author avatar
-            CircleAvatar(
+            AppAvatar(
+              name: post.authorName,
+              avatarUrl: post.authorAvatar,
               radius: 18,
-              backgroundImage: post.authorAvatar != null
-                  ? CachedNetworkImageProvider(
-                      UrlHelper.getPlatformUrl(post.authorAvatar!),
-                    )
-                  : null,
               backgroundColor: AppColors.electricBlue,
-              child: post.authorAvatar == null
-                  ? Text(
-                      post.authorName.isNotEmpty
-                          ? post.authorName[0].toUpperCase()
-                          : 'U',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    )
-                  : null,
             ),
             const SizedBox(width: 10),
 
@@ -120,14 +105,14 @@ class PostCard extends StatelessWidget {
     if (post.isPhoto) {
       return AspectRatio(
         aspectRatio: 1.0, // Square aspect ratio like Instagram
-        child: CachedNetworkImage(
-          imageUrl: UrlHelper.getPlatformUrl(post.mediaUrl),
+        child: AppCachedImage(
+          imageUrl: post.mediaUrl,
           fit: BoxFit.cover,
-          placeholder: (context, url) => Container(
+          placeholder: Container(
             color: Colors.grey[200],
             child: const Center(child: CircularProgressIndicator()),
           ),
-          errorWidget: (context, url, error) => Container(
+          errorWidget: Container(
             color: Colors.grey[200],
             child: const Center(child: Icon(Icons.broken_image, size: 64)),
           ),
@@ -141,14 +126,14 @@ class PostCard extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             if (post.thumbnailUrl != null)
-              CachedNetworkImage(
-                imageUrl: UrlHelper.getPlatformUrl(post.thumbnailUrl!),
+              AppCachedImage(
+                imageUrl: post.thumbnailUrl!,
                 fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
+                placeholder: Container(
                   color: Colors.grey[200],
                   child: const Center(child: CircularProgressIndicator()),
                 ),
-                errorWidget: (context, url, error) => Container(
+                errorWidget: Container(
                   color: Colors.grey[200],
                   child:
                       const Center(child: Icon(Icons.broken_image, size: 64)),

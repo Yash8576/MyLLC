@@ -1,16 +1,13 @@
 package handlers
 
 import (
-	"bytes"
 	"buzzcart/internal/cache"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"image"
 	_ "image/gif"
 	_ "image/jpeg"
-	"image/png"
 	"io"
 	"log"
 	"net/http"
@@ -155,32 +152,10 @@ func ProxyMediaHandler(c *gin.Context) {
 		return
 	}
 
-	if contentType == "image/webp" || contentType == "image/bmp" {
-		sum := sha256.Sum256(body)
-		etag := `"` + hex.EncodeToString(sum[:]) + `"`
-		cacheProxyImage(rawURL, contentType, body, etag)
-		writeImageResponse(c, http.StatusOK, contentType, body, etag)
-		return
-	}
-
-	img, _, err := image.Decode(bytes.NewReader(body))
-	if err != nil {
-		log.Printf("[ProxyMedia] decode failed for %q: %v", rawURL, err)
-		c.JSON(http.StatusUnsupportedMediaType, gin.H{"error": "image cannot be decoded"})
-		return
-	}
-
-	var encoded bytes.Buffer
-	if err := png.Encode(&encoded, img); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to encode image"})
-		return
-	}
-
-	pngBody := encoded.Bytes()
-	sum := sha256.Sum256(pngBody)
+	sum := sha256.Sum256(body)
 	etag := `"` + hex.EncodeToString(sum[:]) + `"`
-	cacheProxyImage(rawURL, "image/png", pngBody, etag)
-	writeImageResponse(c, http.StatusOK, "image/png", pngBody, etag)
+	cacheProxyImage(rawURL, contentType, body, etag)
+	writeImageResponse(c, http.StatusOK, contentType, body, etag)
 }
 
 func StreamMediaHandler(c *gin.Context) {

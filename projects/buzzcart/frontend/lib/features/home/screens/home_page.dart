@@ -14,6 +14,7 @@ import '../../../core/providers/cart_provider.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/url_helper.dart';
+import '../../../core/widgets/network_media.dart';
 import '../../layout/main_layout.dart';
 import '../../products/widgets/product_card_social_preview.dart';
 
@@ -1576,14 +1577,13 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildAvatar(String name, String? avatarUrl) {
     final initial = name.isNotEmpty ? name[0].toUpperCase() : 'U';
+    final provider = AppImageProviders.network(avatarUrl);
 
     return CircleAvatar(
       radius: 18,
       backgroundColor: AppColors.electricBlue,
-      backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
-          ? CachedNetworkImageProvider(UrlHelper.getPlatformUrl(avatarUrl))
-          : null,
-      child: avatarUrl == null || avatarUrl.isEmpty
+      backgroundImage: provider,
+      child: provider == null
           ? Text(
               initial,
               style: const TextStyle(
@@ -1605,6 +1605,7 @@ class _HomePageState extends State<HomePage> {
     return CachedNetworkImage(
       imageUrl: resolvedUrl,
       cacheKey: resolvedUrl,
+      cacheManager: AppMediaCacheManager.instance,
       fit: fit,
       fadeInDuration: Duration.zero,
       fadeOutDuration: Duration.zero,
@@ -2013,6 +2014,7 @@ class _InlineReelThumbnail extends StatelessWidget {
     return CachedNetworkImage(
       imageUrl: resolvedUrl,
       cacheKey: resolvedUrl,
+      cacheManager: AppMediaCacheManager.instance,
       fit: BoxFit.cover,
       fadeInDuration: Duration.zero,
       fadeOutDuration: Duration.zero,
