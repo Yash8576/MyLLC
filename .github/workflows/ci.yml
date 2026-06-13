@@ -1,4 +1,4 @@
-name: Frontend Cloudflare Build
+name: Root Site Cloudflare Build
 
 on:
   workflow_dispatch:
@@ -8,9 +8,8 @@ on:
     paths:
       - 'src/**'
       - 'public/**'
-      - 'projects/buzzcart/frontend/**'
-      - 'projects/nanolink/frontend/**'
       - 'scripts/build-cloudflare-pages.sh'
+      - 'scripts/sync-buzzcart-build.mjs'
       - 'package.json'
       - 'package-lock.json'
       - 'next.config.mjs'
@@ -22,9 +21,8 @@ on:
     paths:
       - 'src/**'
       - 'public/**'
-      - 'projects/buzzcart/frontend/**'
-      - 'projects/nanolink/frontend/**'
       - 'scripts/build-cloudflare-pages.sh'
+      - 'scripts/sync-buzzcart-build.mjs'
       - 'package.json'
       - 'package-lock.json'
       - 'next.config.mjs'
@@ -33,9 +31,16 @@ on:
       - 'tsconfig.json'
       - '.github/workflows/ci.yml'
 
+permissions:
+  contents: read
+
+concurrency:
+  group: root-site-cloudflare-build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   cloudflare-build:
-    name: Cloudflare Pages build
+    name: Root Cloudflare Pages build
     runs-on: ubuntu-latest
 
     steps:
