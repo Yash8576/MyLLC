@@ -759,13 +759,13 @@ class ApiService {
     }
   }
 
-  Future<int> likeVideo(String videoId) async {
-    try {
-      final response = await _dio.post('/videos/$videoId/like');
-      return (response.data as Map<String, dynamic>)['likes'] as int;
-    } catch (e) {
-      rethrow;
-    }
+  Future<({bool isLiked, int likes})> likeVideo(String videoId) async {
+    final response = await _dio.post('/videos/$videoId/like');
+    final data = response.data as Map<String, dynamic>;
+    return (
+      isLiked: data['is_liked'] as bool? ?? false,
+      likes: data['likes'] as int? ?? 0,
+    );
   }
 
   Future<List<ContentLikeUserModel>> getVideoLikes(String videoId) async {
@@ -859,13 +859,13 @@ class ApiService {
     }
   }
 
-  Future<int> likeReel(String reelId) async {
-    try {
-      final response = await _dio.post('/reels/$reelId/like');
-      return (response.data as Map<String, dynamic>)['likes'] as int;
-    } catch (e) {
-      rethrow;
-    }
+  Future<({bool isLiked, int likes})> likeReel(String reelId) async {
+    final response = await _dio.post('/reels/$reelId/like');
+    final data = response.data as Map<String, dynamic>;
+    return (
+      isLiked: data['is_liked'] as bool? ?? false,
+      likes: data['likes'] as int? ?? 0,
+    );
   }
 
   Future<List<ContentLikeUserModel>> getReelLikes(String reelId) async {

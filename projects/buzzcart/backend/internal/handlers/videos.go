@@ -678,7 +678,7 @@ func LikeVideo(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		likeContent(db, c, videoID)
+		toggleLikeContent(db, c, videoID)
 	}
 }
 

@@ -995,7 +995,7 @@ func LikeReel(db *sql.DB) gin.HandlerFunc {
 		invalidateReelListCache()
 		invalidateReelDetailCache(reelID)
 
-		likeContent(db, c, reelID)
+		toggleLikeContent(db, c, reelID)
 		invalidateReelListCache()
 		invalidateReelDetailCache(reelID)
 	}

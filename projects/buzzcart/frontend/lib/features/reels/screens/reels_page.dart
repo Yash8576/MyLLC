@@ -412,6 +412,15 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
                 onNext: index < _reels.length - 1
                     ? () => _goToReel(index + 1)
                     : null,
+                onLikeChanged: (isLiked, likes) {
+                  if (!mounted || index >= _reels.length) return;
+                  setState(() {
+                    _reels[index] = _reels[index].copyWith(
+                      isLiked: isLiked,
+                      likes: likes,
+                    );
+                  });
+                },
               );
             },
           ),
@@ -433,6 +442,7 @@ class _ReelViewport extends StatefulWidget {
     this.canGoNext = false,
     this.onPrevious,
     this.onNext,
+    this.onLikeChanged,
   });
 
   final ReelModel reel;
@@ -444,6 +454,7 @@ class _ReelViewport extends StatefulWidget {
   final bool canGoNext;
   final VoidCallback? onPrevious;
   final VoidCallback? onNext;
+  final void Function(bool isLiked, int likes)? onLikeChanged;
 
   @override
   State<_ReelViewport> createState() => _ReelViewportState();
@@ -701,24 +712,25 @@ class _ReelViewportState extends State<_ReelViewport> {
   }
 
   Future<void> _likeReel() async {
-    if (_liked) {
-      return;
-    }
+    final wasLiked = _liked;
     setState(() {
-      _liked = true;
-      _likeCount += 1;
+      _liked = !wasLiked;
+      _likeCount = math.max(0, _likeCount + (wasLiked ? -1 : 1));
     });
     try {
-      final likeCount =
-          await context.read<ApiService>().likeReel(widget.reel.id);
+      final result = await context.read<ApiService>().likeReel(widget.reel.id);
       if (mounted) {
-        setState(() => _likeCount = likeCount);
+        setState(() {
+          _liked = result.isLiked;
+          _likeCount = result.likes;
+        });
+        widget.onLikeChanged?.call(result.isLiked, result.likes);
       }
     } catch (_) {
       if (mounted) {
         setState(() {
-          _liked = false;
-          _likeCount = math.max(0, _likeCount - 1);
+          _liked = wasLiked;
+          _likeCount = math.max(0, _likeCount + (wasLiked ? 1 : -1));
         });
       }
     }

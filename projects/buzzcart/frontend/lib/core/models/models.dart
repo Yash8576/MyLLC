@@ -665,6 +665,26 @@ class ReelModel {
     );
   }
 
+  ReelModel copyWith({bool? isLiked, int? likes}) {
+    return ReelModel(
+      id: id,
+      url: url,
+      thumbnail: thumbnail,
+      caption: caption,
+      views: views,
+      likes: likes ?? this.likes,
+      isLiked: isLiked ?? this.isLiked,
+      commentCount: commentCount,
+      width: width,
+      height: height,
+      creatorId: creatorId,
+      creatorName: creatorName,
+      creatorAvatar: creatorAvatar,
+      products: products,
+      createdAt: createdAt,
+    );
+  }
+
   static Map<String, dynamic> _reelTaggedProductJson(
       Map<String, dynamic> json) {
     final image = (json['image'] as String?)?.trim();

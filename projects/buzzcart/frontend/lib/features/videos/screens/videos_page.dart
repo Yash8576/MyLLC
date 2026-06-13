@@ -574,37 +574,35 @@ class _VideoDetailViewState extends State<_VideoDetailView> {
   }
 
   Future<void> _likeVideo() async {
-    if (_liked || _liking) {
-      return;
-    }
+    if (_liking) return;
 
+    final wasLiked = _liked;
     setState(() {
-      _liked = true;
+      _liked = !wasLiked;
       _liking = true;
-      _likeCount += 1;
+      _likeCount = math.max(0, _likeCount + (wasLiked ? -1 : 1));
     });
 
     try {
-      final likeCount =
+      final result =
           await context.read<ApiService>().likeVideo(widget.video.id);
       if (mounted) {
-        setState(() => _likeCount = likeCount);
+        setState(() {
+          _liked = result.isLiked;
+          _likeCount = result.likes;
+        });
       }
     } catch (error) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       setState(() {
-        _liked = false;
-        _likeCount = math.max(0, _likeCount - 1);
+        _liked = wasLiked;
+        _likeCount = math.max(0, _likeCount + (wasLiked ? 1 : -1));
       });
       ScaffoldMessenger.of(context).showSingleSnackBar(
-        SnackBar(content: Text('Failed to like video: $error')),
+        SnackBar(content: Text('Failed to update like: $error')),
       );
     } finally {
-      if (mounted) {
-        setState(() => _liking = false);
-      }
+      if (mounted) setState(() => _liking = false);
     }
   }
 
@@ -801,10 +799,11 @@ class _VideoDetailViewState extends State<_VideoDetailView> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        OutlinedButton(
-                          onPressed: _liked || _liking ? null : _likeVideo,
-                          child: Icon(
+                        IconButton(
+                          onPressed: _liking ? null : _likeVideo,
+                          icon: Icon(
                             _liked ? Icons.thumb_up : Icons.thumb_up_outlined,
+                            color: _liked ? Colors.blue : null,
                           ),
                         ),
                         const SizedBox(width: 4),

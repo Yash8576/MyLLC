@@ -48,6 +48,11 @@ func main() {
 	}
 	log.Println("✓ Storage initialized successfully")
 
+	// Initialize content likes schema (table + trigger) at startup
+	if err := handlers.EnsureContentLikesSchema(db); err != nil {
+		log.Fatalf("Failed to initialize content likes schema: %v", err)
+	}
+
 	// Set Gin mode
 	if os.Getenv("GIN_MODE") == "release" {
 		gin.SetMode(gin.ReleaseMode)
