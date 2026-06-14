@@ -23,7 +23,9 @@ Future<int?> showContentCommentsSheet({
   required BuildContext context,
   required String title,
   required int initialCount,
-  required Future<List<ContentCommentModel>> Function() loadComments,
+  required Future<List<ContentCommentModel>> Function({
+    required bool connectionsOnly,
+  }) loadComments,
   required Future<ContentCommentModel> Function(String commentText)
       submitComment,
 }) {
@@ -220,7 +222,9 @@ class _ContentCommentsSheet extends StatefulWidget {
 
   final String title;
   final int initialCount;
-  final Future<List<ContentCommentModel>> Function() loadComments;
+  final Future<List<ContentCommentModel>> Function({
+    required bool connectionsOnly,
+  }) loadComments;
   final Future<ContentCommentModel> Function(String commentText) submitComment;
 
   @override
@@ -234,6 +238,7 @@ class _ContentCommentsSheetState extends State<_ContentCommentsSheet> {
   bool _submitting = false;
   String? _error;
   late int _commentCount;
+  bool _connectionsOnly = false;
 
   @override
   void initState() {
@@ -255,7 +260,9 @@ class _ContentCommentsSheetState extends State<_ContentCommentsSheet> {
         _loading = true;
         _error = null;
       });
-      final comments = await widget.loadComments();
+      final comments = await widget.loadComments(
+        connectionsOnly: _connectionsOnly,
+      );
       if (!mounted) {
         return;
       }
@@ -287,7 +294,9 @@ class _ContentCommentsSheetState extends State<_ContentCommentsSheet> {
         return;
       }
       setState(() {
-        _comments = <ContentCommentModel>[comment, ..._comments];
+        if (!_connectionsOnly || comment.isFollowing) {
+          _comments = <ContentCommentModel>[comment, ..._comments];
+        }
         _commentCount += 1;
         _commentController.clear();
       });
@@ -352,6 +361,32 @@ class _ContentCommentsSheetState extends State<_ContentCommentsSheet> {
                 ),
               ),
               Divider(height: 1, color: theme.dividerColor),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                child: SegmentedButton<bool>(
+                  segments: const [
+                    ButtonSegment<bool>(
+                      value: false,
+                      icon: Icon(Icons.schedule),
+                      label: Text('Recent'),
+                    ),
+                    ButtonSegment<bool>(
+                      value: true,
+                      icon: Icon(Icons.people_outline),
+                      label: Text('Connections'),
+                    ),
+                  ],
+                  selected: {_connectionsOnly},
+                  onSelectionChanged: (selection) {
+                    final nextValue = selection.first;
+                    if (nextValue == _connectionsOnly) {
+                      return;
+                    }
+                    setState(() => _connectionsOnly = nextValue);
+                    _loadComments();
+                  },
+                ),
+              ),
               Expanded(child: _buildBody()),
               AnimatedPadding(
                 duration: const Duration(milliseconds: 180),
@@ -424,7 +459,9 @@ class _ContentCommentsSheetState extends State<_ContentCommentsSheet> {
             SizedBox(height: 12),
             Center(
               child: Text(
-                'No comments yet',
+                _connectionsOnly
+                    ? 'No connection comments yet'
+                    : 'No comments yet',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
               ),
             ),

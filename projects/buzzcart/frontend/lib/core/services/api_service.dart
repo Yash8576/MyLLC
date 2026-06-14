@@ -778,9 +778,17 @@ class ApiService {
         .toList();
   }
 
-  Future<List<ContentCommentModel>> getVideoComments(String videoId) async {
+  Future<List<ContentCommentModel>> getVideoComments(
+    String videoId, {
+    bool connectionsOnly = false,
+  }) async {
     try {
-      final response = await _dio.get('/videos/$videoId/comments');
+      final response = await _dio.get(
+        '/videos/$videoId/comments',
+        queryParameters: {
+          if (connectionsOnly) 'connections_only': true,
+        },
+      );
       return (response.data as List? ?? [])
           .map((item) =>
               ContentCommentModel.fromJson(item as Map<String, dynamic>))
@@ -878,9 +886,17 @@ class ApiService {
         .toList();
   }
 
-  Future<List<ReelCommentModel>> getReelComments(String reelId) async {
+  Future<List<ReelCommentModel>> getReelComments(
+    String reelId, {
+    bool connectionsOnly = false,
+  }) async {
     try {
-      final response = await _dio.get('/reels/$reelId/comments');
+      final response = await _dio.get(
+        '/reels/$reelId/comments',
+        queryParameters: {
+          if (connectionsOnly) 'connections_only': true,
+        },
+      );
       return (response.data as List? ?? [])
           .map(
               (item) => ReelCommentModel.fromJson(item as Map<String, dynamic>))

@@ -169,8 +169,12 @@ func reelDetailCacheKey(reelID string, userID string) string {
 	return fmt.Sprintf("reels:detail:%s:%s", reelID, reelCacheViewerKey(userID))
 }
 
-func reelCommentsCacheKey(reelID string, userID string) string {
-	return fmt.Sprintf("reels:comments:%s:%s", reelID, reelCacheViewerKey(userID))
+func reelCommentsCacheKey(reelID string, userID string, connectionsOnly bool) string {
+	filter := "all"
+	if connectionsOnly {
+		filter = "connections"
+	}
+	return fmt.Sprintf("reels:comments:%s:%s:%s", reelID, reelCacheViewerKey(userID), filter)
 }
 
 func readCachedJSON[T any](key string, dest *T) bool {
@@ -760,8 +764,9 @@ func GetReel(db *sql.DB) gin.HandlerFunc {
 func GetReelComments(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		reelID := c.Param("reel_id")
-		userID := c.GetString("user_id")
-		cacheKey := reelCommentsCacheKey(reelID, userID)
+		userID := strings.TrimSpace(c.GetString("user_id"))
+		connectionsOnly := strings.EqualFold(c.Query("connections_only"), "true")
+		cacheKey := reelCommentsCacheKey(reelID, userID, connectionsOnly)
 
 		if err := ensureContentCommentsSchema(db); err != nil {
 			log.Printf("[GetReelComments] Failed to ensure content_comments schema: %v", err)
@@ -801,14 +806,40 @@ func GetReelComments(db *sql.DB) gin.HandlerFunc {
 				cc.created_at,
 				cc.updated_at,
 				COALESCE(u.name, ''),
-				u.avatar
+				u.avatar,
+				CASE WHEN NULLIF($2, '') IS NULL THEN false ELSE (
+					EXISTS(
+						SELECT 1 FROM user_follows
+						WHERE follower_id = NULLIF($2, '')::uuid
+						  AND following_id = cc.user_id
+					)
+					AND EXISTS(
+						SELECT 1 FROM user_follows
+						WHERE follower_id = cc.user_id
+						  AND following_id = NULLIF($2, '')::uuid
+					)
+				) END AS is_connection
 			FROM content_comments cc
 			JOIN users u ON u.id = cc.user_id
 			WHERE cc.content_id = $1
-			ORDER BY
-				CASE WHEN $2 <> '' AND cc.user_id::text = $2 THEN 0 ELSE 1 END,
-				cc.created_at DESC`,
-			reelID, strings.TrimSpace(userID),
+			  AND (
+				$3 = false
+				OR (
+					NULLIF($2, '') IS NOT NULL
+					AND EXISTS(
+						SELECT 1 FROM user_follows
+						WHERE follower_id = NULLIF($2, '')::uuid
+						  AND following_id = cc.user_id
+					)
+					AND EXISTS(
+						SELECT 1 FROM user_follows
+						WHERE follower_id = cc.user_id
+						  AND following_id = NULLIF($2, '')::uuid
+					)
+				)
+			  )
+			ORDER BY cc.created_at DESC`,
+			reelID, userID, connectionsOnly,
 		)
 		if err != nil {
 			log.Printf("[GetReelComments] Query failed for reel %s viewer %q: %v", reelID, userID, err)
@@ -829,13 +860,13 @@ func GetReelComments(db *sql.DB) gin.HandlerFunc {
 				&comment.UpdatedAt,
 				&comment.Username,
 				&comment.UserAvatar,
+				&comment.IsFollowing,
 			); err != nil {
 				log.Printf("[GetReelComments] Scan failed for reel %s viewer %q: %v", reelID, userID, err)
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode reel comments"})
 				return
 			}
-			comment.IsFollowing = false
-			comment.IsCurrentUser = strings.TrimSpace(userID) != "" && comment.UserID == strings.TrimSpace(userID)
+			comment.IsCurrentUser = userID != "" && comment.UserID == userID
 			comment.UserAvatar = readableMediaURLPtr(comment.UserAvatar)
 			comments = append(comments, comment)
 		}

@@ -757,9 +757,10 @@ class _ReelViewportState extends State<_ReelViewport> {
       context: context,
       title: 'Comments',
       initialCount: _commentCount,
-      loadComments: () async {
+      loadComments: ({required bool connectionsOnly}) async {
         final comments = await context.read<ApiService>().getReelComments(
               widget.reel.id,
+              connectionsOnly: connectionsOnly,
             );
         return comments
             .map(
@@ -1102,6 +1103,7 @@ class _ReelCommentsSheetState extends State<_ReelCommentsSheet> {
   bool _submitting = false;
   String? _error;
   late int _commentCount;
+  bool _connectionsOnly = false;
 
   @override
   void initState() {
@@ -1124,7 +1126,10 @@ class _ReelCommentsSheetState extends State<_ReelCommentsSheet> {
         _loading = true;
         _error = null;
       });
-      final comments = await _api.getReelComments(widget.reel.id);
+      final comments = await _api.getReelComments(
+        widget.reel.id,
+        connectionsOnly: _connectionsOnly,
+      );
       if (!mounted) {
         return;
       }
@@ -1159,7 +1164,9 @@ class _ReelCommentsSheetState extends State<_ReelCommentsSheet> {
         return;
       }
       setState(() {
-        _comments = <ReelCommentModel>[comment, ..._comments];
+        if (!_connectionsOnly || comment.isFollowing) {
+          _comments = <ReelCommentModel>[comment, ..._comments];
+        }
         _commentCount += 1;
         _commentController.clear();
       });
@@ -1224,6 +1231,32 @@ class _ReelCommentsSheetState extends State<_ReelCommentsSheet> {
                 ),
               ),
               Divider(height: 1, color: theme.dividerColor),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                child: SegmentedButton<bool>(
+                  segments: const [
+                    ButtonSegment<bool>(
+                      value: false,
+                      icon: Icon(Icons.schedule),
+                      label: Text('Recent'),
+                    ),
+                    ButtonSegment<bool>(
+                      value: true,
+                      icon: Icon(Icons.people_outline),
+                      label: Text('Connections'),
+                    ),
+                  ],
+                  selected: {_connectionsOnly},
+                  onSelectionChanged: (selection) {
+                    final nextValue = selection.first;
+                    if (nextValue == _connectionsOnly) {
+                      return;
+                    }
+                    setState(() => _connectionsOnly = nextValue);
+                    _loadComments();
+                  },
+                ),
+              ),
               Expanded(child: _buildBody()),
               AnimatedPadding(
                 duration: const Duration(milliseconds: 180),
@@ -1290,14 +1323,18 @@ class _ReelCommentsSheetState extends State<_ReelCommentsSheet> {
         onRefresh: _loadComments,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          children: const [
-            SizedBox(height: 140),
-            Icon(Icons.mode_comment_outlined, size: 48, color: Colors.grey),
-            SizedBox(height: 12),
+          children: [
+            const SizedBox(height: 140),
+            const Icon(Icons.mode_comment_outlined,
+                size: 48, color: Colors.grey),
+            const SizedBox(height: 12),
             Center(
               child: Text(
-                'No comments yet',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                _connectionsOnly
+                    ? 'No connection comments yet'
+                    : 'No comments yet',
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
               ),
             ),
           ],

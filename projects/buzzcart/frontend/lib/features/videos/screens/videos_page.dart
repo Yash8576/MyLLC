@@ -1131,6 +1131,7 @@ class _InlineVideoCommentsSectionState
   List<ContentCommentModel> _comments = <ContentCommentModel>[];
   bool _loading = true;
   bool _submitting = false;
+  bool _connectionsOnly = false;
   String? _error;
 
   @override
@@ -1153,7 +1154,10 @@ class _InlineVideoCommentsSectionState
         _loading = true;
         _error = null;
       });
-      final comments = await _api.getVideoComments(widget.videoId);
+      final comments = await _api.getVideoComments(
+        widget.videoId,
+        connectionsOnly: _connectionsOnly,
+      );
       if (!mounted) {
         return;
       }
@@ -1188,7 +1192,9 @@ class _InlineVideoCommentsSectionState
         return;
       }
       setState(() {
-        _comments = <ContentCommentModel>[comment, ..._comments];
+        if (!_connectionsOnly || comment.isFollowing) {
+          _comments = <ContentCommentModel>[comment, ..._comments];
+        }
         _commentController.clear();
       });
     } catch (error) {
@@ -1230,6 +1236,30 @@ class _InlineVideoCommentsSectionState
           ],
         ),
         const SizedBox(height: 12),
+        SegmentedButton<bool>(
+          segments: const [
+            ButtonSegment<bool>(
+              value: false,
+              icon: Icon(Icons.schedule),
+              label: Text('Recent'),
+            ),
+            ButtonSegment<bool>(
+              value: true,
+              icon: Icon(Icons.people_outline),
+              label: Text('Connections'),
+            ),
+          ],
+          selected: {_connectionsOnly},
+          onSelectionChanged: (selection) {
+            final nextValue = selection.first;
+            if (nextValue == _connectionsOnly) {
+              return;
+            }
+            setState(() => _connectionsOnly = nextValue);
+            _loadComments();
+          },
+        ),
+        const SizedBox(height: 12),
         TextField(
           controller: _commentController,
           minLines: 1,
@@ -1268,8 +1298,10 @@ class _InlineVideoCommentsSectionState
                   .withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(18),
             ),
-            child: const Text(
-              'No comments yet',
+            child: Text(
+              _connectionsOnly
+                  ? 'No connection comments yet'
+                  : 'No comments yet',
               textAlign: TextAlign.center,
             ),
           )

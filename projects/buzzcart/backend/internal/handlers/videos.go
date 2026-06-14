@@ -480,6 +480,7 @@ func GetVideoComments(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 		userID := strings.TrimSpace(c.GetString("user_id"))
+		connectionsOnly := strings.EqualFold(c.Query("connections_only"), "true")
 
 		canAccess, err := canAccessVideo(db, videoID, userID)
 		if err != nil {
@@ -507,14 +508,40 @@ func GetVideoComments(db *sql.DB) gin.HandlerFunc {
 				cc.created_at,
 				cc.updated_at,
 				COALESCE(u.name, ''),
-				u.avatar
+				u.avatar,
+				CASE WHEN NULLIF($2, '') IS NULL THEN false ELSE (
+					EXISTS(
+						SELECT 1 FROM user_follows
+						WHERE follower_id = NULLIF($2, '')::uuid
+						  AND following_id = cc.user_id
+					)
+					AND EXISTS(
+						SELECT 1 FROM user_follows
+						WHERE follower_id = cc.user_id
+						  AND following_id = NULLIF($2, '')::uuid
+					)
+				) END AS is_connection
 			FROM content_comments cc
 			JOIN users u ON u.id = cc.user_id
 			WHERE cc.content_id = $1
-			ORDER BY
-				CASE WHEN $2 <> '' AND cc.user_id::text = $2 THEN 0 ELSE 1 END,
-				cc.created_at DESC`,
-			videoID, userID,
+			  AND (
+				$3 = false
+				OR (
+					NULLIF($2, '') IS NOT NULL
+					AND EXISTS(
+						SELECT 1 FROM user_follows
+						WHERE follower_id = NULLIF($2, '')::uuid
+						  AND following_id = cc.user_id
+					)
+					AND EXISTS(
+						SELECT 1 FROM user_follows
+						WHERE follower_id = cc.user_id
+						  AND following_id = NULLIF($2, '')::uuid
+					)
+				)
+			  )
+			ORDER BY cc.created_at DESC`,
+			videoID, userID, connectionsOnly,
 		)
 		if err != nil {
 			log.Printf("[GetVideoComments] Query failed for video %s viewer %q: %v", videoID, userID, err)
@@ -535,6 +562,7 @@ func GetVideoComments(db *sql.DB) gin.HandlerFunc {
 				&comment.UpdatedAt,
 				&comment.Username,
 				&comment.UserAvatar,
+				&comment.IsFollowing,
 			); err != nil {
 				log.Printf("[GetVideoComments] Scan failed for video %s viewer %q: %v", videoID, userID, err)
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode video comments"})
