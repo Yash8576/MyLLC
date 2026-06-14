@@ -196,7 +196,7 @@ CREATE TABLE content_products (
 CREATE TABLE content_likes (
     content_id UUID NOT NULL REFERENCES content_items(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    liked_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     
     PRIMARY KEY (content_id, user_id)
 );
@@ -473,23 +473,6 @@ $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER create_user_defaults_trigger AFTER INSERT ON users
     FOR EACH ROW EXECUTE FUNCTION create_user_defaults();
-
--- Update content counts on likes
-CREATE OR REPLACE FUNCTION update_content_like_count()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF TG_OP = 'INSERT' THEN
-        UPDATE content_items SET like_count = like_count + 1 WHERE id = NEW.content_id;
-    ELSIF TG_OP = 'DELETE' THEN
-        UPDATE content_items SET like_count = GREATEST(0, like_count - 1) WHERE id = OLD.content_id;
-    END IF;
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER update_content_like_count_trigger
-AFTER INSERT OR DELETE ON content_likes
-FOR EACH ROW EXECUTE FUNCTION update_content_like_count();
 
 -- ============================================================================
 -- SAMPLE DATA (Optional - for development)

@@ -15,7 +15,7 @@ var (
 	contentLikesErr  error
 )
 
-// EnsureContentLikesSchema creates the content_likes table and trigger on first call.
+// EnsureContentLikesSchema creates and normalizes the content_likes table on first call.
 // The error is cached — a startup failure is fatal (schema won't be retried).
 func EnsureContentLikesSchema(db *sql.DB) error {
 	contentLikesOnce.Do(func() {
@@ -26,25 +26,38 @@ func EnsureContentLikesSchema(db *sql.DB) error {
 				created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
 				PRIMARY KEY (content_id, user_id)
 			)`,
+			`ALTER TABLE content_likes
+				ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE
+				NOT NULL DEFAULT CURRENT_TIMESTAMP`,
 			`CREATE INDEX IF NOT EXISTS idx_content_likes_user ON content_likes(user_id)`,
-			`CREATE OR REPLACE FUNCTION sync_content_like_count()
-			RETURNS TRIGGER AS $$
+			`DO $$
 			BEGIN
-				IF TG_OP = 'INSERT' THEN
-					UPDATE content_items SET like_count = like_count + 1 WHERE id = NEW.content_id;
-					RETURN NEW;
-				ELSIF TG_OP = 'DELETE' THEN
-					UPDATE content_items SET like_count = GREATEST(like_count - 1, 0) WHERE id = OLD.content_id;
-					RETURN OLD;
+				IF EXISTS (
+					SELECT 1
+					FROM information_schema.columns
+					WHERE table_schema = 'public'
+					  AND table_name = 'content_likes'
+					  AND column_name = 'liked_at'
+				) THEN
+					UPDATE content_likes
+					SET created_at = liked_at
+					WHERE liked_at IS NOT NULL;
 				END IF;
-				RETURN NULL;
-			END;
-			$$ LANGUAGE plpgsql`,
+			END $$`,
 			`DROP TRIGGER IF EXISTS trigger_sync_content_like_count ON content_likes`,
-			`CREATE TRIGGER trigger_sync_content_like_count
-				AFTER INSERT OR DELETE ON content_likes
-				FOR EACH ROW
-				EXECUTE FUNCTION sync_content_like_count()`,
+			`DROP TRIGGER IF EXISTS update_content_like_count_trigger ON content_likes`,
+			`UPDATE content_items ci
+			 SET like_count = (
+				SELECT COUNT(*)
+				FROM content_likes cl
+				WHERE cl.content_id = ci.id
+			 )
+			 WHERE EXISTS (
+				SELECT 1
+				FROM content_likes cl
+				WHERE cl.content_id = ci.id
+			 )
+			    OR ci.content_type IN ('reel', 'video')`,
 		}
 		for _, stmt := range statements {
 			if _, err := db.Exec(stmt); err != nil {
@@ -63,9 +76,8 @@ func ensureContentLikesSchema(db *sql.DB) error {
 }
 
 // toggleLikeContent likes or unlikes content_id for the authenticated user.
-// Returns {"is_liked": bool, "likes": int} sourced from content_items.like_count
-// (maintained by DB trigger) so the count stays accurate even for likes that
-// pre-date the content_likes table.
+// Returns {"is_liked": bool, "likes": int}; the count is sourced from actual
+// content_likes rows and mirrored to content_items.like_count in the same transaction.
 func toggleLikeContent(db *sql.DB, c *gin.Context, contentID string) {
 	if err := ensureContentLikesSchema(db); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to prepare likes"})
@@ -74,41 +86,76 @@ func toggleLikeContent(db *sql.DB, c *gin.Context, contentID string) {
 
 	userID := c.GetString("user_id")
 
-	var isLiked bool
-	if err := db.QueryRow(
-		`SELECT EXISTS(SELECT 1 FROM content_likes WHERE content_id = $1 AND user_id = $2)`,
-		contentID, userID,
-	).Scan(&isLiked); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check like status"})
+	tx, err := db.Begin()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update like"})
+		return
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.Exec(
+		`SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))`,
+		contentID,
+		userID,
+	); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update like"})
 		return
 	}
 
+	deleteResult, err := tx.Exec(
+		`DELETE FROM content_likes WHERE content_id = $1 AND user_id = $2`,
+		contentID,
+		userID,
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update like"})
+		return
+	}
+	deleted, err := deleteResult.RowsAffected()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update like"})
+		return
+	}
+
+	isLiked := deleted == 0
 	if isLiked {
-		if _, err := db.Exec(
-			`DELETE FROM content_likes WHERE content_id = $1 AND user_id = $2`,
-			contentID, userID,
-		); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to unlike content"})
-			return
-		}
-		isLiked = false
-	} else {
-		if _, err := db.Exec(
+		insertResult, err := tx.Exec(
 			`INSERT INTO content_likes (content_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-			contentID, userID,
-		); err != nil {
+			contentID,
+			userID,
+		)
+		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to like content"})
 			return
 		}
-		isLiked = true
+		inserted, err := insertResult.RowsAffected()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update like"})
+			return
+		}
+		isLiked = inserted == 1
 	}
 
 	var likeCount int
-	if err := db.QueryRow(
-		`SELECT COALESCE(like_count, 0) FROM content_items WHERE id = $1`,
+	if err := tx.QueryRow(
+		`SELECT COUNT(*) FROM content_likes WHERE content_id = $1`,
 		contentID,
 	).Scan(&likeCount); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load like count"})
+		return
+	}
+
+	if _, err := tx.Exec(
+		`UPDATE content_items SET like_count = $2 WHERE id = $1`,
+		contentID,
+		likeCount,
+	); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update like count"})
+		return
+	}
+
+	if err := tx.Commit(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update like"})
 		return
 	}
 
