@@ -453,16 +453,18 @@ class _ContentCommentsSheetState extends State<_ContentCommentsSheet> {
         onRefresh: _loadComments,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          children: const [
-            SizedBox(height: 140),
-            Icon(Icons.mode_comment_outlined, size: 48, color: Colors.grey),
-            SizedBox(height: 12),
+          children: [
+            const SizedBox(height: 140),
+            const Icon(Icons.mode_comment_outlined,
+                size: 48, color: Colors.grey),
+            const SizedBox(height: 12),
             Center(
               child: Text(
                 _connectionsOnly
                     ? 'No connection comments yet'
                     : 'No comments yet',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
               ),
             ),
           ],
