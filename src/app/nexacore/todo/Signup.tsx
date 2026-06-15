@@ -39,7 +39,6 @@ function Signup({ switchToLogin, onAuthSuccess }: SignupProps) {
 
             onAuthSuccess();
         } catch (error: any) {
-            // Handle common Firebase errors
             if (error.code === 'auth/email-already-in-use') {
                 setError('This email address is already in use.');
             } else if (error.code === 'auth/invalid-email') {
