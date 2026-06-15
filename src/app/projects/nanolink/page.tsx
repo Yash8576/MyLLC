@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { FormEvent, useEffect, useState } from 'react'
 import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
@@ -28,6 +28,14 @@ const apiBaseUrl = (
   'https://nanolink-backend-837491606409.us-east4.run.app'
 ).replace(/\/$/, '')
 
+const getIdToken = async (user: User) => {
+  try {
+    return await user.getIdToken()
+  } catch {
+    return null
+  }
+}
+
 export default function NanolinkPage() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [authOpen, setAuthOpen] = useState(false)
@@ -42,11 +50,8 @@ export default function NanolinkPage() {
   const [shortening, setShortening] = useState(false)
   const [shortenError, setShortenError] = useState('')
   const [history, setHistory] = useState<SavedLink[]>([])
-
-  const historyKey = useMemo(
-    () => (user ? `nanolink:history:${user.uid}` : ''),
-    [user],
-  )
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [historyError, setHistoryError] = useState('')
 
   useEffect(() => {
     if (!nanolinkAuth) {
@@ -57,28 +62,36 @@ export default function NanolinkPage() {
       setUser(nextUser)
       if (nextUser) {
         setAuthOpen(false)
+      } else {
+        setHistory([])
       }
     })
   }, [])
 
-  useEffect(() => {
-    if (!historyKey) {
-      setHistory([])
-      return
+  async function fetchHistory(currentUser: User) {
+    setHistoryLoading(true)
+    setHistoryError('')
+
+    try {
+      const token = await getIdToken(currentUser)
+      const response = await fetch(`${apiBaseUrl}/api/links`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      const data = (await response.json()) as {
+        links?: SavedLink[]
+        error?: string
+      }
+
+      if (!response.ok || !data.links) {
+        throw new Error(data.error ?? 'Could not load history')
+      }
+
+      setHistory(data.links)
+    } catch (error) {
+      setHistoryError(error instanceof Error ? error.message : 'Could not load history')
+    } finally {
+      setHistoryLoading(false)
     }
-
-    const raw = window.localStorage.getItem(historyKey)
-    setHistory(raw ? (JSON.parse(raw) as SavedLink[]) : [])
-  }, [historyKey])
-
-  function saveHistory(entry: SavedLink) {
-    if (!historyKey) {
-      return
-    }
-
-    const nextHistory = [entry, ...history].slice(0, 30)
-    setHistory(nextHistory)
-    window.localStorage.setItem(historyKey, JSON.stringify(nextHistory))
   }
 
   async function handleShorten(event: FormEvent<HTMLFormElement>) {
@@ -88,9 +101,13 @@ export default function NanolinkPage() {
     setShortening(true)
 
     try {
+      const token = user ? await getIdToken(user) : null
       const response = await fetch(`${apiBaseUrl}/api/shorten`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ longUrl }),
       })
       const responseText = await response.text()
@@ -107,14 +124,16 @@ export default function NanolinkPage() {
         throw new Error(data.error ?? `Could not shorten URL (${response.status})`)
       }
 
-      setShortUrl(data.shortUrl)
+      const savedLink: SavedLink = {
+        shortUrl: data.shortUrl,
+        longUrl: data.longUrl,
+        code: data.code,
+        createdAt: new Date().toISOString(),
+      }
+
+      setShortUrl(savedLink.shortUrl)
       if (user) {
-        saveHistory({
-          shortUrl: data.shortUrl,
-          longUrl: data.longUrl,
-          code: data.code,
-          createdAt: new Date().toISOString(),
-        })
+        setHistory((previousHistory) => [savedLink, ...previousHistory])
       }
     } catch (error) {
       setShortenError(error instanceof Error ? error.message : 'Could not shorten URL')
@@ -151,6 +170,14 @@ export default function NanolinkPage() {
     setAuthMode(mode)
     setAuthOpen(true)
     setMenuOpen(false)
+  }
+
+  function openHistory() {
+    setHistoryOpen(true)
+    setMenuOpen(false)
+    if (user) {
+      void fetchHistory(user)
+    }
   }
 
   return (
@@ -205,10 +232,7 @@ export default function NanolinkPage() {
                     <button
                       className='nanolink-menu-item'
                       type='button'
-                      onClick={() => {
-                        setHistoryOpen(true)
-                        setMenuOpen(false)
-                      }}>
+                      onClick={openHistory}>
                       History
                     </button>
                     <button
@@ -365,7 +389,11 @@ export default function NanolinkPage() {
               </button>
             </div>
             <div className='nanolink-history-list'>
-              {history.length ? (
+              {historyLoading ? (
+                <p className='nanolink-hint'>Loading...</p>
+              ) : historyError ? (
+                <p className='nanolink-error'>{historyError}</p>
+              ) : history.length ? (
                 history.map((item) => (
                   <article className='nanolink-history-card' key={`${item.code}-${item.createdAt}`}>
                     <a href={item.shortUrl} rel='noreferrer' target='_blank'>
