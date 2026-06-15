@@ -411,15 +411,13 @@ body {
 .status-badge:hover { opacity: 0.82; transform: scale(1.05); }
 .status-badge:active { transform: scale(0.97); }
 
-.status-badge.status-todo    { background: rgba(142,142,147,0.14); color: #636366; }
-.status-badge.status-started { background: rgba(255,159,10,0.14);  color: #c07000; }
-.status-badge.status-stuck   { background: rgba(255,59,48,0.12);   color: var(--danger); }
-.status-badge.status-done    { background: rgba(52,199,89,0.12);   color: #1a7f37; }
+.status-badge.status-todo        { background: rgba(142,142,147,0.14); color: #636366; }
+.status-badge.status-in_progress { background: rgba(255,159,10,0.14);  color: #c07000; }
+.status-badge.status-done        { background: rgba(52,199,89,0.12);   color: #1a7f37; }
 
-.app-wrapper.dark .status-badge.status-todo    { background: rgba(142,142,147,0.18); color: #98989d; }
-.app-wrapper.dark .status-badge.status-started { background: rgba(255,159,10,0.18);  color: #ff9f0a; }
-.app-wrapper.dark .status-badge.status-stuck   { background: rgba(255,69,58,0.18);   color: #ff453a; }
-.app-wrapper.dark .status-badge.status-done    { background: rgba(48,209,88,0.18);   color: #30d158; }
+.app-wrapper.dark .status-badge.status-todo        { background: rgba(142,142,147,0.18); color: #98989d; }
+.app-wrapper.dark .status-badge.status-in_progress { background: rgba(255,159,10,0.18);  color: #ff9f0a; }
+.app-wrapper.dark .status-badge.status-done        { background: rgba(48,209,88,0.18);   color: #30d158; }
 
 /* ── Delete / restore ──────────────────────────────────────────────────────── */
 .delete-btn {

@@ -6,7 +6,7 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 
 interface SignupProps {
     switchToLogin: () => void;
-    onAuthSuccess: (email: string) => void;
+    onAuthSuccess: () => void;
 }
 
 function Signup({ switchToLogin, onAuthSuccess }: SignupProps) {
@@ -37,7 +37,7 @@ function Signup({ switchToLogin, onAuthSuccess }: SignupProps) {
                 navigator.credentials.store(credential);
             }
 
-            onAuthSuccess(userCredential.user.email || '');
+            onAuthSuccess();
         } catch (error: any) {
             // Handle common Firebase errors
             if (error.code === 'auth/email-already-in-use') {

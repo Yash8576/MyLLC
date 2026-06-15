@@ -8,22 +8,42 @@ import Signup from './Signup'
 import { auth, db } from './firebase'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import {
-  collection, doc, setDoc, deleteDoc, updateDoc,
-  query, orderBy, onSnapshot, deleteField
+  collection, doc, addDoc, deleteDoc, updateDoc, deleteField,
+  query, orderBy, onSnapshot, serverTimestamp,
 } from 'firebase/firestore'
 
-const STATUS_CYCLE: Record<string, string> = {
-  todo: 'started',
-  started: 'stuck',
-  stuck: 'done',
-  done: 'todo',
+// status: todo → in_progress → done → todo (cycle)
+// deleted is a separate status used for soft-delete
+
+type TaskStatus = 'todo' | 'in_progress' | 'done' | 'deleted'
+
+interface Task {
+  id: string
+  text: string
+  status: TaskStatus
+  createdAt: number
+  updatedAt: number
+  deletedAt?: number
+  prevStatus?: TaskStatus
+}
+
+const STATUS_NEXT: Record<string, TaskStatus> = {
+  todo:        'in_progress',
+  in_progress: 'done',
+  done:        'todo',
 }
 
 const STATUS_LABEL: Record<string, string> = {
-  todo: 'To Do',
-  started: 'In Progress',
-  stuck: 'Blocked',
-  done: 'Done',
+  todo:        'To Do',
+  in_progress: 'In Progress',
+  done:        'Done',
+}
+
+function tasksCol(uid: string) {
+  return collection(db, 'users', uid, 'tasks')
+}
+function taskDoc(uid: string, id: string) {
+  return doc(db, 'users', uid, 'tasks', id)
 }
 
 export default function TodoPage() {
@@ -38,13 +58,11 @@ export default function TodoPage() {
 
   const [user, setUser] = useState<{ uid: string; email: string } | null>(null)
   const [isLoginView, setIsLoginView] = useState(true)
-  const [todos, setTodos] = useState<any[]>([])
+  const [tasks, setTasks] = useState<Task[]>([])
   const [newTodo, setNewTodo] = useState('')
   const [theme, setTheme] = useState('light')
   const [showAccountDropdown, setShowAccountDropdown] = useState(false)
-  const [viewFilter, setViewFilter] = useState('active')
-  const [showDeleted, setShowDeleted] = useState(false)
-  const [isSuccessTransition, setIsSuccessTransition] = useState(false)
+  const [activeTab, setActiveTab] = useState<'active' | 'done' | 'deleted'>('active')
   const accountMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -59,12 +77,27 @@ export default function TodoPage() {
     return unsub
   }, [])
 
+  // Real-time listener — fires on every write from any window/device
   useEffect(() => {
-    if (!user) { setTodos([]); return }
-    const q = query(collection(db, 'users', user.uid, 'tasks'), orderBy('timestamp', 'desc'))
-    return onSnapshot(q, (snap) =>
-      setTodos(snap.docs.map(d => ({ id: d.id, ...d.data() })))
-    )
+    if (!user) { setTasks([]); return }
+    const q = query(tasksCol(user.uid), orderBy('createdAt', 'desc'))
+    const unsub = onSnapshot(q, (snap) => {
+      setTasks(
+        snap.docs.map(d => {
+          const data = d.data()
+          return {
+            id:         d.id,
+            text:       data.text ?? '',
+            status:     data.status ?? 'todo',
+            createdAt:  data.createdAt?.toMillis?.() ?? 0,
+            updatedAt:  data.updatedAt?.toMillis?.() ?? 0,
+            deletedAt:  data.deletedAt?.toMillis?.() ?? undefined,
+            prevStatus: data.prevStatus ?? undefined,
+          } as Task
+        })
+      )
+    })
+    return unsub
   }, [user])
 
   useEffect(() => {
@@ -83,8 +116,7 @@ export default function TodoPage() {
   }
 
   const handleAuthSuccess = () => {
-    setIsSuccessTransition(true)
-    setTimeout(() => { setIsSuccessTransition(false); setIsLoginView(true); setShowAccountDropdown(false) }, 800)
+    setShowAccountDropdown(false)
   }
 
   const handleLogout = async () => {
@@ -92,60 +124,63 @@ export default function TodoPage() {
     setShowAccountDropdown(false)
   }
 
-  const filteredTodos = todos.filter(t =>
-    t.status !== 'deleted' && (viewFilter === 'active' ? !t.completed : t.completed)
-  )
-  const deletedTodos = todos.filter(t => t.status === 'deleted')
-
-  const addTodo = async (e: React.FormEvent) => {
+  const addTask = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user || !newTodo.trim()) return
-    const id = Date.now().toString()
-    await setDoc(doc(db, 'users', user.uid, 'tasks', id), {
-      id, text: newTodo.trim(), completed: false,
-      status: 'active', taskStatus: 'todo', timestamp: Date.now(),
+    await addDoc(tasksCol(user.uid), {
+      text:      newTodo.trim(),
+      status:    'todo',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
     })
     setNewTodo('')
   }
 
-  const cycleStatus = async (id: string, current: string) => {
+  const cycleStatus = async (task: Task) => {
     if (!user) return
-    const next = STATUS_CYCLE[current] ?? 'todo'
-    await updateDoc(doc(db, 'users', user.uid, 'tasks', id), {
-      taskStatus: next,
-      completed: next === 'done',
-      status: 'active',
+    const next = STATUS_NEXT[task.status] ?? 'todo'
+    await updateDoc(taskDoc(user.uid, task.id), {
+      status:    next,
+      updatedAt: serverTimestamp(),
     })
   }
 
-  const moveToDeleted = async (id: string, completed: boolean, taskStatus: string) => {
+  const softDelete = async (task: Task) => {
     if (!user) return
-    await updateDoc(doc(db, 'users', user.uid, 'tasks', id), {
-      status: 'deleted', deletedDate: Date.now(),
-      sourceCompleted: completed, sourceTaskStatus: taskStatus,
+    await updateDoc(taskDoc(user.uid, task.id), {
+      status:     'deleted',
+      prevStatus: task.status,
+      deletedAt:  serverTimestamp(),
+      updatedAt:  serverTimestamp(),
     })
   }
 
-  const restoreTask = async (id: string, sourceCompleted: boolean, sourceTaskStatus: string) => {
+  const restoreTask = async (task: Task) => {
     if (!user) return
-    await updateDoc(doc(db, 'users', user.uid, 'tasks', id), {
-      status: 'active', deletedDate: null,
-      completed: sourceCompleted, taskStatus: sourceTaskStatus,
-      sourceCompleted: deleteField(), sourceTaskStatus: deleteField(),
+    await updateDoc(taskDoc(user.uid, task.id), {
+      status:     task.prevStatus ?? 'todo',
+      prevStatus: deleteField(),
+      deletedAt:  deleteField(),
+      updatedAt:  serverTimestamp(),
     })
-    setViewFilter(sourceCompleted ? 'completed' : 'active')
-    setShowDeleted(false)
+    setActiveTab('active')
   }
 
-  const permanentDelete = async (id: string) => {
+  const permanentDelete = async (task: Task) => {
     if (!user) return
-    await deleteDoc(doc(db, 'users', user.uid, 'tasks', id))
+    await deleteDoc(taskDoc(user.uid, task.id))
   }
 
   if (pathname?.startsWith('/nexacore/')) return null
 
-  const activeCount = todos.filter(t => !t.completed && t.status !== 'deleted').length
-  const doneCount   = todos.filter(t =>  t.completed && t.status !== 'deleted').length
+  const activeTasks  = tasks.filter(t => t.status !== 'deleted' && t.status !== 'done')
+  const doneTasks    = tasks.filter(t => t.status === 'done')
+  const deletedTasks = tasks.filter(t => t.status === 'deleted')
+
+  const visibleTasks =
+    activeTab === 'active'  ? activeTasks  :
+    activeTab === 'done'    ? doneTasks    :
+    deletedTasks
 
   return (
     <div className={`app-wrapper ${theme}`}>
@@ -171,7 +206,7 @@ export default function TodoPage() {
             </button>
             {showAccountDropdown && (
               <div className="account-dropdown">
-                {user && !isSuccessTransition ? (
+                {user ? (
                   <>
                     <p className="user-email">Signed in as<strong>{user.email}</strong></p>
                     <button type="button" onClick={handleLogout} className="logout-btn-dropdown">Sign out</button>
@@ -197,7 +232,7 @@ export default function TodoPage() {
           {user ? (
             <>
               {/* Add form */}
-              <form className="add-todo-form" onSubmit={addTodo}>
+              <form className="add-todo-form" onSubmit={addTask}>
                 <input
                   type="text"
                   placeholder="What needs to be done?"
@@ -211,81 +246,76 @@ export default function TodoPage() {
               <div className="view-filters">
                 <button
                   type="button"
-                  className={viewFilter === 'active' && !showDeleted ? 'active-filter' : ''}
-                  onClick={() => { setViewFilter('active'); setShowDeleted(false) }}
+                  className={activeTab === 'active' ? 'active-filter' : ''}
+                  onClick={() => setActiveTab('active')}
                 >
-                  Active{activeCount > 0 ? ` ${activeCount}` : ''}
+                  Active{activeTasks.length > 0 ? ` ${activeTasks.length}` : ''}
                 </button>
                 <button
                   type="button"
-                  className={viewFilter === 'completed' && !showDeleted ? 'active-filter' : ''}
-                  onClick={() => { setViewFilter('completed'); setShowDeleted(false) }}
+                  className={activeTab === 'done' ? 'active-filter' : ''}
+                  onClick={() => setActiveTab('done')}
                 >
-                  Done{doneCount > 0 ? ` ${doneCount}` : ''}
+                  Done{doneTasks.length > 0 ? ` ${doneTasks.length}` : ''}
                 </button>
                 <button
                   type="button"
-                  className={`deleted-filter${showDeleted ? ' active-filter' : ''}`}
-                  onClick={() => setShowDeleted(p => !p)}
+                  className={`deleted-filter${activeTab === 'deleted' ? ' active-filter' : ''}`}
+                  onClick={() => setActiveTab('deleted')}
                 >
-                  Deleted{deletedTodos.length > 0 ? ` ${deletedTodos.length}` : ''}
+                  Deleted{deletedTasks.length > 0 ? ` ${deletedTasks.length}` : ''}
                 </button>
               </div>
 
               {/* List */}
-              {showDeleted ? (
-                <>
-                  <p className="todo-list-header">Recently Deleted</p>
-                  <div className="todo-list">
-                    {deletedTodos.length === 0
-                      ? <p className="no-tasks">No deleted tasks.</p>
-                      : deletedTodos.map(todo => (
-                        <div key={todo.id} className="todo-item">
-                          <span className="todo-item-text deleted-text">
-                            {todo.text}
-                            <span className="deleted-source-tag">({todo.sourceTaskStatus || 'todo'})</span>
-                          </span>
-                          <button type="button" className="restore-btn" onClick={() => restoreTask(todo.id, todo.sourceCompleted, todo.sourceTaskStatus || 'todo')}>
-                            Restore
-                          </button>
-                          <button type="button" className="delete-btn" onClick={() => permanentDelete(todo.id)} aria-label="Delete permanently">
-                            &times;
-                          </button>
-                        </div>
-                      ))
-                    }
-                  </div>
-                </>
-              ) : (
-                <>
-                  <p className="todo-list-header">
-                    {viewFilter === 'active' ? 'Active Tasks' : 'Completed Tasks'}
+              <p className="todo-list-header">
+                {activeTab === 'active'  ? 'Active Tasks'    :
+                 activeTab === 'done'    ? 'Completed Tasks'  :
+                 'Recently Deleted'}
+              </p>
+              <div className="todo-list">
+                {visibleTasks.length === 0 ? (
+                  <p className="no-tasks">
+                    {activeTab === 'active'  ? 'All clear — nothing active.' :
+                     activeTab === 'done'    ? 'No completed tasks yet.'     :
+                     'No deleted tasks.'}
                   </p>
-                  <div className="todo-list">
-                    {filteredTodos.length === 0
-                      ? <p className="no-tasks">{viewFilter === 'active' ? 'All clear — nothing active.' : 'No completed tasks yet.'}</p>
-                      : filteredTodos.map(todo => (
-                        <div key={todo.id} className="todo-item">
-                          <button
-                            type="button"
-                            className={`status-badge status-${todo.taskStatus}`}
-                            onClick={() => cycleStatus(todo.id, todo.taskStatus)}
-                            title="Click to advance status"
-                          >
-                            {STATUS_LABEL[todo.taskStatus] ?? todo.taskStatus}
-                          </button>
-                          <span className={`todo-item-text${todo.completed ? ' completed' : ''}`}>
-                            {todo.text}
-                          </span>
-                          <button type="button" className="delete-btn" onClick={() => moveToDeleted(todo.id, todo.completed, todo.taskStatus)} aria-label="Remove task">
-                            &times;
-                          </button>
-                        </div>
-                      ))
-                    }
-                  </div>
-                </>
-              )}
+                ) : activeTab === 'deleted' ? (
+                  deletedTasks.map(task => (
+                    <div key={task.id} className="todo-item">
+                      <span className="todo-item-text deleted-text">
+                        {task.text}
+                        <span className="deleted-source-tag">({STATUS_LABEL[task.prevStatus ?? 'todo']})</span>
+                      </span>
+                      <button type="button" className="restore-btn" onClick={() => restoreTask(task)}>
+                        Restore
+                      </button>
+                      <button type="button" className="delete-btn" onClick={() => permanentDelete(task)} aria-label="Delete permanently">
+                        &times;
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  visibleTasks.map(task => (
+                    <div key={task.id} className="todo-item">
+                      <button
+                        type="button"
+                        className={`status-badge status-${task.status}`}
+                        onClick={() => cycleStatus(task)}
+                        title="Click to advance status"
+                      >
+                        {STATUS_LABEL[task.status] ?? task.status}
+                      </button>
+                      <span className={`todo-item-text${task.status === 'done' ? ' completed' : ''}`}>
+                        {task.text}
+                      </span>
+                      <button type="button" className="delete-btn" onClick={() => softDelete(task)} aria-label="Remove task">
+                        &times;
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
             </>
           ) : (
             <div className="auth-view-wrapper">

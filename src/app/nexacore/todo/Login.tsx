@@ -6,7 +6,7 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 
 interface LoginProps {
     switchToSignup: () => void;
-    onAuthSuccess: (email: string) => void;
+    onAuthSuccess: () => void;
 }
 
 function Login({ switchToSignup, onAuthSuccess }: LoginProps) {
@@ -31,7 +31,7 @@ function Login({ switchToSignup, onAuthSuccess }: LoginProps) {
                 await navigator.credentials.store(credential);
             }
 
-            onAuthSuccess(userCredential.user.email || '');
+            onAuthSuccess();
         } catch (error: any) {
             if (error.code === 'auth/invalid-credential') {
                  setError('Invalid email or password. Please try again.');
