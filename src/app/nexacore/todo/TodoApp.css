@@ -479,19 +479,40 @@ body {
   font-size: 0.9375rem;
 }
 
-/* ── Logged-out prompt ─────────────────────────────────────────────────────── */
+/* ── Logged-out inline auth ────────────────────────────────────────────────── */
 .auth-view-wrapper {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 40vh;
+  min-height: 50vh;
+  padding: 24px 0;
 }
-.auth-prompt {
-  text-align: center;
-  color: var(--text-secondary);
+
+.auth-inline-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: var(--shadow-lg);
+  padding: 32px;
+}
+
+.auth-inline-card .auth-form h2 {
+  font-size: 1.375rem;
+  margin-bottom: 8px;
+}
+
+.auth-inline-card .auth-form input {
+  padding: 12px 14px;
   font-size: 0.9375rem;
-  line-height: 1.6;
-  max-width: 320px;
+}
+
+.auth-inline-card .auth-form button[type="submit"] {
+  padding: 12px;
+  font-size: 0.9375rem;
+  border-radius: 12px;
+  margin-top: 4px;
 }
 
 /* ── Responsive ────────────────────────────────────────────────────────────── */

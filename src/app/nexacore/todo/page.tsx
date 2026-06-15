@@ -36,7 +36,7 @@ export default function TodoPage() {
     if (pathname?.startsWith('/nexacore/')) router.replace('/projects/todo')
   }, [pathname, router])
 
-  const [user, setUser] = useState<string | null>(null)
+  const [user, setUser] = useState<{ uid: string; email: string } | null>(null)
   const [isLoginView, setIsLoginView] = useState(true)
   const [todos, setTodos] = useState<any[]>([])
   const [newTodo, setNewTodo] = useState('')
@@ -53,13 +53,15 @@ export default function TodoPage() {
   }, [])
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => setUser(u ? u.email : null))
+    const unsub = onAuthStateChanged(auth, (u) =>
+      setUser(u ? { uid: u.uid, email: u.email ?? '' } : null)
+    )
     return unsub
   }, [])
 
   useEffect(() => {
     if (!user) { setTodos([]); return }
-    const q = query(collection(db, 'users', user, 'tasks'), orderBy('timestamp', 'desc'))
+    const q = query(collection(db, 'users', user.uid, 'tasks'), orderBy('timestamp', 'desc'))
     return onSnapshot(q, (snap) =>
       setTodos(snap.docs.map(d => ({ id: d.id, ...d.data() })))
     )
@@ -99,7 +101,7 @@ export default function TodoPage() {
     e.preventDefault()
     if (!user || !newTodo.trim()) return
     const id = Date.now().toString()
-    await setDoc(doc(db, 'users', user, 'tasks', id), {
+    await setDoc(doc(db, 'users', user.uid, 'tasks', id), {
       id, text: newTodo.trim(), completed: false,
       status: 'active', taskStatus: 'todo', timestamp: Date.now(),
     })
@@ -109,7 +111,7 @@ export default function TodoPage() {
   const cycleStatus = async (id: string, current: string) => {
     if (!user) return
     const next = STATUS_CYCLE[current] ?? 'todo'
-    await updateDoc(doc(db, 'users', user, 'tasks', id), {
+    await updateDoc(doc(db, 'users', user.uid, 'tasks', id), {
       taskStatus: next,
       completed: next === 'done',
       status: 'active',
@@ -120,7 +122,7 @@ export default function TodoPage() {
 
   const moveToDeleted = async (id: string, completed: boolean, taskStatus: string) => {
     if (!user) return
-    await updateDoc(doc(db, 'users', user, 'tasks', id), {
+    await updateDoc(doc(db, 'users', user.uid, 'tasks', id), {
       status: 'deleted', deletedDate: Date.now(),
       sourceCompleted: completed, sourceTaskStatus: taskStatus,
     })
@@ -128,7 +130,7 @@ export default function TodoPage() {
 
   const restoreTask = async (id: string, sourceCompleted: boolean, sourceTaskStatus: string) => {
     if (!user) return
-    await updateDoc(doc(db, 'users', user, 'tasks', id), {
+    await updateDoc(doc(db, 'users', user.uid, 'tasks', id), {
       status: 'active', deletedDate: null,
       completed: sourceCompleted, taskStatus: sourceTaskStatus,
       sourceCompleted: deleteField(), sourceTaskStatus: deleteField(),
@@ -139,7 +141,7 @@ export default function TodoPage() {
 
   const permanentDelete = async (id: string) => {
     if (!user) return
-    await deleteDoc(doc(db, 'users', user, 'tasks', id))
+    await deleteDoc(doc(db, 'users', user.uid, 'tasks', id))
   }
 
   if (pathname?.startsWith('/nexacore/')) return null
@@ -173,7 +175,7 @@ export default function TodoPage() {
               <div className="account-dropdown">
                 {user && !isSuccessTransition ? (
                   <>
-                    <p className="user-email">Signed in as<strong>{user}</strong></p>
+                    <p className="user-email">Signed in as<strong>{user.email}</strong></p>
                     <button type="button" onClick={handleLogout} className="logout-btn-dropdown">Sign out</button>
                   </>
                 ) : (
@@ -289,7 +291,12 @@ export default function TodoPage() {
             </>
           ) : (
             <div className="auth-view-wrapper">
-              <p className="auth-prompt">Sign in using the button above to start tracking your tasks.</p>
+              <div className="auth-inline-card">
+                {isLoginView
+                  ? <Login switchToSignup={() => setIsLoginView(false)} onAuthSuccess={handleAuthSuccess} />
+                  : <Signup switchToLogin={() => setIsLoginView(true)} onAuthSuccess={handleAuthSuccess} />
+                }
+              </div>
             </div>
           )}
 
