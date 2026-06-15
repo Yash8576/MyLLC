@@ -480,7 +480,7 @@ export default function TodoPage() {
                     transform: translateX(-3px);
                 }
 
-                @media (max-width: 640px) {
+                @media (max-width: 768px) {
                     .back-to-nexacore {
                         padding: 0.5rem;
                         gap: 0;
