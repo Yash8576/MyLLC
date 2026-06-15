@@ -1,35 +1,43 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react'
+import './Clock.css'
 
 interface DigitalClockProps {
-  textColor: string;
-  clockSize: number;
+  clockSize: number
+  theme: string
 }
 
-function DigitalClock({ textColor, clockSize }: DigitalClockProps) {
-  const [time, setTime] = useState(new Date());
+function DigitalClock({ clockSize, theme }: DigitalClockProps) {
+  const [time, setTime] = useState(new Date())
+
   useEffect(() => {
-    const timerID = setInterval(() => {
-      setTime(new Date());
-    }, 1000);
-    return function cleanup() {
-      clearInterval(timerID);
-    }
-  }, []);
-  
-  const formattedTime = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const id = setInterval(() => setTime(new Date()), 1000)
+    return () => clearInterval(id)
+  }, [])
+
+  const hours   = time.getHours()
+  const minutes = String(time.getMinutes()).padStart(2, '0')
+  const seconds = String(time.getSeconds()).padStart(2, '0')
+  const ampm    = hours >= 12 ? 'PM' : 'AM'
+  const h12     = String(hours % 12 || 12).padStart(2, '0')
+  const dateStr = time.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })
 
   return (
     <div
-      style={{
-        fontSize: `${clockSize}px`,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        fontFamily: 'monospace',
-        color: textColor,
-      }}
+      className={`clock-root clock-${theme}`}
+      style={{ '--clock-size': `${clockSize}px` } as React.CSSProperties}
     >
-      {formattedTime}
+      <div className="clock-date">{dateStr}</div>
+      <div className="clock-time">
+        <span className="clock-hhmm">
+          {h12}<span className="clock-sep">:</span>{minutes}
+        </span>
+        <div className="clock-sub">
+          <span className="clock-ampm">{ampm}</span>
+          <span className="clock-seconds">{seconds}</span>
+        </div>
+      </div>
     </div>
-  );
+  )
 }
-export default DigitalClock;
+
+export default DigitalClock

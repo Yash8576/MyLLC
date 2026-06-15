@@ -1,0 +1,169 @@
+/* ── Page shell ────────────────────────────────────────────────────────────── */
+.clock-page {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  transition: background 0.35s ease;
+}
+
+.clock-page-light { background: #ffffff; }
+.clock-page-dark  { background: #000000; }
+
+/* ── Top bar ───────────────────────────────────────────────────────────────── */
+.clock-topbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  height: 56px;
+  flex-shrink: 0;
+  z-index: 10;
+  transition: background 0.35s ease, border-color 0.35s ease;
+}
+
+.clock-page-light .clock-topbar {
+  background: rgba(255, 255, 255, 0.82);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+}
+
+.clock-page-dark .clock-topbar {
+  background: rgba(0, 0, 0, 0.75);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+}
+
+/* ── Back button ───────────────────────────────────────────────────────────── */
+.back-to-nexacore {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  text-decoration: none;
+  padding: 0.45rem 0.9rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background 0.2s ease, transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.clock-page-light .back-to-nexacore {
+  color: #5000ca;
+  background: rgba(80, 0, 202, 0.08);
+}
+.clock-page-light .back-to-nexacore:hover {
+  background: rgba(80, 0, 202, 0.15);
+  transform: translateX(-2px);
+}
+
+.clock-page-dark .back-to-nexacore {
+  color: #bf5af2;
+  background: rgba(191, 90, 242, 0.12);
+}
+.clock-page-dark .back-to-nexacore:hover {
+  background: rgba(191, 90, 242, 0.2);
+  transform: translateX(-2px);
+}
+
+.back-to-nexacore svg { transition: transform 0.2s ease; }
+.back-to-nexacore:hover svg { transform: translateX(-2px); }
+
+@media (max-width: 768px) {
+  .back-to-nexacore { padding: 0.45rem; gap: 0; }
+  .back-to-nexacore .back-label { display: none; }
+}
+
+/* ── Size control ──────────────────────────────────────────────────────────── */
+.clock-size-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.clock-size-label {
+  font-weight: 600;
+  line-height: 1;
+  transition: color 0.35s ease;
+  flex-shrink: 0;
+}
+.clock-size-label-sm { font-size: 12px; opacity: 0.5; }
+.clock-size-label-lg { font-size: 20px; opacity: 0.5; }
+
+.clock-page-light .clock-size-label { color: #1d1d1f; }
+.clock-page-dark  .clock-size-label { color: #f5f5f7; }
+
+.clock-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 110px;
+  height: 4px;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  transition: background 0.35s ease;
+}
+
+.clock-page-light .clock-slider { background: rgba(0, 0, 0, 0.12); }
+.clock-page-dark  .clock-slider { background: rgba(255, 255, 255, 0.15); }
+
+.clock-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.clock-slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
+.clock-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+}
+
+.clock-page-light .clock-slider::-webkit-slider-thumb { background: #5000ca; }
+.clock-page-light .clock-slider::-moz-range-thumb     { background: #5000ca; }
+.clock-page-dark  .clock-slider::-webkit-slider-thumb { background: #bf5af2; }
+.clock-page-dark  .clock-slider::-moz-range-thumb     { background: #bf5af2; }
+
+/* ── Theme toggle ──────────────────────────────────────────────────────────── */
+.clock-theme-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+.clock-theme-btn:hover { transform: scale(1.1); }
+
+.clock-page-light .clock-theme-btn { background: rgba(0, 0, 0, 0.06); color: #1d1d1f; }
+.clock-page-light .clock-theme-btn:hover { background: rgba(0, 0, 0, 0.1); }
+.clock-page-dark  .clock-theme-btn { background: rgba(255, 255, 255, 0.08); color: #f5f5f7; }
+.clock-page-dark  .clock-theme-btn:hover { background: rgba(255, 255, 255, 0.14); }
+
+/* ── Stage (clock centre) ──────────────────────────────────────────────────── */
+.clock-stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

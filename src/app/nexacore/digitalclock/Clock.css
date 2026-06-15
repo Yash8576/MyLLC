@@ -1,0 +1,83 @@
+.clock-root {
+  --clock-size: 60px;
+  --clock-sub-size: calc(var(--clock-size) * 0.29);
+  --clock-date-size: calc(max(var(--clock-size) * 0.22, 13px));
+  --clock-gap: calc(var(--clock-size) * 0.3);
+  --clock-sub-h: calc(var(--clock-size) * 0.82);
+  --clock-sub-ml: calc(var(--clock-size) * 0.1);
+  --clock-sub-pt: calc(var(--clock-size) * 0.04);
+
+  text-align: center;
+  user-select: none;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+}
+
+/* ── Date line ── */
+.clock-date {
+  font-size: var(--clock-date-size);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  margin-bottom: var(--clock-gap);
+  transition: font-size 0.3s ease, color 0.3s ease;
+}
+
+/* ── Time row ── */
+.clock-time {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* HH:MM */
+.clock-hhmm {
+  font-size: var(--clock-size);
+  letter-spacing: -0.03em;
+  transition: font-size 0.3s ease, color 0.3s ease;
+}
+
+.clock-sep {
+  margin: 0 2px;
+  transition: color 0.3s ease;
+}
+
+/* Seconds + AM/PM column */
+.clock-sub {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  margin-left: var(--clock-sub-ml);
+  height: var(--clock-sub-h);
+  padding-top: var(--clock-sub-pt);
+}
+
+.clock-ampm {
+  font-size: var(--clock-sub-size);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  transition: font-size 0.3s ease, color 0.3s ease;
+}
+
+.clock-seconds {
+  font-size: var(--clock-sub-size);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  transition: font-size 0.3s ease, color 0.3s ease;
+}
+
+/* ── Light theme ── */
+.clock-light .clock-date    { color: rgba(0, 0, 0, 0.22); }
+.clock-light .clock-hhmm    { color: #1d1d1f; }
+.clock-light .clock-sep     { color: rgba(0, 0, 0, 0.25); }
+.clock-light .clock-ampm    { color: #1d1d1f; }
+.clock-light .clock-seconds { color: rgba(0, 0, 0, 0.25); }
+
+/* ── Dark theme ── */
+.clock-dark .clock-date    { color: rgba(255, 255, 255, 0.25); }
+.clock-dark .clock-hhmm    { color: #f5f5f7; }
+.clock-dark .clock-sep     { color: rgba(255, 255, 255, 0.25); }
+.clock-dark .clock-ampm    { color: #f5f5f7; }
+.clock-dark .clock-seconds { color: rgba(255, 255, 255, 0.28); }
