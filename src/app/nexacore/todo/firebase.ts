@@ -5,6 +5,7 @@ import { getFirestore } from 'firebase/firestore'
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_TODO_FIREBASE_API_KEY ?? 'AIzaSyD2LXtQ00F3Wt9tCxwHZjTXTQbAKMpRUuU',
   authDomain: process.env.NEXT_PUBLIC_TODO_FIREBASE_AUTH_DOMAIN ?? 'buzz-to-do.firebaseapp.com',
+  databaseURL: process.env.NEXT_PUBLIC_TODO_FIREBASE_DATABASE_URL ?? 'https://buzz-to-do-default-rtdb.firebaseio.com',
   projectId: process.env.NEXT_PUBLIC_TODO_FIREBASE_PROJECT_ID ?? 'buzz-to-do',
   storageBucket: process.env.NEXT_PUBLIC_TODO_FIREBASE_STORAGE_BUCKET ?? 'buzz-to-do.firebasestorage.app',
   messagingSenderId: process.env.NEXT_PUBLIC_TODO_FIREBASE_MESSAGING_SENDER_ID ?? '605272755203',

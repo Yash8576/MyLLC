@@ -1,1 +1,1 @@
-export { auth, db } from '../shared/firebase'
+export { auth, db } from './firebase'
