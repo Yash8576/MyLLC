@@ -116,8 +116,6 @@ export default function TodoPage() {
       completed: next === 'done',
       status: 'active',
     })
-    if (next === 'done') setViewFilter('completed')
-    else setViewFilter('active')
   }
 
   const moveToDeleted = async (id: string, completed: boolean, taskStatus: string) => {
