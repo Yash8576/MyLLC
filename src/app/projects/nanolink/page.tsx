@@ -102,6 +102,10 @@ export default function NanolinkPage() {
 
     try {
       const token = user ? await getIdToken(user) : null
+      if (user && !token) {
+        throw new Error('Could not verify your login. Please sign in again.')
+      }
+
       const response = await fetch(`${apiBaseUrl}/api/shorten`, {
         method: 'POST',
         headers: {

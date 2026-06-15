@@ -29,20 +29,21 @@ declare global {
   }
 }
 
-/** Attaches req.uid when a valid Bearer token is present. Never blocks the request. */
+/** Attaches req.uid when a valid Bearer token is present. */
 export const optionalFirebaseAuth = async (
   req: Request,
-  _res: Response,
+  res: Response,
   next: NextFunction
 ) => {
-  const auth = getAdminAuth();
-  if (!auth) {
-    return next();
-  }
-
   const header = req.headers.authorization;
   if (!header?.startsWith("Bearer ")) {
     return next();
+  }
+
+  const auth = getAdminAuth();
+  if (!auth) {
+    res.status(503).json({ error: "Firebase Admin is not configured" });
+    return;
   }
 
   try {
@@ -50,7 +51,8 @@ export const optionalFirebaseAuth = async (
     const decoded = await auth.verifyIdToken(token);
     req.uid = decoded.uid;
   } catch {
-    // Invalid token — treat as anonymous
+    res.status(401).json({ error: "Invalid authentication token" });
+    return;
   }
 
   return next();
