@@ -1,7 +1,7 @@
 // src/app/nexacore/todo/Login.tsx
 
 import React, { useState } from 'react';
-import { auth } from '../shared/firebase';
+import { auth } from './firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 
 interface LoginProps {
