@@ -268,7 +268,7 @@ export default function TodoPage() {
                         <path d="M19 12H5"/>
                         <path d="M12 19l-7-7 7-7"/>
                     </svg>
-                    {isProjectsRoute ? 'Back to Projects' : 'Back to Nexacore'}
+                    <span className="back-label">{isProjectsRoute ? 'Back to Projects' : 'Back to Nexacore'}</span>
                 </Link>
                 <h1 className="app-title">{fabulousSentence}</h1>
                 <div className="top-actions">
@@ -478,6 +478,17 @@ export default function TodoPage() {
 
                 .back-to-nexacore:hover svg {
                     transform: translateX(-3px);
+                }
+
+                @media (max-width: 480px) {
+                    .back-to-nexacore {
+                        padding: 0.5rem;
+                        gap: 0;
+                    }
+
+                    .back-to-nexacore .back-label {
+                        display: none;
+                    }
                 }
         `}</style>
         </div>

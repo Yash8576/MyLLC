@@ -92,6 +92,17 @@
   transform: translateX(-3px);
 }
 
+@media (max-width: 480px) {
+  .back-to-nexacore {
+    padding: 0.5rem;
+    gap: 0;
+  }
+
+  .back-to-nexacore .back-label {
+    display: none;
+  }
+}
+
   .portfolio-nav-link::after {
     background: linear-gradient(90deg, #5000ca, #9d4edd);
   }
@@ -255,9 +266,18 @@
     background: rgba(80, 0, 202, 0.4);
     color: #5000ca;
     transform: translateX(-4px);
-    
+
     svg {
       transform: translateX(-3px);
+    }
+  }
+
+  @media (max-width: 480px) {
+    padding: 0.5rem;
+    gap: 0;
+
+    .back-label {
+      display: none;
     }
   }
 }

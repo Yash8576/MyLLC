@@ -538,7 +538,7 @@ export default function NexAlgoPage() {
                 <path d='M19 12H5' />
                 <path d='M12 19l-7-7 7-7' />
               </svg>
-              Back to Projects
+              <span className="back-label">Back to Projects</span>
             </Link>
           </div>
           <div className='nexalgo-brand'>
@@ -579,7 +579,7 @@ export default function NexAlgoPage() {
               <path d='M19 12H5' />
               <path d='M12 19l-7-7 7-7' />
             </svg>
-            {isProjectsRoute ? 'Back to Projects' : 'Back to Nexacore'}
+            <span className="back-label">{isProjectsRoute ? 'Back to Projects' : 'Back to Nexacore'}</span>
           </Link>
         </div>
         <div className='nexalgo-brand'>

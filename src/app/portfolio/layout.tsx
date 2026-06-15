@@ -125,10 +125,10 @@ export default function PortfolioLayout({
               >
                 <path d="M19 12H5M12 19l-7-7 7-7"/>
               </svg>
-              Back to Nexacore
+              <span className="back-label">Back to Nexacore</span>
             </Link>
           </div>
-          
+
           <nav className='portfolio-nav-links'>
             {portfolioNavItems.map((item, index) => (
               <button 

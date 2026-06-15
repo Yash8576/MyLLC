@@ -3,7 +3,6 @@ import { HeaderType } from '@/app/types/menu'
 import { ProjectType } from '@/app/types/project'
 
 export const HeaderData: HeaderType[] = [
-  { label: 'Home', href: '/' },
   {
     label: 'Yaswanth',
     href: '/#yaswanth',

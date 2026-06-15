@@ -167,6 +167,17 @@ export default function DigitalClockPage() {
         .back-to-nexacore:hover svg {
           transform: translateX(-3px);
         }
+
+        @media (max-width: 480px) {
+          .back-to-nexacore {
+            padding: 0.5rem;
+            gap: 0;
+          }
+
+          .back-to-nexacore .back-label {
+            display: none;
+          }
+        }
       `}</style>
       <div className={`app-wrapper ${theme}`} style={appStyle}>
         <div style={topBarStyle}>
@@ -175,7 +186,7 @@ export default function DigitalClockPage() {
             <path d="M19 12H5"/>
             <path d="M12 19l-7-7 7-7"/>
           </svg>
-          {isProjectsRoute ? 'Back to Projects' : 'Back to Nexacore'}
+          <span className="back-label">{isProjectsRoute ? 'Back to Projects' : 'Back to Nexacore'}</span>
         </Link>
         <div style={sizeControlStyle}>
           <span style={{ opacity: 0.8 }}>A</span>
