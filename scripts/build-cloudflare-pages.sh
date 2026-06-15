@@ -3,9 +3,10 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FLUTTER_DIR="${REPO_ROOT}/.tooling/flutter"
-BUZZCART_HASH_FILE="${REPO_ROOT}/.tooling/buzzcart-tree-hash"
 BUZZCART_SRC="${REPO_ROOT}/projects/buzzcart/frontend"
 BUZZCART_PUBLIC="${REPO_ROOT}/public/nexacore/BuzzCart"
+# This file is committed alongside the BuzzCart build output — no external cache needed.
+BUZZCART_SRC_HASH_FILE="${BUZZCART_PUBLIC}/.buzzcart-src-hash"
 
 DEFAULT_BUZZCART_API_BASE_URL="https://buzzcart-backend-1038414138435.us-east4.run.app/api"
 DEFAULT_BUZZCART_WS_BASE_URL="wss://buzzcart-backend-1038414138435.us-east4.run.app/ws"
@@ -26,17 +27,19 @@ DEFAULT_NANOLINK_FIREBASE_MESSAGING_SENDER_ID="623556334382"
 DEFAULT_NANOLINK_FIREBASE_APP_ID="1:623556334382:web:995a5bb3a7404b3ebbe0bf"
 
 # ── BuzzCart change detection ────────────────────────────────────────────────
-# git tree hash of projects/buzzcart/frontend at HEAD — changes only when
-# files inside that directory actually change.
+# Git tree hash of projects/buzzcart/frontend at HEAD. We compare it against
+# .buzzcart-src-hash which is committed inside public/nexacore/BuzzCart — so
+# it travels with the repo and survives a fresh clone. No external cache file.
 CURRENT_BUZZCART_HASH="$(git -C "${REPO_ROOT}" rev-parse HEAD:projects/buzzcart/frontend 2>/dev/null || echo "unknown")"
-CACHED_BUZZCART_HASH="$(cat "${BUZZCART_HASH_FILE}" 2>/dev/null || echo "")"
+COMMITTED_BUZZCART_HASH="$(cat "${BUZZCART_SRC_HASH_FILE}" 2>/dev/null || echo "")"
 
 BUZZCART_CHANGED=true
 if [[ "${CURRENT_BUZZCART_HASH}" != "unknown" && \
-      "${CURRENT_BUZZCART_HASH}" == "${CACHED_BUZZCART_HASH}" && \
-      -d "${BUZZCART_PUBLIC}" ]]; then
-  echo "BuzzCart source unchanged (tree ${CURRENT_BUZZCART_HASH:0:12}) — skipping Flutter build."
+      "${CURRENT_BUZZCART_HASH}" == "${COMMITTED_BUZZCART_HASH}" ]]; then
+  echo "BuzzCart source unchanged (${CURRENT_BUZZCART_HASH:0:12}) — skipping Flutter build."
   BUZZCART_CHANGED=false
+else
+  echo "BuzzCart source changed (src=${CURRENT_BUZZCART_HASH:0:12} cached=${COMMITTED_BUZZCART_HASH:0:12}) — building Flutter web..."
 fi
 
 # ── Flutter (only needed when BuzzCart changed) ──────────────────────────────
@@ -87,7 +90,6 @@ export NEXT_PUBLIC_NANOLINK_FIREBASE_APP_ID="${NEXT_PUBLIC_NANOLINK_FIREBASE_APP
 
 # ── BuzzCart Flutter build (skipped when unchanged) ──────────────────────────
 if [[ "${BUZZCART_CHANGED}" == "true" ]]; then
-  echo "BuzzCart source changed — building Flutter web..."
   pushd "${BUZZCART_SRC}" >/dev/null
   flutter pub get
   flutter build web --release \
@@ -103,9 +105,10 @@ if [[ "${BUZZCART_CHANGED}" == "true" ]]; then
   node ./scripts/sync-buzzcart-build.mjs
   popd >/dev/null
 
-  # Save hash so next deploy can skip if nothing changed
-  mkdir -p "${REPO_ROOT}/.tooling"
-  echo "${CURRENT_BUZZCART_HASH}" > "${BUZZCART_HASH_FILE}"
+  # Write the source hash into the committed output directory so the next
+  # deploy (fresh clone) can compare without any external cache.
+  echo "${CURRENT_BUZZCART_HASH}" > "${BUZZCART_SRC_HASH_FILE}"
+  echo "Wrote BuzzCart src hash ${CURRENT_BUZZCART_HASH:0:12} to ${BUZZCART_SRC_HASH_FILE}"
 fi
 
 # ── Next.js build (always) ───────────────────────────────────────────────────
