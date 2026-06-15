@@ -38,10 +38,10 @@ export const missingNanolinkFirebaseEnvKeys = requiredNanolinkFirebaseEnvKeys.fi
 
 export const nanolinkFirebaseConfigured = Object.values(firebaseConfig).every(Boolean)
 
+const NANOLINK_APP_NAME = 'nanolink'
 const app = nanolinkFirebaseConfigured
-  ? getApps().length > 0
-    ? getApp()
-    : initializeApp(firebaseConfig)
+  ? getApps().find((firebaseApp) => firebaseApp.name === NANOLINK_APP_NAME)
+    ?? initializeApp(firebaseConfig, NANOLINK_APP_NAME)
   : null
 
 export const nanolinkAuth: Auth | null = app ? getAuth(app) : null

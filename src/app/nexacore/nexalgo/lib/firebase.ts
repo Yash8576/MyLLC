@@ -48,10 +48,10 @@ export const missingFirebaseEnvKeys = requiredFirebaseEnvKeys.filter((key) => {
 
 export const firebaseClientConfigured = Object.values(firebaseConfig).every(Boolean)
 
+const NEXALGO_APP_NAME = 'nexalgo'
 const app = firebaseClientConfigured
-  ? getApps().length > 0
-    ? getApp()
-    : initializeApp(firebaseConfig)
+  ? getApps().find((firebaseApp) => firebaseApp.name === NEXALGO_APP_NAME)
+    ?? initializeApp(firebaseConfig, NEXALGO_APP_NAME)
   : null
 
 export const auth: Auth | null = app ? getAuth(app) : null

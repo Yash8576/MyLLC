@@ -125,6 +125,7 @@ jobs:
           NODE_ENV: "production"
           PUBLIC_BASE_URL: "$PUBLIC_BASE_URL"
           CORS_ORIGIN: "$FRONTEND_URL"
+          FIREBASE_PROJECT_ID: "nanolink-c1bc5"
           DB_HOST: "/cloudsql/$CLOUD_SQL_INSTANCE"
           DB_PORT: "5432"
           DB_USER: "nanolink_app"
