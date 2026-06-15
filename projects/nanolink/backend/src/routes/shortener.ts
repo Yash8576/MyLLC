@@ -2,6 +2,7 @@ import { Router } from "express";
 import { nanoid } from "nanoid";
 
 import { databaseConfigError, pool } from "../db/pool";
+import { optionalFirebaseAuth, requireFirebaseAuth } from "../middleware/firebaseAuth";
 import { isValidUrl } from "../utils/validate";
 
 const router = Router();
@@ -22,7 +23,7 @@ const ensureDatabaseConfigured = (res: import("express").Response) => {
   return false;
 };
 
-router.post("/api/shorten", async (req, res, next) => {
+router.post("/api/shorten", optionalFirebaseAuth, async (req, res, next) => {
   try {
     if (!ensureDatabaseConfigured(res)) {
       return;
@@ -34,13 +35,15 @@ router.post("/api/shorten", async (req, res, next) => {
       return res.status(400).json({ error: "Invalid URL" });
     }
 
+    const userId = req.uid ?? null;
+
     let code = "";
     for (let attempt = 0; attempt < 5; attempt += 1) {
       code = nanoid(7);
       try {
         await pool.query(
-          "INSERT INTO urls (short_code, long_url) VALUES ($1, $2)",
-          [code, longUrl]
+          "INSERT INTO urls (short_code, long_url, user_id) VALUES ($1, $2, $3)",
+          [code, longUrl, userId]
         );
         const shortUrl = buildShortUrl(code);
         return res.status(201).json({ shortUrl, code, longUrl });
@@ -53,6 +56,31 @@ router.post("/api/shorten", async (req, res, next) => {
     }
 
     return res.status(500).json({ error: "Could not generate unique code" });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get("/api/links", requireFirebaseAuth, async (req, res, next) => {
+  try {
+    if (!ensureDatabaseConfigured(res)) {
+      return;
+    }
+
+    const result = await pool.query(
+      "SELECT short_code, long_url, clicks, created_at FROM urls WHERE user_id = $1 ORDER BY created_at DESC LIMIT 100",
+      [req.uid]
+    );
+
+    return res.status(200).json({
+      links: result.rows.map((row) => ({
+        code: row.short_code,
+        shortUrl: buildShortUrl(row.short_code),
+        longUrl: row.long_url,
+        clicks: row.clicks,
+        createdAt: row.created_at,
+      })),
+    });
   } catch (error) {
     return next(error);
   }

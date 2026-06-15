@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import {
   User,
   createUserWithEmailAndPassword,
@@ -21,6 +21,14 @@ const apiBaseUrl = (
   process.env.NEXT_PUBLIC_NANOLINK_API_BASE_URL ?? "http://localhost:8080"
 ).replace(/\/$/, "");
 
+const getIdToken = async (user: User) => {
+  try {
+    return await user.getIdToken();
+  } catch {
+    return null;
+  }
+};
+
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
@@ -35,11 +43,8 @@ export default function Home() {
   const [shortening, setShortening] = useState(false);
   const [shortenError, setShortenError] = useState("");
   const [history, setHistory] = useState<SavedLink[]>([]);
-
-  const historyKey = useMemo(
-    () => (user ? `nanolink:history:${user.uid}` : ""),
-    [user]
-  );
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState("");
 
   useEffect(() => {
     if (firebaseConfigError) {
@@ -51,28 +56,30 @@ export default function Home() {
       setUser(nextUser);
       if (nextUser) {
         setAuthOpen(false);
+      } else {
+        setHistory([]);
       }
     });
   }, []);
 
-  useEffect(() => {
-    if (!historyKey) {
-      setHistory([]);
-      return;
+  const fetchHistory = async (currentUser: User) => {
+    setHistoryLoading(true);
+    setHistoryError("");
+    try {
+      const token = await getIdToken(currentUser);
+      const response = await fetch(`${apiBaseUrl}/api/links`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!response.ok) {
+        throw new Error("Could not load history");
+      }
+      const data = (await response.json()) as { links: SavedLink[] };
+      setHistory(data.links);
+    } catch (error) {
+      setHistoryError(error instanceof Error ? error.message : "Could not load history");
+    } finally {
+      setHistoryLoading(false);
     }
-
-    const raw = window.localStorage.getItem(historyKey);
-    setHistory(raw ? (JSON.parse(raw) as SavedLink[]) : []);
-  }, [historyKey]);
-
-  const saveHistory = (entry: SavedLink) => {
-    if (!historyKey) {
-      return;
-    }
-
-    const nextHistory = [entry, ...history].slice(0, 30);
-    setHistory(nextHistory);
-    window.localStorage.setItem(historyKey, JSON.stringify(nextHistory));
   };
 
   const handleShorten = async (event: FormEvent<HTMLFormElement>) => {
@@ -82,9 +89,13 @@ export default function Home() {
     setShortening(true);
 
     try {
+      const token = user ? await getIdToken(user) : null;
       const response = await fetch(`${apiBaseUrl}/api/shorten`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ longUrl }),
       });
       const data = (await response.json()) as {
@@ -99,13 +110,15 @@ export default function Home() {
       }
 
       setShortUrl(data.shortUrl);
+
       if (user) {
-        saveHistory({
+        const newEntry: SavedLink = {
           shortUrl: data.shortUrl,
           longUrl: data.longUrl,
           code: data.code,
           createdAt: new Date().toISOString(),
-        });
+        };
+        setHistory((prev) => [newEntry, ...prev]);
       }
     } catch (error) {
       setShortenError(error instanceof Error ? error.message : "Could not shorten URL");
@@ -138,6 +151,14 @@ export default function Home() {
     setMenuOpen(false);
   };
 
+  const openHistory = () => {
+    setHistoryOpen(true);
+    setMenuOpen(false);
+    if (user) {
+      fetchHistory(user);
+    }
+  };
+
   return (
     <main className="page">
       <header className="topbar">
@@ -149,7 +170,7 @@ export default function Home() {
           <div className="menu-wrap">
             <button
               aria-label="Open menu"
-              aria-expanded={menuOpen}
+              aria-expanded={menuOpen ? "true" : "false"}
               className="icon-button hamburger"
               type="button"
               onClick={() => setMenuOpen((open) => !open)}
@@ -165,10 +186,7 @@ export default function Home() {
                     <button
                       className="menu-item"
                       type="button"
-                      onClick={() => {
-                        setHistoryOpen(true);
-                        setMenuOpen(false);
-                      }}
+                      onClick={openHistory}
                     >
                       History
                     </button>
@@ -313,7 +331,11 @@ export default function Home() {
               </button>
             </div>
             <div className="history-list">
-              {history.length ? (
+              {historyLoading ? (
+                <p className="hint">Loading...</p>
+              ) : historyError ? (
+                <p className="error">{historyError}</p>
+              ) : history.length ? (
                 history.map((item) => (
                   <article className="history-card" key={`${item.code}-${item.createdAt}`}>
                     <a href={item.shortUrl} rel="noreferrer" target="_blank">
