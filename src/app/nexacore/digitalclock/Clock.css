@@ -1,22 +1,23 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&display=swap');
+
 .clock-root {
   --clock-size: 60px;
-  --clock-sub-size: calc(var(--clock-size) * 0.29);
-  --clock-date-size: calc(max(var(--clock-size) * 0.22, 13px));
-  --clock-gap: calc(var(--clock-size) * 0.3);
-  --clock-sub-h: calc(var(--clock-size) * 0.82);
-  --clock-sub-ml: calc(var(--clock-size) * 0.1);
-  --clock-sub-pt: calc(var(--clock-size) * 0.04);
+  --clock-sub-size: calc(var(--clock-size) * 0.28);
+  --clock-date-size: calc(max(var(--clock-size) * 0.2, 13px));
+  --clock-gap: calc(var(--clock-size) * 0.28);
+  --clock-sub-ml: calc(var(--clock-size) * 0.12);
 
   text-align: center;
   user-select: none;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+  font-family: 'DM Mono', 'SF Mono', 'Fira Code', monospace;
 }
 
 /* ── Date line ── */
 .clock-date {
   font-size: var(--clock-date-size);
-  font-weight: 500;
-  letter-spacing: 0.04em;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   margin-bottom: var(--clock-gap);
   transition: font-size 0.3s ease, color 0.3s ease;
 }
@@ -24,46 +25,50 @@
 /* ── Time row ── */
 .clock-time {
   display: flex;
-  align-items: flex-start;
+  align-items: center;  /* vertically centres the colon with the digits */
   justify-content: center;
-  font-weight: 700;
   line-height: 1;
 }
 
 /* HH:MM */
 .clock-hhmm {
   font-size: var(--clock-size);
-  letter-spacing: -0.03em;
+  font-weight: 500;
+  letter-spacing: -0.02em;
   transition: font-size 0.3s ease, color 0.3s ease;
+  line-height: 1;
 }
 
 .clock-sep {
-  margin: 0 2px;
+  margin: 0 3px;
   transition: color 0.3s ease;
+  /* nudge down slightly so the colon optical centre matches digit centre */
+  position: relative;
+  top: -0.05em;
 }
 
-/* Seconds + AM/PM column */
+/* AM/PM + seconds stacked to the right, pinned to top/bottom of the digit block */
 .clock-sub {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  align-self: stretch;   /* fills the full height of the digit */
   margin-left: var(--clock-sub-ml);
-  height: var(--clock-sub-h);
-  padding-top: var(--clock-sub-pt);
+  padding: 0.05em 0;
 }
 
 .clock-ampm {
   font-size: var(--clock-sub-size);
-  font-weight: 600;
-  letter-spacing: 0.01em;
+  font-weight: 500;
+  letter-spacing: 0.04em;
   line-height: 1;
   transition: font-size 0.3s ease, color 0.3s ease;
 }
 
 .clock-seconds {
   font-size: var(--clock-sub-size);
-  font-weight: 500;
-  letter-spacing: 0.01em;
+  font-weight: 300;
+  letter-spacing: 0.04em;
   line-height: 1;
   transition: font-size 0.3s ease, color 0.3s ease;
 }
