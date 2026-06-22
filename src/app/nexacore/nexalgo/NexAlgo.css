@@ -174,20 +174,21 @@
   position: absolute;
   left: 10px;
   right: 10px;
-  height: 1px;
+  height: 2px;
   background: var(--nx-ink-dim);
 }
 
 .nexalgo-hamburger span {
   top: 50%;
+  transform: translateY(-50%);
 }
 
 .nexalgo-hamburger span::before {
-  top: -6px;
+  top: -7px;
 }
 
 .nexalgo-hamburger span::after {
-  top: 6px;
+  top: 7px;
 }
 
 /* ---- main layout ---- */
@@ -218,21 +219,14 @@
 .nexalgo-pane-collapse-btn {
   flex: 0 0 auto;
   width: 100%;
+  height: 100%;
   background: transparent;
   border: none;
-  border-bottom: 1px solid var(--nx-line);
   color: var(--nx-ink-faint);
   font-family: var(--nx-mono);
   font-size: 13px;
-  padding: 10px 0;
   cursor: pointer;
   transition: 0.12s;
-}
-
-.nexalgo-sidebar.collapsed .nexalgo-pane-collapse-btn,
-.nexalgo-list-pane.collapsed .nexalgo-pane-collapse-btn {
-  border-bottom: none;
-  height: 100%;
 }
 
 .nexalgo-pane-collapse-btn:hover {
@@ -240,10 +234,38 @@
   color: var(--nx-ink);
 }
 
+.nexalgo-pane-collapse-inline {
+  flex: 0 0 auto;
+  background: transparent;
+  border: 1px solid var(--nx-line);
+  color: var(--nx-ink-faint);
+  font-family: var(--nx-mono);
+  font-size: 12px;
+  width: 26px;
+  height: 26px;
+  cursor: pointer;
+  transition: 0.12s;
+}
+
+.nexalgo-pane-collapse-inline:hover {
+  border-color: var(--nx-signal-dim);
+  color: var(--nx-ink);
+}
+
 .nexalgo-sidebar-header {
   flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   padding: 16px 18px 10px;
   border-bottom: 1px solid var(--nx-line);
+}
+
+.nexalgo-sidebar-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .nexalgo-nav {
@@ -316,6 +338,13 @@
   border-bottom: 1px solid var(--nx-line);
 }
 
+.nexalgo-filter-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .nexalgo-filter-label {
   font-family: var(--nx-mono);
   font-size: 10px;
@@ -325,27 +354,46 @@
   margin: 0 0 4px;
 }
 
-.nexalgo-sidebar-filter-btn {
+.nexalgo-reset-filters-btn {
   background: transparent;
-  border: 1px solid var(--nx-line);
+  border: none;
+  color: var(--nx-signal);
+  font-family: var(--nx-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  padding: 0 0 4px;
+  cursor: pointer;
+}
+
+.nexalgo-reset-filters-btn:hover {
+  color: #fff;
+}
+
+.nexalgo-sidebar-filter-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   color: var(--nx-ink-dim);
   font-family: var(--nx-mono);
   font-size: 11px;
-  padding: 6px 9px;
-  text-align: left;
+  padding: 5px 2px;
   cursor: pointer;
   transition: 0.12s;
 }
 
-.nexalgo-sidebar-filter-btn:hover {
-  border-color: var(--nx-ink-faint);
+.nexalgo-sidebar-filter-checkbox:hover {
   color: var(--nx-ink);
 }
 
-.nexalgo-sidebar-filter-btn.active {
-  background: var(--nx-signal);
-  border-color: var(--nx-signal);
-  color: #fff;
+.nexalgo-sidebar-filter-checkbox input[type='checkbox'] {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  accent-color: var(--nx-signal);
+  cursor: pointer;
 }
 
 .nexalgo-review-queue-panel {
@@ -409,6 +457,10 @@
   flex-direction: column;
   align-items: flex-end;
   gap: 6px;
+}
+
+.nexalgo-pane-controls .nexalgo-pane-collapse-inline {
+  align-self: flex-end;
 }
 
 .nexalgo-pane-toggle {

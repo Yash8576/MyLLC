@@ -791,17 +791,43 @@ export default function NexAlgoPage() {
       ) : (
         <main className='nexalgo-main'>
           <aside className={`nexalgo-sidebar ${sidebarCollapsed ? 'collapsed' : 'expanded'}`}>
-            <button
-              type='button'
-              className='nexalgo-pane-collapse-btn'
-              aria-label={sidebarCollapsed ? 'Expand filters' : 'Collapse filters'}
-              onClick={() => setSidebarCollapsed((current) => !current)}>
-              {sidebarCollapsed ? '»' : '«'}
-            </button>
-            {sidebarCollapsed ? null : (
+            {sidebarCollapsed ? (
+              <button
+                type='button'
+                className='nexalgo-pane-collapse-btn'
+                aria-label='Expand filters'
+                onClick={() => setSidebarCollapsed(false)}>
+                »
+              </button>
+            ) : (
               <>
                 <div className='nexalgo-sidebar-header'>
                   <p className='nexalgo-menu-title'>Browse</p>
+                  <div className='nexalgo-sidebar-header-actions'>
+                    {platformFilters.length > 0 ||
+                    difficultyFilters.length > 0 ||
+                    companyFilters.length > 0 ||
+                    topicFilters.length > 0 ? (
+                      <button
+                        type='button'
+                        className='nexalgo-reset-filters-btn'
+                        onClick={() => {
+                          setPlatformFilters([])
+                          setDifficultyFilters([])
+                          setCompanyFilters([])
+                          setTopicFilters([])
+                        }}>
+                        Reset all
+                      </button>
+                    ) : null}
+                    <button
+                      type='button'
+                      className='nexalgo-pane-collapse-inline'
+                      aria-label='Collapse filters'
+                      onClick={() => setSidebarCollapsed(true)}>
+                      «
+                    </button>
+                  </div>
                 </div>
                 <nav className='nexalgo-nav' aria-label='Problem filters'>
                   {[
@@ -827,27 +853,36 @@ export default function NexAlgoPage() {
                 </nav>
                 <div className='nexalgo-sidebar-scroll'>
                   <div className='nexalgo-sidebar-filters'>
-                    <p className='nexalgo-filter-label'>
-                      {activeNav === 'difficulty' ? 'Difficulty' : 'Filter'}
-                    </p>
-                    <button
-                      type='button'
-                      className={`nexalgo-sidebar-filter-btn ${
-                        activeFiltersForNav(activeNav).length === 0 ? 'active' : ''
-                      }`}
-                      onClick={() => setActiveFiltersForNav(activeNav, [])}>
+                    <div className='nexalgo-filter-label-row'>
+                      <p className='nexalgo-filter-label'>
+                        {activeNav === 'difficulty' ? 'Difficulty' : 'Filter'}
+                      </p>
+                      {activeFiltersForNav(activeNav).length > 0 ? (
+                        <button
+                          type='button'
+                          className='nexalgo-reset-filters-btn'
+                          onClick={() => setActiveFiltersForNav(activeNav, [])}>
+                          Reset
+                        </button>
+                      ) : null}
+                    </div>
+                    <label className='nexalgo-sidebar-filter-checkbox'>
+                      <input
+                        type='checkbox'
+                        checked={activeFiltersForNav(activeNav).length === 0}
+                        onChange={() => setActiveFiltersForNav(activeNav, [])}
+                      />
                       All
-                    </button>
+                    </label>
                     {navItems.map((item) => (
-                      <button
-                        key={item}
-                        type='button'
-                        className={`nexalgo-sidebar-filter-btn ${
-                          activeFiltersForNav(activeNav).includes(item) ? 'active' : ''
-                        }`}
-                        onClick={() => toggleFilterValue(activeNav, item)}>
+                      <label key={item} className='nexalgo-sidebar-filter-checkbox'>
+                        <input
+                          type='checkbox'
+                          checked={activeFiltersForNav(activeNav).includes(item)}
+                          onChange={() => toggleFilterValue(activeNav, item)}
+                        />
                         {activeNav === 'platform' ? displayPlatform(item) : item}
-                      </button>
+                      </label>
                     ))}
                   </div>
                   {isEditor ? (
@@ -907,14 +942,15 @@ export default function NexAlgoPage() {
 
           <section
             className={`nexalgo-list-pane ${listPaneCollapsed ? 'collapsed' : 'nexalgo-list-pane-normal'}`}>
-            <button
-              type='button'
-              className='nexalgo-pane-collapse-btn'
-              aria-label={listPaneCollapsed ? 'Expand problem list' : 'Collapse problem list'}
-              onClick={() => setListPaneCollapsed((current) => !current)}>
-              {listPaneCollapsed ? '»' : '«'}
-            </button>
-            {listPaneCollapsed ? null : (
+            {listPaneCollapsed ? (
+              <button
+                type='button'
+                className='nexalgo-pane-collapse-btn'
+                aria-label='Expand problem list'
+                onClick={() => setListPaneCollapsed(false)}>
+                »
+              </button>
+            ) : (
               <>
                 <div className='nexalgo-pane-head'>
                   <div>
@@ -924,6 +960,13 @@ export default function NexAlgoPage() {
                     </p>
                   </div>
                   <div className='nexalgo-pane-controls'>
+                    <button
+                      type='button'
+                      className='nexalgo-pane-collapse-inline'
+                      aria-label='Collapse problem list'
+                      onClick={() => setListPaneCollapsed(true)}>
+                      «
+                    </button>
                     <label className='nexalgo-sort-toggle'>
                       <input
                         type='checkbox'
