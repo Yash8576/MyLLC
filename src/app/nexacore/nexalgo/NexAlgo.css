@@ -14,8 +14,8 @@
   --nx-ink: #e7eaed;
   --nx-ink-dim: #9aa3ad;
   --nx-ink-faint: #6b747e;
-  --nx-signal: #e3251b;
-  --nx-signal-dim: #8f2620;
+  --nx-signal: #6556ff;
+  --nx-signal-dim: #4338b0;
   --nx-easy: #3fb37f;
   --nx-med: #d9a23a;
   --nx-hard: #e3625b;
@@ -878,8 +878,8 @@
 }
 
 .nexalgo-save-btn:hover {
-  background: #c01f17;
-  border-color: #c01f17;
+  background: #5142e0;
+  border-color: #5142e0;
 }
 
 .nexalgo-markdone {
