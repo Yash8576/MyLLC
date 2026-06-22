@@ -262,7 +262,6 @@ export default function NexAlgoPage() {
   const [difficultyFilters, setDifficultyFilters] = useState<string[]>([])
   const [companyFilters, setCompanyFilters] = useState<string[]>([])
   const [topicFilters, setTopicFilters] = useState<string[]>([])
-  const [sortByNumber, setSortByNumber] = useState(true)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [listPaneCollapsed, setListPaneCollapsed] = useState(false)
 
@@ -391,16 +390,12 @@ export default function NexAlgoPage() {
       return true
     })
 
-    if (sortByNumber) {
-      return [...nextProblems].sort((left, right) => {
-        const leftNumber = left.problemNumber ?? Number.MAX_SAFE_INTEGER
-        const rightNumber = right.problemNumber ?? Number.MAX_SAFE_INTEGER
-        return leftNumber - rightNumber || left.title.localeCompare(right.title)
-      })
-    }
-
-    return nextProblems
-  }, [companyFilters, difficultyFilters, platformFilters, problems, sortByNumber, topicFilters])
+    return [...nextProblems].sort((left, right) => {
+      const leftNumber = left.problemNumber ?? Number.MAX_SAFE_INTEGER
+      const rightNumber = right.problemNumber ?? Number.MAX_SAFE_INTEGER
+      return leftNumber - rightNumber || left.title.localeCompare(right.title)
+    })
+  }, [companyFilters, difficultyFilters, platformFilters, problems, topicFilters])
 
   function activeFiltersForNav(nav: typeof activeNav) {
     if (nav === 'platform') return platformFilters
@@ -851,29 +846,31 @@ export default function NexAlgoPage() {
                     </button>
                   ))}
                 </nav>
+                <div className='nexalgo-sidebar-filters-fixed'>
+                  <div className='nexalgo-filter-label-row'>
+                    <p className='nexalgo-filter-label'>
+                      {activeNav === 'difficulty' ? 'Difficulty' : 'Filter'}
+                    </p>
+                    {activeFiltersForNav(activeNav).length > 0 ? (
+                      <button
+                        type='button'
+                        className='nexalgo-reset-filters-btn'
+                        onClick={() => setActiveFiltersForNav(activeNav, [])}>
+                        Reset
+                      </button>
+                    ) : null}
+                  </div>
+                  <label className='nexalgo-sidebar-filter-checkbox'>
+                    <input
+                      type='checkbox'
+                      checked={activeFiltersForNav(activeNav).length === 0}
+                      onChange={() => setActiveFiltersForNav(activeNav, [])}
+                    />
+                    All
+                  </label>
+                </div>
                 <div className='nexalgo-sidebar-scroll'>
                   <div className='nexalgo-sidebar-filters'>
-                    <div className='nexalgo-filter-label-row'>
-                      <p className='nexalgo-filter-label'>
-                        {activeNav === 'difficulty' ? 'Difficulty' : 'Filter'}
-                      </p>
-                      {activeFiltersForNav(activeNav).length > 0 ? (
-                        <button
-                          type='button'
-                          className='nexalgo-reset-filters-btn'
-                          onClick={() => setActiveFiltersForNav(activeNav, [])}>
-                          Reset
-                        </button>
-                      ) : null}
-                    </div>
-                    <label className='nexalgo-sidebar-filter-checkbox'>
-                      <input
-                        type='checkbox'
-                        checked={activeFiltersForNav(activeNav).length === 0}
-                        onChange={() => setActiveFiltersForNav(activeNav, [])}
-                      />
-                      All
-                    </label>
                     {navItems.map((item) => (
                       <label key={item} className='nexalgo-sidebar-filter-checkbox'>
                         <input
@@ -967,14 +964,7 @@ export default function NexAlgoPage() {
                       onClick={() => setListPaneCollapsed(true)}>
                       «
                     </button>
-                    <label className='nexalgo-sort-toggle'>
-                      <input
-                        type='checkbox'
-                        checked={sortByNumber}
-                        onChange={(event) => setSortByNumber(event.target.checked)}
-                      />
-                      Sort by number
-                    </label>
+                    <span className='nexalgo-sort-label'>Sorted by number</span>
                     <button type='button' className='nexalgo-pane-toggle' onClick={openCreateDraft}>
                       Submit draft
                     </button>

@@ -25,7 +25,8 @@
   --nexalgo-topbar-height: 64px;
   --nexalgo-mobile-pane-gap: 0.85rem;
 
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   background: var(--nx-bg);
   color: var(--nx-ink);
   font-family: var(--nx-sans);
@@ -194,7 +195,7 @@
 /* ---- main layout ---- */
 .nexalgo-main {
   display: flex;
-  min-height: calc(100vh - var(--nexalgo-topbar-height));
+  height: calc(100vh - var(--nexalgo-topbar-height));
 }
 
 .nexalgo-sidebar {
@@ -204,8 +205,6 @@
   background: var(--nx-panel);
   display: flex;
   flex-direction: column;
-  position: sticky;
-  top: var(--nexalgo-topbar-height);
   height: calc(100vh - var(--nexalgo-topbar-height));
   overflow: hidden;
 }
@@ -325,13 +324,22 @@
   flex: 0 0 auto;
 }
 
+.nexalgo-sidebar-filters-fixed {
+  flex: 0 0 auto;
+  padding: 12px 14px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-bottom: 1px solid var(--nx-line);
+}
+
 .nexalgo-sidebar-scroll {
   flex: 1;
   overflow-y: auto;
 }
 
 .nexalgo-sidebar-filters {
-  padding: 12px 14px;
+  padding: 8px 14px 12px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -431,16 +439,12 @@
   border-bottom: 1px solid var(--nx-line);
 }
 
-.nexalgo-sort-toggle {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.nexalgo-sort-label {
   font-family: var(--nx-mono);
   font-size: 10.5px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--nx-ink-dim);
-  cursor: pointer;
+  color: var(--nx-ink-faint);
 }
 
 .nexalgo-pane-head h2 {
@@ -960,6 +964,8 @@
   justify-content: center;
   padding: 60px 20px;
   min-height: calc(100vh - var(--nexalgo-topbar-height));
+  height: calc(100vh - var(--nexalgo-topbar-height));
+  overflow-y: auto;
 }
 
 .nexalgo-auth-card {
@@ -1233,8 +1239,15 @@
 
 /* ---- responsive ---- */
 @media (max-width: 1120px) {
+  .nexalgo-shell {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
   .nexalgo-main {
     flex-direction: column;
+    height: auto;
   }
 
   .nexalgo-sidebar,
