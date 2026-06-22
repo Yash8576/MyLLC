@@ -130,17 +130,6 @@ jobs:
             exit 1
           fi
 
-          EXISTING_DATABASE_URL="$(
-            gcloud run services describe "$CLOUD_RUN_SERVICE" \
-              --project "$GCP_PROJECT_ID" \
-              --region "$GCP_REGION" \
-              --format=json 2>/dev/null | node -e "let input=''; process.stdin.on('data', (chunk) => input += chunk); process.stdin.on('end', () => { try { const service = JSON.parse(input); const env = service?.spec?.template?.spec?.containers?.[0]?.env ?? []; process.stdout.write(env.find((item) => item.name === 'DATABASE_URL')?.value ?? ''); } catch { process.stdout.write(''); } })"
-          )"
-
-          if [[ -n "$EXISTING_DATABASE_URL" ]]; then
-            NEXALGO_DATABASE_URL="$EXISTING_DATABASE_URL"
-          fi
-
           NEXALGO_DATABASE_URL="$(DATABASE_URL="$NEXALGO_DATABASE_URL" node <<'EOF'
           const raw = process.env.DATABASE_URL || ''
           const match = raw.match(/^(postgres(?:ql)?:\/\/[^:]+:)(.*)(@(?:localhost)?\/.*)$/)
@@ -160,7 +149,18 @@ jobs:
           )"
 
           if [[ -n "$NEXALGO_INITIAL_ADMIN_EMAIL" ]]; then
-            ADMIN_EMAIL="$NEXALGO_INITIAL_ADMIN_EMAIL" node -e 'const email = process.env.ADMIN_EMAIL || ""; if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { console.error("NEXALGO_INITIAL_ADMIN_EMAIL must be a valid email if set."); process.exit(1); }'
+            NEXALGO_INITIAL_ADMIN_EMAIL="$(ADMIN_EMAIL="$NEXALGO_INITIAL_ADMIN_EMAIL" node <<'EOF'
+          const value = process.env.ADMIN_EMAIL || ''
+          const match = value.match(/[^\s@"'`<>]+@[^\s@"'`<>]+\.[^\s@"'`<>]+/)
+
+          if (!match) {
+            console.error('NEXALGO_INITIAL_ADMIN_EMAIL must contain a valid email if set.')
+            process.exit(1)
+          }
+
+          process.stdout.write(match[0].toLowerCase())
+          EOF
+          )"
           fi
 
           FIREBASE_CLIENT_EMAIL="$FIREBASE_CLIENT_EMAIL" FIREBASE_PRIVATE_KEY="$FIREBASE_PRIVATE_KEY" node <<'EOF'
