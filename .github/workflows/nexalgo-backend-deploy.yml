@@ -130,6 +130,24 @@ jobs:
             exit 1
           fi
 
+          NEXALGO_DATABASE_URL="$(DATABASE_URL="$NEXALGO_DATABASE_URL" node <<'EOF'
+          const raw = process.env.DATABASE_URL || ''
+          const match = raw.match(/^(postgresql:\/\/[^:]+:)(.*)(@localhost\/.*)$/)
+
+          if (!match) {
+            process.stdout.write(raw)
+            process.exit(0)
+          }
+
+          const password = match[2]
+          const encodedPassword = /%[0-9A-Fa-f]{2}/.test(password)
+            ? password
+            : encodeURIComponent(password)
+
+          process.stdout.write(`${match[1]}${encodedPassword}${match[3]}`)
+          EOF
+          )"
+
           if [[ -n "$NEXALGO_INITIAL_ADMIN_EMAIL" ]]; then
             ADMIN_EMAIL="$NEXALGO_INITIAL_ADMIN_EMAIL" node -e 'const email = process.env.ADMIN_EMAIL || ""; if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { console.error("NEXALGO_INITIAL_ADMIN_EMAIL must be a valid email if set."); process.exit(1); }'
           fi
@@ -194,4 +212,7 @@ jobs:
             --region "$GCP_REGION" \
             --format='value(status.url)')"
           curl --fail --show-error --silent "$SERVICE_URL/health"
+          curl --fail --show-error --silent \
+            --header "Origin: https://nexacoreglobal.org" \
+            "$SERVICE_URL/v1/problems" > /dev/null
           echo "NexAlgo backend URL: $SERVICE_URL"

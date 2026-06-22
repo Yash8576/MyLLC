@@ -1,9 +1,10 @@
 import { Router } from 'express'
+import { asyncRoute } from '../middleware/asyncRoute.js'
 import { authenticateRequest, type AuthenticatedRequest } from '../middleware/auth.js'
 
 export const authRouter = Router()
 
-authRouter.post('/auth/session', authenticateRequest, async (req: AuthenticatedRequest, res) => {
+authRouter.post('/auth/session', authenticateRequest, asyncRoute(async (req: AuthenticatedRequest, res) => {
   const currentUser = req.currentUser!
   res.json({
     user: {
@@ -14,4 +15,4 @@ authRouter.post('/auth/session', authenticateRequest, async (req: AuthenticatedR
       roles: currentUser.appRoles,
     },
   })
-})
+}))
