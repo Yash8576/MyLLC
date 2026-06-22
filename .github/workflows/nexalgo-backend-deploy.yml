@@ -132,7 +132,7 @@ jobs:
 
           NEXALGO_DATABASE_URL="$(DATABASE_URL="$NEXALGO_DATABASE_URL" node <<'EOF'
           const raw = process.env.DATABASE_URL || ''
-          const match = raw.match(/^(postgresql:\/\/[^:]+:)(.*)(@localhost\/.*)$/)
+          const match = raw.match(/^(postgres(?:ql)?:\/\/[^:]+:)(.*)(@(?:localhost)?\/.*)$/)
 
           if (!match) {
             process.stdout.write(raw)
