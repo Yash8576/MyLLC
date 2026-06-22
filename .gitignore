@@ -52,6 +52,8 @@ projects/**/.env.*
 !projects/**/.env.example
 !projects/**/backend/.env.example
 !projects/**/chatbot/.env.example
+projects/**/cloudrun.env.yaml
+projects/**/cloudrun.env.*.yaml
 projects/**/PRIVATE_VALUES.local.md
 projects/**/cloud-sql-proxy*.log
 projects/**/proxy-*.log
@@ -71,3 +73,5 @@ projects/**/frontend/windows/flutter/ephemeral/
 projects/**/storage/media/*
 !projects/**/storage/media/.gitkeep
 /*.tex
+/tesla_cpp_prep.html
+/interview-company-wise-problems-main/

@@ -1,13 +1,48 @@
+/* ======================================================================
+   NexAlgo — dark terminal-drill theme
+   Palette + structure mirror the Tesla C++ prep reference: near-black
+   background, single red signal accent, square corners, monospace
+   labels, sidebar problem list + single detail pane.
+   ====================================================================== */
+
 .nexalgo-shell {
-  --nexalgo-topbar-height: 96px;
+  --nx-bg: #15171a;
+  --nx-panel: #1c1f23;
+  --nx-panel-2: #23272c;
+  --nx-line: #2e333a;
+  --nx-line-soft: #262b31;
+  --nx-ink: #e7eaed;
+  --nx-ink-dim: #9aa3ad;
+  --nx-ink-faint: #6b747e;
+  --nx-signal: #e3251b;
+  --nx-signal-dim: #8f2620;
+  --nx-easy: #3fb37f;
+  --nx-med: #d9a23a;
+  --nx-hard: #e3625b;
+  --nx-code-bg: #101316;
+  --nx-mono: 'SFMono-Regular', ui-monospace, 'JetBrains Mono', 'Cascadia Code', Consolas, monospace;
+  --nx-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --nexalgo-topbar-height: 64px;
   --nexalgo-mobile-pane-gap: 0.85rem;
+
   min-height: 100vh;
-  background:
-    radial-gradient(circle at top left, rgba(101, 86, 255, 0.08), transparent 34%),
-    linear-gradient(180deg, #ffffff 0%, #f6faff 50%, #ffffff 100%);
-  color: #222c44;
+  background: var(--nx-bg);
+  color: var(--nx-ink);
+  font-family: var(--nx-sans);
+  font-size: 15px;
+  line-height: 1.5;
 }
 
+.nexalgo-shell * {
+  box-sizing: border-box;
+}
+
+.nexalgo-shell ::selection {
+  background: var(--nx-signal);
+  color: #fff;
+}
+
+/* ---- topbar ---- */
 .nexalgo-topbar {
   position: sticky;
   top: 0;
@@ -16,10 +51,9 @@
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 1rem;
-  padding: 1rem 1.5rem;
-  backdrop-filter: blur(18px);
-  background: rgba(255, 255, 255, 0.94);
-  border-bottom: 1px solid rgba(101, 86, 255, 0.1);
+  padding: 0.85rem 1.25rem;
+  background: var(--nx-panel);
+  border-bottom: 1px solid var(--nx-line);
 }
 
 .nexalgo-topbar-left,
@@ -41,24 +75,22 @@
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  color: #5000ca;
+  color: var(--nx-ink-dim);
   text-decoration: none;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  background: rgba(80, 0, 202, 0.2);
-  font-size: 0.9rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid var(--nx-line);
+  font-size: 0.82rem;
   font-weight: 500;
-  transition: all 0.25s ease;
+  transition: 0.15s;
 }
 
 .back-to-nexacore:hover {
-  background: rgba(80, 0, 202, 0.4);
-  color: #5000ca;
-  transform: translateX(-4px);
+  border-color: var(--nx-signal-dim);
+  color: var(--nx-ink);
 }
 
 .back-to-nexacore svg {
-  transition: transform 0.25s ease;
+  transition: transform 0.2s ease;
 }
 
 .back-to-nexacore:hover svg {
@@ -80,18 +112,16 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.6rem 1rem;
-  border-radius: 999px;
-  background: rgba(101, 86, 255, 0.08);
-  border: 1px solid rgba(101, 86, 255, 0.16);
-  color: #6556ff;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--nx-line);
+  color: var(--nx-ink-dim);
   text-decoration: none;
-  transition: transform 0.2s ease, background 0.2s ease;
+  transition: 0.15s;
 }
 
 .nexalgo-back-link:hover {
-  transform: translateX(-2px);
-  background: rgba(101, 86, 255, 0.14);
+  border-color: var(--nx-signal-dim);
+  color: var(--nx-ink);
 }
 
 .nexalgo-back-link-text {
@@ -104,1092 +134,794 @@
 
 .nexalgo-brand h1 {
   margin: 0;
-  font-size: 1.8rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-family: var(--nx-mono);
+  font-size: 1.05rem;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: #222c44;
+  color: var(--nx-ink);
+}
+
+.nexalgo-brand h1::before {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  background: var(--nx-signal);
+  margin-right: 8px;
+  vertical-align: middle;
 }
 
 .nexalgo-brand p {
-  margin: 0.15rem 0 0;
-  color: #6556ff;
-  font-size: 0.85rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  margin: 2px 0 0;
+  font-size: 0.72rem;
+  color: var(--nx-ink-faint);
+  letter-spacing: 0.05em;
 }
 
 .nexalgo-hamburger {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 46px;
-  height: 46px;
-  border-radius: 14px;
-  border: 1px solid rgba(101, 86, 255, 0.14);
-  background: #ffffff;
-  color: #6556ff;
+  width: 40px;
+  height: 32px;
+  border: 1px solid var(--nx-line);
+  background: transparent;
+  position: relative;
   cursor: pointer;
-  box-shadow: 0 16px 30px rgba(26, 33, 188, 0.08);
 }
 
 .nexalgo-hamburger span,
 .nexalgo-hamburger span::before,
 .nexalgo-hamburger span::after {
-  display: block;
-  width: 18px;
-  height: 2px;
-  background: currentColor;
-  border-radius: 999px;
   content: '';
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  height: 1px;
+  background: var(--nx-ink-dim);
+}
+
+.nexalgo-hamburger span {
+  top: 50%;
 }
 
 .nexalgo-hamburger span::before {
-  transform: translateY(-6px);
+  top: -6px;
 }
 
 .nexalgo-hamburger span::after {
-  transform: translateY(4px);
+  top: 6px;
 }
 
+/* ---- main layout ---- */
 .nexalgo-main {
-  display: grid;
-  grid-template-columns: auto auto minmax(0, 1fr);
-  gap: 1rem;
-  padding: 1rem;
-  height: calc(100vh - 88px);
-  overflow: hidden;
-  transition: grid-template-columns 0.25s ease;
-}
-
-.nexalgo-main-expanded {
-  grid-template-columns: auto minmax(420px, 1fr);
-}
-
-.nexalgo-main-minimized {
-  grid-template-columns: auto 86px minmax(0, 1fr);
-}
-
-.nexalgo-sidebar,
-.nexalgo-list-pane,
-.nexalgo-detail-pane,
-.nexalgo-auth-card,
-.nexalgo-menu-panel,
-.nexalgo-modal-card {
-  border: 1px solid rgba(101, 86, 255, 0.1);
-  background: #ffffff;
-  box-shadow: 0 24px 50px rgba(26, 33, 188, 0.08);
+  display: flex;
+  min-height: calc(100vh - var(--nexalgo-topbar-height));
 }
 
 .nexalgo-sidebar {
-  width: 86px;
-  padding: 1rem 0.8rem;
-  border-radius: 24px;
-  transition: width 0.25s ease;
-  align-self: stretch;
-}
-
-.nexalgo-sidebar.expanded {
-  width: 220px;
+  width: 280px;
+  flex: 0 0 280px;
+  border-right: 1px solid var(--nx-line);
+  background: var(--nx-panel);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: var(--nexalgo-topbar-height);
+  height: calc(100vh - var(--nexalgo-topbar-height));
+  overflow-y: auto;
 }
 
 .nexalgo-sidebar-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.nexalgo-sidebar:not(.expanded) .nexalgo-sidebar-header {
-  justify-content: center;
-}
-
-.nexalgo-sidebar.expanded .nexalgo-sidebar-header {
-  flex-direction: row;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.nexalgo-sidebar-header button,
-.nexalgo-chip-grid button,
-.nexalgo-pagination button,
-.nexalgo-auth-switch,
-.nexalgo-inline-btn,
-.nexalgo-save-btn,
-.nexalgo-secondary-btn,
-.nexalgo-danger-btn,
-.nexalgo-status-action,
-.nexalgo-link-btn {
-  cursor: pointer;
-}
-
-.nexalgo-icon-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  min-width: 0;
-  height: 42px;
-  border-radius: 14px;
-  border: 1px solid rgba(101, 86, 255, 0.2);
-  background: linear-gradient(180deg, #ffffff 0%, #eef3ff 100%);
-  color: #6556ff;
-  padding: 0 0.9rem;
-  font-size: 0.78rem;
-  font-weight: 700;
-  text-align: center;
-  box-shadow: 0 10px 22px rgba(101, 86, 255, 0.08);
-}
-
-.nexalgo-sidebar:not(.expanded) .nexalgo-icon-toggle {
-  padding: 0 0.55rem;
-  font-size: 0.72rem;
-}
-
-.nexalgo-sidebar.expanded .nexalgo-icon-toggle {
-  width: auto;
-  min-width: 104px;
-  padding: 0 0.9rem;
+  padding: 16px 18px 10px;
+  border-bottom: 1px solid var(--nx-line);
 }
 
 .nexalgo-nav {
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
+  padding: 10px 10px;
+  gap: 2px;
+  border-bottom: 1px solid var(--nx-line);
 }
 
 .nexalgo-nav button {
   display: flex;
   align-items: center;
-  gap: 0.85rem;
-  width: 100%;
-  padding: 0.9rem 0.85rem;
-  border-radius: 18px;
-  border: 1px solid rgba(101, 86, 255, 0.08);
-  background: #ffffff;
-  color: #222c44;
+  gap: 10px;
+  background: transparent;
+  border: none;
+  color: var(--nx-ink-dim);
+  font-family: var(--nx-sans);
+  font-size: 0.85rem;
+  padding: 8px 9px;
   text-align: left;
+  cursor: pointer;
+  transition: 0.12s;
+}
+
+.nexalgo-nav button:hover {
+  background: var(--nx-panel-2);
+  color: var(--nx-ink);
 }
 
 .nexalgo-nav button.active {
-  background: rgba(101, 86, 255, 0.08);
-  border-color: rgba(101, 86, 255, 0.2);
-  color: #6556ff;
-}
-
-.nexalgo-sidebar-filters,
-.nexalgo-review-queue-panel {
-  display: grid;
-  gap: 0.65rem;
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid rgba(101, 86, 255, 0.1);
-}
-
-.nexalgo-sidebar-filter-btn {
-  width: 100%;
-  border: 1px solid rgba(101, 86, 255, 0.1);
-  border-radius: 14px;
-  padding: 0.68rem 0.78rem;
-  background: #ffffff;
-  color: #222c44;
-  text-align: left;
-  cursor: pointer;
-}
-
-.nexalgo-sidebar-filter-btn.active {
-  background: rgba(101, 86, 255, 0.1);
-  border-color: rgba(101, 86, 255, 0.24);
-  color: #6556ff;
-  font-weight: 700;
-}
-
-.nexalgo-review-queue-panel {
-  max-height: 46vh;
-  overflow-y: auto;
-}
-
-.nexalgo-review-queue-panel h3 {
-  margin: 0.2rem 0 0;
-  font-size: 0.95rem;
-}
-
-.nexalgo-queue-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-  margin-top: 0.75rem;
-}
-
-.nexalgo-queue-actions button {
-  padding: 0.55rem 0.7rem;
-  border-radius: 12px;
-  font-size: 0.78rem;
+  background: var(--nx-panel-2);
+  color: var(--nx-ink);
+  border-left: 2px solid var(--nx-signal);
 }
 
 .nexalgo-nav-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 2rem;
-  font-size: 0.95rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-family: var(--nx-mono);
+  font-size: 9px;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  text-align: center;
+  color: var(--nx-ink-faint);
+  border: 1px solid var(--nx-line);
+  padding: 2px 4px;
+  flex: 0 0 auto;
 }
 
-.nexalgo-sidebar:not(.expanded) .nexalgo-nav button {
-  justify-content: center;
-  padding-inline: 0.5rem;
-}
-
-.nexalgo-sidebar:not(.expanded) .nexalgo-nav-icon {
-  min-width: 0;
-  width: 100%;
-}
-
-.nexalgo-nav-icon svg {
-  width: 1.2rem;
-  height: 1.2rem;
-  display: block;
-}
-
-.nexalgo-list-pane,
-.nexalgo-detail-pane {
+.nexalgo-sidebar-filters {
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  border-radius: 28px;
-  padding: 1.3rem;
-  min-height: 0;
-  overflow: hidden;
-  transition:
-    width 0.25s ease,
-    padding 0.25s ease,
-    transform 0.25s ease,
-    opacity 0.25s ease,
-    box-shadow 0.25s ease;
+  gap: 6px;
+  border-bottom: 1px solid var(--nx-line);
 }
 
+.nexalgo-filter-label {
+  font-family: var(--nx-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--nx-ink-faint);
+  margin: 0 0 4px;
+}
+
+.nexalgo-sidebar-filter-btn {
+  background: transparent;
+  border: 1px solid var(--nx-line);
+  color: var(--nx-ink-dim);
+  font-family: var(--nx-mono);
+  font-size: 11px;
+  padding: 6px 9px;
+  text-align: left;
+  cursor: pointer;
+  transition: 0.12s;
+}
+
+.nexalgo-sidebar-filter-btn:hover {
+  border-color: var(--nx-ink-faint);
+  color: var(--nx-ink);
+}
+
+.nexalgo-sidebar-filter-btn.active {
+  background: var(--nx-signal);
+  border-color: var(--nx-signal);
+  color: #fff;
+}
+
+.nexalgo-review-queue-panel {
+  padding: 14px;
+  border-top: 1px solid var(--nx-line);
+  max-height: 42vh;
+  overflow-y: auto;
+}
+
+/* ---- list pane ---- */
 .nexalgo-list-pane {
-  width: 420px;
-  background: linear-gradient(180deg, #fbfcff 0%, #f4f7ff 100%);
-}
-
-.nexalgo-detail-pane {
-  padding: 0;
+  width: 380px;
+  flex: 0 0 380px;
+  border-right: 1px solid var(--nx-line);
+  display: flex;
+  flex-direction: column;
+  background: var(--nx-bg);
+  height: calc(100vh - var(--nexalgo-topbar-height));
+  overflow: hidden;
 }
 
 .nexalgo-pane-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  gap: 10px;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--nx-line);
 }
 
-.nexalgo-pane-head > div:first-child {
-  display: grid;
-  gap: 0.75rem;
-  min-width: 0;
+.nexalgo-pane-head h2 {
+  margin: 0;
+  font-family: var(--nx-mono);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--nx-ink);
 }
 
 .nexalgo-pane-controls {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 0.55rem;
-  justify-content: flex-start;
-  flex-shrink: 0;
+  gap: 6px;
 }
 
 .nexalgo-pane-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(101, 86, 255, 0.2);
-  border-radius: 999px;
-  background: linear-gradient(180deg, #ffffff 0%, #eef3ff 100%);
-  color: #6556ff;
-  padding: 0.58rem 1rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-  text-align: center;
-  box-shadow: 0 10px 22px rgba(101, 86, 255, 0.08);
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease,
-    border-color 0.2s ease,
-    background 0.2s ease;
-}
-
-.nexalgo-pane-toggle:hover,
-.nexalgo-secondary-btn:hover,
-.nexalgo-link-btn:hover,
-.nexalgo-icon-toggle:hover {
-  transform: translateY(-1px);
-  border-color: rgba(101, 86, 255, 0.3);
-  box-shadow: 0 14px 28px rgba(101, 86, 255, 0.12);
-}
-
-.nexalgo-pane-head h2,
-.nexalgo-detail-title-row h2,
-.nexalgo-auth-card h2,
-.nexalgo-menu-panel h3,
-.nexalgo-section h3,
-.nexalgo-editor h3 {
-  margin: 0;
-}
-
-.nexalgo-pane-head p,
-.nexalgo-muted,
-.nexalgo-meta-line,
-.nexalgo-status-row,
-.nexalgo-section p,
-.nexalgo-section li,
-.nexalgo-detail-subcopy {
-  color: rgba(34, 44, 68, 0.72);
-}
-
-.nexalgo-pane-filter {
-  display: grid;
-  gap: 0.45rem;
-  margin-top: 0;
-}
-
-.nexalgo-filter-label {
-  color: rgba(34, 44, 68, 0.72);
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  background: transparent;
+  border: 1px solid var(--nx-line);
+  color: var(--nx-ink-dim);
+  font-family: var(--nx-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-}
-
-.nexalgo-pane-filter select {
-  width: min(260px, 100%);
-  padding: 0.7rem 0.9rem;
-  border-radius: 16px;
-  border: 1px solid rgba(101, 86, 255, 0.12);
-  background: #f6faff;
-  color: #222c44;
-}
-
-.nexalgo-difficulty-easy {
-  color: #16803c;
-  font-weight: 700;
-}
-
-.nexalgo-difficulty-medium {
-  color: #d97706;
-  font-weight: 700;
-}
-
-.nexalgo-difficulty-hard {
-  color: #c53030;
-  font-weight: 700;
-}
-
-.nexalgo-status-unvisited {
-  color: #6b7280;
-  font-weight: 700;
-}
-
-.nexalgo-status-visited {
-  color: #2563eb;
-  font-weight: 700;
-}
-
-.nexalgo-status-attempted {
-  color: #d97706;
-  font-weight: 700;
-}
-
-.nexalgo-status-solved {
-  color: #16803c;
-  font-weight: 700;
-}
-
-.nexalgo-chip-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.55rem;
-  margin-bottom: 1rem;
-}
-
-.nexalgo-chip-grid button,
-.nexalgo-chip {
-  padding: 0.5rem 0.85rem;
-  border-radius: 999px;
-  border: 1px solid rgba(101, 86, 255, 0.1);
-  background: #f6faff;
-  color: #6556ff;
-  font-size: 0.85rem;
-}
-
-.nexalgo-chip-button {
+  padding: 6px 10px;
   cursor: pointer;
-  transition:
-    transform 0.2s ease,
-    border-color 0.2s ease,
-    background 0.2s ease,
-    box-shadow 0.2s ease;
+  transition: 0.15s;
 }
 
-.nexalgo-chip-button:hover {
-  transform: translateY(-1px);
-  border-color: rgba(101, 86, 255, 0.24);
-  background: rgba(101, 86, 255, 0.12);
-  box-shadow: 0 10px 20px rgba(101, 86, 255, 0.08);
-}
-
-.nexalgo-chip-grid button.active {
-  background: rgba(101, 86, 255, 0.12);
-  border-color: rgba(101, 86, 255, 0.22);
+.nexalgo-pane-toggle:hover {
+  border-color: var(--nx-signal-dim);
+  color: var(--nx-ink);
 }
 
 .nexalgo-problem-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
   flex: 1;
-  min-height: 0;
   overflow-y: auto;
-  padding-top: 0.45rem;
-  padding-right: 0.35rem;
-  scrollbar-gutter: stable;
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-  transition: scrollbar-color 0.25s ease;
+  padding: 4px 0;
 }
 
 .nexalgo-problem-list::-webkit-scrollbar,
+.nexalgo-sidebar::-webkit-scrollbar,
 .nexalgo-detail-pane::-webkit-scrollbar {
-  width: 8px;
+  width: 9px;
 }
 
 .nexalgo-problem-list::-webkit-scrollbar-thumb,
+.nexalgo-sidebar::-webkit-scrollbar-thumb,
 .nexalgo-detail-pane::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 999px;
-}
-
-.nexalgo-problem-list::-webkit-scrollbar-track,
-.nexalgo-detail-pane::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.nexalgo-problem-list.nexalgo-scroll-active,
-.nexalgo-detail-pane.nexalgo-scroll-active,
-.nexalgo-problem-list:hover,
-.nexalgo-detail-pane:hover,
-.nexalgo-problem-list:focus-within,
-.nexalgo-detail-pane:focus-within {
-  scrollbar-color: rgba(101, 86, 255, 0.38) transparent;
-}
-
-.nexalgo-problem-list.nexalgo-scroll-active::-webkit-scrollbar-thumb,
-.nexalgo-detail-pane.nexalgo-scroll-active::-webkit-scrollbar-thumb,
-.nexalgo-problem-list:hover::-webkit-scrollbar-thumb,
-.nexalgo-detail-pane:hover::-webkit-scrollbar-thumb,
-.nexalgo-problem-list:focus-within::-webkit-scrollbar-thumb,
-.nexalgo-detail-pane:focus-within::-webkit-scrollbar-thumb {
-  background: rgba(101, 86, 255, 0.38);
+  background: var(--nx-line);
 }
 
 .nexalgo-problem-card {
+  display: block;
   width: 100%;
-  padding: 1rem 1rem 1rem 1.05rem;
-  border-radius: 22px;
-  border: 1px solid rgba(101, 86, 255, 0.18);
-  background: rgba(255, 255, 255, 0.96);
-  color: #222c44;
   text-align: left;
-  transition:
-    transform 0.2s ease,
-    border-color 0.2s ease,
-    background 0.2s ease,
-    box-shadow 0.2s ease;
-  box-shadow: 0 10px 24px rgba(101, 86, 255, 0.06);
+  background: transparent;
+  border: none;
+  border-left: 2px solid transparent;
+  border-bottom: 1px solid var(--nx-line-soft);
+  padding: 10px 18px;
+  cursor: pointer;
+  transition: 0.12s;
 }
 
 .nexalgo-problem-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(101, 86, 255, 0.28);
-  background: #ffffff;
-  box-shadow: 0 18px 34px rgba(101, 86, 255, 0.12);
+  background: var(--nx-panel-2);
 }
 
 .nexalgo-problem-card.active {
-  transform: translateY(-1px);
-  border-color: rgba(101, 86, 255, 0.42);
-  background: linear-gradient(180deg, rgba(101, 86, 255, 0.1) 0%, rgba(255, 255, 255, 0.98) 100%);
-  box-shadow: 0 18px 34px rgba(101, 86, 255, 0.16);
+  background: var(--nx-panel-2);
+  border-left-color: var(--nx-signal);
 }
 
 .nexalgo-problem-card h3 {
-  margin: 0 0 0.35rem;
-  font-size: 1rem;
-  line-height: 1.2;
-}
-
-.nexalgo-problem-card p {
   margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--nx-ink);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.nexalgo-list-pane-minimized {
-  width: 86px;
-  padding: 1rem 0.7rem;
+.nexalgo-meta-line {
+  font-family: var(--nx-mono);
+  font-size: 10.5px;
+  color: var(--nx-ink-faint);
+  margin: 3px 0 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.nexalgo-main-expanded .nexalgo-list-pane {
-  width: 100%;
-  min-width: 420px;
+.nexalgo-difficulty-easy {
+  color: var(--nx-easy);
 }
 
-.nexalgo-list-pane-minimized .nexalgo-pane-head {
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
+.nexalgo-difficulty-medium {
+  color: var(--nx-med);
 }
 
-.nexalgo-list-pane-minimized .nexalgo-pane-head h2 {
-  font-size: 0.95rem;
-  line-height: 1.15;
+.nexalgo-difficulty-hard {
+  color: var(--nx-hard);
 }
 
-.nexalgo-list-pane-minimized .nexalgo-detail-subcopy,
-.nexalgo-list-pane-minimized .nexalgo-status-pill {
-  display: none;
+.nexalgo-status-unvisited {
+  color: var(--nx-ink-faint);
 }
 
-.nexalgo-list-pane-minimized .nexalgo-pane-controls {
-  width: 100%;
-  align-items: center;
-  justify-content: center;
+.nexalgo-status-visited {
+  color: #6f9bd6;
 }
 
-.nexalgo-list-pane-normal .nexalgo-pane-toggle {
-  min-width: 120px;
-  text-align: center;
+.nexalgo-status-attempted {
+  color: var(--nx-med);
 }
 
-.nexalgo-items-pill {
-  align-self: flex-end;
+.nexalgo-status-solved {
+  color: var(--nx-easy);
 }
 
-.nexalgo-list-pane-normal .nexalgo-pane-head h2 {
-  font-size: 2.4rem;
-  line-height: 1.05;
-}
-
-.nexalgo-list-pane-minimized .nexalgo-problem-list {
-  padding-right: 0;
-  align-items: center;
-}
-
-.nexalgo-problem-card-minimized {
-  width: 100%;
-  min-height: 60px;
-  padding: 0.85rem 0.25rem;
-  text-align: center;
-  border-radius: 18px;
-}
-
-.nexalgo-problem-card-minimized:hover,
-.nexalgo-problem-card-minimized.active {
-  transform: none;
-}
-
-.nexalgo-problem-number-only {
-  display: block;
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: #6556ff;
-}
-
-.nexalgo-pagination {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.nexalgo-pagination button,
-.nexalgo-inline-btn,
-.nexalgo-save-btn,
-.nexalgo-secondary-btn,
-.nexalgo-danger-btn,
-.nexalgo-status-action,
-.nexalgo-link-btn,
-.nexalgo-auth-card button {
-  border: none;
-  border-radius: 16px;
-  padding: 0.75rem 1rem;
-  font-weight: 600;
-}
-
-.nexalgo-pagination button,
-.nexalgo-secondary-btn,
-.nexalgo-inline-btn,
-.nexalgo-link-btn {
-  background: linear-gradient(180deg, #ffffff 0%, #eef3ff 100%);
-  color: #6556ff;
-  border: 1px solid rgba(101, 86, 255, 0.2);
-  box-shadow: 0 10px 22px rgba(101, 86, 255, 0.08);
-}
-
-.nexalgo-save-btn,
-.nexalgo-status-action.primary,
-.nexalgo-auth-card button {
-  background: #6556ff;
-  color: #ffffff;
-}
-
-.nexalgo-external-link {
-  display: none;
-}
-
-.nexalgo-solve-grid {
-  display: grid;
-  gap: 0.75rem;
-  margin-top: 0.85rem;
-}
-
-.nexalgo-solve-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: fit-content;
+/* ---- detail pane ---- */
+.nexalgo-detail-pane {
+  flex: 1;
   min-width: 0;
-  padding: 0.95rem 1rem;
-  border: 1px solid rgba(101, 86, 255, 0.14);
-  border-radius: 18px;
-  background: linear-gradient(180deg, #f8faff 0%, #eef3ff 100%);
-  color: #6556ff;
-  cursor: pointer;
-  text-align: left;
+  overflow-y: auto;
+  height: calc(100vh - var(--nexalgo-topbar-height));
 }
 
-.nexalgo-solve-card-label {
-  font-size: 1rem;
-  font-weight: 700;
-}
-
-.nexalgo-external-arrow {
-  width: 1.15rem;
-  height: 1.15rem;
-  flex-shrink: 0;
-}
-
-.nexalgo-danger-btn {
-  background: rgba(101, 86, 255, 0.08);
-  color: #6556ff;
-  border: 1px solid rgba(101, 86, 255, 0.1);
+.nexalgo-detail-body {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 30px 36px 90px;
 }
 
 .nexalgo-detail-title-row {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 0.6rem;
-}
-
-.nexalgo-detail-sticky-header {
-  position: sticky;
-  top: 0;
-  z-index: 4;
-  display: grid;
-  gap: 0.85rem;
-  margin-bottom: 0;
-  margin-top: 0;
-  padding: 1rem 1.3rem 0.95rem;
-  background: linear-gradient(180deg, rgba(244, 247, 255, 1) 0%, rgba(244, 247, 255, 0.98) 84%, rgba(244, 247, 255, 0.92) 100%);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 10px 18px rgba(244, 247, 255, 0.96);
-}
-
-.nexalgo-detail-anchor-bar {
-  display: flex;
+  gap: 20px;
   flex-wrap: wrap;
-  gap: 0.55rem;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--nx-line);
 }
 
-.nexalgo-detail-anchor-btn {
-  border: 1px solid rgba(101, 86, 255, 0.14);
-  border-radius: 999px;
-  padding: 0.5rem 0.85rem;
-  background: rgba(255, 255, 255, 0.92);
-  color: #4c47b8;
-  font-size: 0.84rem;
+.nexalgo-detail-title-row h2 {
+  margin: 0;
+  font-size: 26px;
   font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 10px 18px rgba(101, 86, 255, 0.08);
-  transition:
-    transform 0.2s ease,
-    border-color 0.2s ease,
-    background 0.2s ease;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  color: var(--nx-ink);
 }
 
-.nexalgo-detail-anchor-btn:hover {
-  transform: translateY(-1px);
-  border-color: rgba(101, 86, 255, 0.28);
-  background: #ffffff;
-}
-
-.nexalgo-detail-status-block {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 0.65rem;
-}
-
-.nexalgo-status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.45rem 0.8rem;
-  border-radius: 999px;
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  background: rgba(101, 86, 255, 0.08);
-  border: 1px solid rgba(101, 86, 255, 0.08);
-  box-shadow: none;
-}
-
-.nexalgo-status-pill.unvisited {
-  color: #6b7280;
-  background: rgba(107, 114, 128, 0.12);
-  border-color: rgba(107, 114, 128, 0.2);
-}
-
-.nexalgo-status-pill.visited {
-  color: #2563eb;
-  background: rgba(37, 99, 235, 0.12);
-  border-color: rgba(37, 99, 235, 0.2);
-}
-
-.nexalgo-status-pill.attempted {
-  color: #d97706;
-  background: rgba(217, 119, 6, 0.12);
-  border-color: rgba(217, 119, 6, 0.2);
-}
-
-.nexalgo-status-pill.solved {
-  color: #16803c;
-  background: rgba(22, 128, 60, 0.12);
-  border-color: rgba(22, 128, 60, 0.2);
+.nexalgo-detail-subcopy {
+  color: var(--nx-ink-dim);
+  font-size: 13px;
+  margin: 6px 0 0;
 }
 
 .nexalgo-detail-actions,
 .nexalgo-status-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
-  margin: 1rem 0 1.25rem;
-}
-
-.nexalgo-status-menu {
-  position: relative;
-  padding-bottom: 0.5rem;
-  margin-bottom: -0.5rem;
-}
-
-.nexalgo-status-menu-list {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  z-index: 5;
-  display: grid;
-  min-width: 200px;
-  padding: 0.45rem;
-  border: 1px solid rgba(101, 86, 255, 0.12);
-  border-radius: 18px;
-  background: #ffffff;
-  box-shadow: 0 18px 34px rgba(101, 86, 255, 0.14);
-}
-
-.nexalgo-status-menu-item {
-  border: none;
-  border-radius: 14px;
-  padding: 0.7rem 0.85rem;
-  background: transparent;
-  color: #222c44;
-  text-align: left;
-  cursor: pointer;
-}
-
-.nexalgo-status-menu-item:hover {
-  background: rgba(101, 86, 255, 0.08);
-  color: #6556ff;
+  gap: 8px;
 }
 
 .nexalgo-detail-sections {
-  display: grid;
-  gap: 1rem;
+  display: flex;
+  flex-direction: column;
 }
 
-.nexalgo-detail-pane {
-  position: relative;
-  overflow-y: auto;
-  padding-right: 0;
-  scrollbar-gutter: stable;
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-  transition: scrollbar-color 0.25s ease;
-}
-
-.nexalgo-detail-body {
-  padding: 1.3rem;
-}
-
-.nexalgo-detail-tail-spacer {
-  width: 100%;
-  flex: 0 0 auto;
-}
-
+/* sections, modelled on the "sec" pattern from the reference design */
 .nexalgo-section {
-  padding: 1rem;
-  border-radius: 20px;
-  background: #ffffff;
-  border: 1px solid rgba(101, 86, 255, 0.08);
+  margin-top: 30px;
 }
 
 .nexalgo-section h3 {
-  margin-bottom: 0.7rem;
-}
-
-.nexalgo-section-toggle {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  border: none;
-  padding: 0;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-}
-
-.nexalgo-section-toggle h3 {
-  margin-bottom: 0;
-}
-
-.nexalgo-section-toggle-icon {
-  width: 1.75rem;
-  height: 1.75rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  color: #6556ff;
-  background: rgba(101, 86, 255, 0.08);
-  transition: transform 0.2s ease, background 0.2s ease;
-}
-
-.nexalgo-section-toggle-icon svg {
-  width: 1rem;
-  height: 1rem;
-}
-
-.nexalgo-section-toggle-icon.expanded {
-  transform: rotate(180deg);
-  background: rgba(101, 86, 255, 0.14);
+  font-family: var(--nx-mono);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--nx-ink);
+  font-weight: 600;
+  margin: 0 0 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--nx-line);
 }
 
 .nexalgo-section p {
+  color: var(--nx-ink-dim);
+  font-size: 14.5px;
+  line-height: 1.62;
   margin: 0;
 }
 
 .nexalgo-section ul {
-  padding-left: 1.1rem;
-  margin: 0.75rem 0 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.nexalgo-section ul li {
+  position: relative;
+  padding-left: 22px;
+  color: var(--nx-ink-dim);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.nexalgo-section ul li::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 7px;
+  width: 6px;
+  height: 6px;
+  border: 1px solid var(--nx-signal);
 }
 
 .nexalgo-topic-row,
 .nexalgo-company-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem;
-  margin-top: 0.75rem;
+  gap: 6px;
 }
 
-.nexalgo-problem-card .nexalgo-meta-line:first-of-type {
-  display: none;
+.nexalgo-chip {
+  font-family: var(--nx-mono);
+  font-size: 10px;
+  color: var(--nx-ink-dim);
+  border: 1px solid var(--nx-line);
+  padding: 3px 8px;
+  letter-spacing: 0.03em;
 }
 
+/* ---- code blocks ---- */
 .nexalgo-code-tabs {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.55rem;
-  margin-top: 0.85rem;
+  gap: 6px;
+  margin-bottom: 10px;
 }
 
 .nexalgo-code-tabs button {
-  border: 1px solid rgba(101, 86, 255, 0.1);
-  border-radius: 999px;
-  padding: 0.45rem 0.85rem;
-  background: #f6faff;
-  color: #6556ff;
+  background: transparent;
+  border: 1px solid var(--nx-line);
+  color: var(--nx-ink-dim);
+  font-family: var(--nx-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 5px 11px;
+  cursor: pointer;
+  transition: 0.15s;
+}
+
+.nexalgo-code-tabs button:hover {
+  border-color: var(--nx-ink-faint);
+  color: var(--nx-ink);
 }
 
 .nexalgo-code-tabs button.active {
-  background: rgba(101, 86, 255, 0.12);
-  border-color: rgba(101, 86, 255, 0.22);
+  background: var(--nx-signal);
+  border-color: var(--nx-signal);
+  color: #fff;
 }
 
 .nexalgo-code-block {
-  margin-top: 1rem;
-  border-radius: 20px;
+  background: var(--nx-code-bg);
+  border: 1px solid var(--nx-line);
   overflow: hidden;
-  border: 1px solid rgba(101, 86, 255, 0.1);
-  background: #ffffff;
 }
 
 .nexalgo-code-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 0.85rem 1rem;
-  border-bottom: 1px solid rgba(101, 86, 255, 0.08);
-  background: #f6faff;
-  color: #6556ff;
-  font-size: 0.85rem;
+  justify-content: space-between;
+  padding: 8px 13px;
+  border-bottom: 1px solid var(--nx-line);
+  background: #0c0e10;
+  font-family: var(--nx-mono);
+  font-size: 11px;
+  color: var(--nx-ink-faint);
+  letter-spacing: 0.05em;
 }
 
 .nexalgo-code-copy-btn {
-  border: 1px solid rgba(101, 86, 255, 0.14);
-  border-radius: 999px;
-  padding: 0.4rem 0.8rem;
-  background: #ffffff;
-  color: #6556ff;
-  font-size: 0.8rem;
-  font-weight: 600;
+  background: transparent;
+  border: 1px solid var(--nx-line);
+  color: var(--nx-ink-dim);
+  font-family: var(--nx-mono);
+  font-size: 10px;
+  padding: 4px 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   cursor: pointer;
+  transition: 0.15s;
+}
+
+.nexalgo-code-copy-btn:hover {
+  border-color: var(--nx-signal-dim);
+  color: var(--nx-ink);
+}
+
+.nexalgo-code-copy-btn.copied {
+  color: var(--nx-easy);
+  border-color: var(--nx-easy);
 }
 
 .nexalgo-code-body {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
   overflow-x: auto;
-}
-
-.nexalgo-code-body > :only-child {
-  grid-column: 1 / -1;
-}
-
-.nexalgo-code-lines {
-  padding: 1rem 0.75rem;
-  text-align: right;
-  color: #94a3b8;
-  background: #f6faff;
-  user-select: none;
 }
 
 .nexalgo-code-content {
   margin: 0;
-  padding: 1rem;
-  color: #222c44;
-  background: #ffffff;
-  font-family: Consolas, 'Courier New', monospace;
-  font-size: 0.92rem;
-  line-height: 1.65;
+  padding: 16px 18px;
+  font-family: var(--nx-mono);
+  font-size: 12.6px;
+  line-height: 1.62;
+  color: #cdd6df;
   white-space: pre;
+  tab-size: 4;
 }
 
-.nexalgo-code-keyword {
-  color: #6556ff;
+.nexalgo-approach-block {
+  margin-bottom: 18px;
 }
 
-.nexalgo-code-string {
-  color: #1a21bc;
+.nexalgo-approach-label {
+  font-family: var(--nx-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--nx-signal);
+  margin: 0 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.nexalgo-code-number {
-  color: #6556ff;
+.nexalgo-approach-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--nx-line);
 }
 
-.nexalgo-code-comment {
-  color: #94a3b8;
+.nexalgo-complexity-box {
+  margin-top: 10px;
+  font-family: var(--nx-mono);
+  font-size: 12px;
+  color: var(--nx-ink-dim);
+  padding: 10px 13px;
+  border: 1px solid var(--nx-line);
+  border-left: 2px solid var(--nx-signal);
+  background: var(--nx-panel);
 }
 
+.nexalgo-complexity-box b {
+  color: var(--nx-ink);
+}
+
+.nexalgo-talk-block {
+  background: var(--nx-panel);
+  border: 1px solid var(--nx-line);
+  border-left: 2px solid var(--nx-signal);
+  padding: 16px 18px;
+  font-size: 14px;
+  line-height: 1.62;
+  color: var(--nx-ink-dim);
+  font-style: italic;
+}
+
+/* ---- buttons (shared) ---- */
+.nexalgo-secondary-btn,
+.nexalgo-link-btn,
+.nexalgo-danger-btn,
+.nexalgo-save-btn,
+.nexalgo-inline-btn {
+  font-family: var(--nx-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: 0.15s;
+  border: 1px solid var(--nx-line);
+  background: transparent;
+  color: var(--nx-ink-dim);
+}
+
+.nexalgo-secondary-btn:hover,
+.nexalgo-link-btn:hover,
+.nexalgo-inline-btn:hover {
+  border-color: var(--nx-signal-dim);
+  color: var(--nx-ink);
+}
+
+.nexalgo-link-btn {
+  border: none;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  padding: 8px 4px;
+}
+
+.nexalgo-danger-btn {
+  border-color: var(--nx-signal-dim);
+  color: var(--nx-hard);
+}
+
+.nexalgo-danger-btn:hover {
+  background: var(--nx-signal-dim);
+  color: #fff;
+}
+
+.nexalgo-save-btn {
+  background: var(--nx-signal);
+  border-color: var(--nx-signal);
+  color: #fff;
+}
+
+.nexalgo-save-btn:hover {
+  background: #c01f17;
+  border-color: #c01f17;
+}
+
+.nexalgo-markdone {
+  margin-top: 0;
+  background: transparent;
+  border: 1px solid var(--nx-line);
+  color: var(--nx-ink-dim);
+  padding: 8px 14px;
+  font-family: var(--nx-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: 0.15s;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  cursor: pointer;
+}
+
+.nexalgo-markdone:hover {
+  border-color: var(--nx-signal-dim);
+  color: var(--nx-ink);
+}
+
+.nexalgo-markdone.is-done {
+  background: var(--nx-signal);
+  border-color: var(--nx-signal);
+  color: #fff;
+}
+
+/* ---- status pill ---- */
+.nexalgo-status-pill {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--nx-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border: 1px solid var(--nx-line);
+  color: var(--nx-ink-dim);
+}
+
+.nexalgo-status-pill.visited {
+  color: #6f9bd6;
+  border-color: #6f9bd6;
+}
+
+.nexalgo-status-pill.attempted {
+  color: var(--nx-med);
+  border-color: var(--nx-med);
+}
+
+.nexalgo-status-pill.solved {
+  color: var(--nx-easy);
+  border-color: var(--nx-easy);
+}
+
+/* ---- empty / loading states ---- */
+.nexalgo-empty-state {
+  padding: 30px 18px;
+  color: var(--nx-ink-faint);
+  font-family: var(--nx-mono);
+  font-size: 12.5px;
+  text-align: center;
+}
+
+.nexalgo-error {
+  color: var(--nx-hard);
+  font-size: 13px;
+}
+
+.nexalgo-message {
+  color: var(--nx-easy);
+  font-size: 13px;
+}
+
+/* ---- auth screens ---- */
 .nexalgo-auth-wrap {
   display: flex;
+  align-items: center;
   justify-content: center;
-  padding: 2.5rem 1rem 3rem;
+  padding: 60px 20px;
+  min-height: calc(100vh - var(--nexalgo-topbar-height));
 }
 
 .nexalgo-auth-card {
-  width: min(680px, 100%);
-  border-radius: 30px;
-  padding: 2rem;
+  background: var(--nx-panel);
+  border: 1px solid var(--nx-line);
+  padding: 30px;
+  max-width: 760px;
+  width: 100%;
 }
 
 .nexalgo-auth-grid {
   display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 1.5rem;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 30px;
 }
 
-.nexalgo-auth-copy {
-  padding: 1rem;
-}
-
-.nexalgo-auth-copy h2 {
-  font-size: 2rem;
-  margin-bottom: 0.85rem;
+.nexalgo-auth-copy h2,
+.nexalgo-auth-form h2 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--nx-ink);
+  margin: 0 0 12px;
 }
 
 .nexalgo-auth-form {
-  display: grid;
-  gap: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.nexalgo-auth-form input,
-.nexalgo-auth-form select,
-.nexalgo-editor textarea,
-.nexalgo-editor input,
-.nexalgo-menu-panel input,
-.nexalgo-menu-panel select {
-  width: 100%;
-  padding: 0.85rem 0.95rem;
-  border-radius: 16px;
-  border: 1px solid rgba(101, 86, 255, 0.1);
-  background: #ffffff;
-  color: #222c44;
+.nexalgo-auth-form input {
+  background: var(--nx-code-bg);
+  border: 1px solid var(--nx-line);
+  color: var(--nx-ink);
+  padding: 10px 12px;
+  font-family: var(--nx-sans);
+  font-size: 13.5px;
+  outline: none;
+}
+
+.nexalgo-auth-form input:focus {
+  border-color: var(--nx-signal-dim);
+}
+
+.nexalgo-auth-form button[type='submit'] {
+  background: var(--nx-signal);
+  border: 1px solid var(--nx-signal);
+  color: #fff;
+  padding: 10px;
+  font-family: var(--nx-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
 }
 
 .nexalgo-auth-switch {
-  border: none;
-  padding: 0;
   background: transparent;
-  color: #6556ff;
+  border: none;
+  color: var(--nx-ink-dim);
+  font-size: 12px;
   text-align: left;
-  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  padding: 4px 0;
 }
 
-.nexalgo-message {
-  margin: 0;
-  color: #6556ff;
+@media (max-width: 720px) {
+  .nexalgo-auth-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
-.nexalgo-error {
-  margin: 0;
-  color: #6556ff;
-}
-
+/* ---- modal / menu / scrim ---- */
 .nexalgo-menu-scrim,
 .nexalgo-modal-scrim {
   position: fixed;
   inset: 0;
   z-index: 60;
-  border: 0;
-  background: rgba(101, 86, 255, 0.1);
-  backdrop-filter: blur(8px);
+  background: rgba(8, 9, 11, 0.72);
+  border: none;
 }
 
 .nexalgo-menu-panel {
@@ -1197,333 +929,230 @@
   top: 0;
   right: 0;
   z-index: 61;
-  width: min(380px, 100%);
+  width: 360px;
+  max-width: 100%;
   height: 100vh;
   overflow-y: auto;
-  border-radius: 28px 0 0 28px;
-  padding: 1rem 1rem 1.1rem;
-}
-
-.nexalgo-menu-title {
-  font-size: 0.95rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #6556ff;
-}
-
-.nexalgo-menu-section {
-  margin-top: 0.85rem;
-  padding: 0.95rem;
-  border-radius: 20px;
-  border: 1px solid rgba(101, 86, 255, 0.08);
-  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  background: var(--nx-panel);
+  border-left: 1px solid var(--nx-line);
+  padding: 20px;
 }
 
 .nexalgo-menu-head {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 0.4rem;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--nx-line);
+}
+
+.nexalgo-menu-title {
+  font-family: var(--nx-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--nx-ink-faint);
+  margin: 0 0 4px;
+}
+
+.nexalgo-menu-head h3 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--nx-ink);
 }
 
 .nexalgo-close-btn {
-  width: 42px;
-  height: 42px;
-  border: none;
-  border-radius: 14px;
-  background: #f6faff;
-  color: #6556ff;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--nx-line);
+  background: transparent;
+  color: var(--nx-ink-dim);
+  cursor: pointer;
+  font-family: var(--nx-mono);
 }
 
-.nexalgo-menu-panel h3 {
-  font-size: 1rem;
-  margin-bottom: 0.55rem;
+.nexalgo-close-btn:hover {
+  border-color: var(--nx-signal-dim);
+  color: var(--nx-ink);
 }
 
-.nexalgo-menu-copy {
-  margin: 0 0 0.75rem;
-  font-size: 0.92rem;
+.nexalgo-menu-section {
+  margin-top: 18px;
+}
+
+.nexalgo-menu-section h3 {
+  font-family: var(--nx-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--nx-ink);
+  margin: 0 0 10px;
 }
 
 .nexalgo-role-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.25rem;
+  gap: 6px;
 }
 
-.nexalgo-role-list button {
-  border: 1px solid rgba(101, 86, 255, 0.14);
-  border-radius: 999px;
-  padding: 0.55rem 0.9rem;
-  background: linear-gradient(180deg, #ffffff 0%, #eef3ff 100%);
-  color: #6556ff;
-  box-shadow: 0 8px 18px rgba(101, 86, 255, 0.06);
-}
-
-.nexalgo-menu-choice.active {
-  background: rgba(101, 86, 255, 0.14);
-  border-color: rgba(101, 86, 255, 0.28);
-  box-shadow: none;
-}
-
-.nexalgo-menu-panel .nexalgo-detail-actions {
-  margin: 0.7rem 0 0.35rem;
-}
-
-.nexalgo-editor {
-  margin-top: 1.25rem;
-  padding: 1rem;
-  border-radius: 24px;
-  background: #f6faff;
-  border: 1px solid rgba(101, 86, 255, 0.08);
-}
-
-.nexalgo-editor-grid {
-  display: grid;
-  gap: 0.85rem;
-}
-
-.nexalgo-editor textarea {
-  min-height: 120px;
-  resize: vertical;
-}
-
-.nexalgo-question-modal {
-  width: min(920px, 100%);
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.nexalgo-question-form {
-  display: grid;
-  gap: 0.85rem;
-  margin-top: 1rem;
-}
-
-.nexalgo-question-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.85rem;
-}
-
-.nexalgo-field {
-  display: grid;
-  gap: 0.42rem;
-}
-
-.nexalgo-field-label {
-  color: rgba(34, 44, 68, 0.8);
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-}
-
-.nexalgo-question-form textarea,
-.nexalgo-question-form input,
-.nexalgo-question-form select {
+.nexalgo-modal-card {
+  background: var(--nx-panel);
+  border: 1px solid var(--nx-line);
+  padding: 24px;
+  max-width: 520px;
   width: 100%;
-  padding: 0.85rem 0.95rem;
-  border-radius: 16px;
-  border: 1px solid rgba(101, 86, 255, 0.1);
-  background: #ffffff;
-  color: #222c44;
-}
-
-.nexalgo-question-form textarea {
-  min-height: 120px;
-  resize: vertical;
-}
-
-.nexalgo-question-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  margin-top: 0.5rem;
 }
 
 .nexalgo-modal-scrim {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: 20px;
+  overflow-y: auto;
 }
 
-.nexalgo-modal-card {
-  width: min(520px, 100%);
-  border-radius: 28px;
-  padding: 1.5rem;
+.nexalgo-question-modal {
+  max-width: 920px;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
-.nexalgo-empty-state {
-  padding: 1.2rem;
-  border-radius: 20px;
-  background: #ffffff;
-  color: rgba(34, 44, 68, 0.72);
-  border: 1px solid rgba(101, 86, 255, 0.08);
-}
-
-.nexalgo-queue-list {
-  display: grid;
-  gap: 0.85rem;
-}
-
-.nexalgo-queue-card {
-  border-radius: 18px;
-  border: 1px solid rgba(101, 86, 255, 0.1);
-  background: #f8fbff;
-  padding: 1rem;
-}
-
-.nexalgo-queue-head {
+.nexalgo-question-form {
   display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 16px;
 }
 
-@media (max-width: 1120px) {
-  .nexalgo-main,
-  .nexalgo-main-expanded,
-  .nexalgo-main-minimized {
-    grid-template-columns: 1fr;
-    grid-auto-flow: row;
-    gap: var(--nexalgo-mobile-pane-gap);
-    height: auto;
-    overflow: visible;
-    padding: var(--nexalgo-mobile-pane-gap);
-  }
+.nexalgo-question-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
 
-  .nexalgo-sidebar,
-  .nexalgo-sidebar.expanded,
-  .nexalgo-list-pane,
-  .nexalgo-list-pane-minimized,
-  .nexalgo-detail-pane {
-    min-height: 0;
-    height: auto;
-  }
+.nexalgo-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
 
-  .nexalgo-sidebar,
-  .nexalgo-sidebar.expanded {
-    width: 100%;
-  }
+.nexalgo-field-label {
+  font-family: var(--nx-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--nx-ink-faint);
+}
 
-  .nexalgo-nav {
-    flex-direction: row;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-  }
+.nexalgo-field input,
+.nexalgo-field textarea {
+  background: var(--nx-code-bg);
+  border: 1px solid var(--nx-line);
+  color: var(--nx-ink);
+  padding: 8px 10px;
+  font-family: var(--nx-sans);
+  font-size: 13px;
+  outline: none;
+}
 
-  .nexalgo-nav button {
-    width: auto;
-    min-width: 150px;
-    flex: 0 0 auto;
-  }
+.nexalgo-field textarea {
+  min-height: 90px;
+  resize: vertical;
+}
 
-  .nexalgo-list-pane,
-  .nexalgo-main-expanded .nexalgo-list-pane {
-    width: 100%;
-    min-width: 0;
-  }
+.nexalgo-field input:focus,
+.nexalgo-field textarea:focus {
+  border-color: var(--nx-signal-dim);
+}
 
-  .nexalgo-list-pane-minimized {
-    width: 100%;
-    min-width: 0;
-    padding: 1.3rem;
-  }
+.nexalgo-question-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
 
-  .nexalgo-list-pane-minimized .nexalgo-pane-head {
-    flex-direction: row;
-    align-items: flex-start;
-    text-align: left;
-  }
-
-  .nexalgo-list-pane-minimized .nexalgo-detail-subcopy,
-  .nexalgo-list-pane-minimized .nexalgo-status-pill {
-    display: initial;
-  }
-
-  .nexalgo-detail-pane {
-    position: sticky;
-    top: var(--nexalgo-topbar-height);
-    width: 100%;
-    min-width: 0;
-    height: auto;
-    max-height: calc(
-      100dvh - var(--nexalgo-topbar-height) - var(--nexalgo-mobile-pane-gap)
-    );
-    overflow-y: auto;
-    overflow-x: hidden;
-    overscroll-behavior: contain;
-  }
-
-  .nexalgo-problem-list {
-    flex-direction: row;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding-bottom: 0.45rem;
-    padding-right: 0;
-  }
-
-  .nexalgo-problem-card,
-  .nexalgo-problem-card-minimized {
-    width: min(86vw, 320px);
-    min-width: min(86vw, 320px);
-    flex: 0 0 auto;
-    min-height: auto;
-    padding: 1rem 1rem 1rem 1.05rem;
-    text-align: left;
-  }
-
-  .nexalgo-pane-controls {
-    display: none;
-  }
-
-  .nexalgo-pagination {
-    display: none;
-  }
-
-  .nexalgo-topbar {
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    justify-items: stretch;
-    align-items: center;
-    padding: 0.85rem 1rem;
-  }
-
-  .nexalgo-topbar-left,
-  .nexalgo-topbar-right {
-    justify-content: flex-start;
-  }
-
-  .nexalgo-brand {
-    order: 0;
-  }
-
-  .nexalgo-brand h1 {
-    font-size: 1.45rem;
-  }
-
-  .nexalgo-brand p {
-    font-size: 0.75rem;
-  }
-
-  .nexalgo-auth-grid {
-    grid-template-columns: 1fr;
-  }
-
+@media (max-width: 720px) {
   .nexalgo-question-grid {
     grid-template-columns: 1fr;
   }
 }
 
-@media (max-width: 520px) {
-  .nexalgo-back-link {
-    padding-inline: 0.8rem;
+/* ---- review queue ---- */
+.nexalgo-queue-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.nexalgo-queue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.nexalgo-queue-card {
+  border: 1px solid var(--nx-line);
+  background: var(--nx-code-bg);
+  padding: 12px;
+}
+
+.nexalgo-queue-card strong {
+  color: var(--nx-ink);
+  font-size: 13px;
+}
+
+.nexalgo-queue-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+/* ---- responsive ---- */
+@media (max-width: 1120px) {
+  .nexalgo-main {
+    flex-direction: column;
   }
 
-  .nexalgo-back-link-text {
-    display: none;
+  .nexalgo-sidebar,
+  .nexalgo-list-pane,
+  .nexalgo-detail-pane {
+    width: 100%;
+    flex: none;
+    height: auto;
+    position: relative;
+    top: 0;
+  }
+
+  .nexalgo-sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--nx-line);
+  }
+
+  .nexalgo-list-pane {
+    border-right: none;
+    border-bottom: 1px solid var(--nx-line);
+    max-height: 360px;
+  }
+
+  .nexalgo-problem-list {
+    max-height: 300px;
+  }
+
+  .nexalgo-detail-body {
+    padding: 24px 18px 70px;
+  }
+
+  .nexalgo-detail-title-row h2 {
+    font-size: 21px;
+  }
+}
+
+@media (max-width: 520px) {
+  .nexalgo-auth-card {
+    padding: 20px;
   }
 }

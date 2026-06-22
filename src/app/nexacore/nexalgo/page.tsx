@@ -171,20 +171,62 @@ function statusToneClass(status?: ProblemProgressStatus) {
 function CodeBlock({
   language,
   code,
+  label,
 }: {
   language: LanguageKey
   code: string
+  label?: string
 }) {
+  const [copied, setCopied] = useState(false)
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(code)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1400)
+    } catch {
+      // clipboard access denied or unavailable; ignore
+    }
+  }
+
   return (
     <div className='nexalgo-code-block'>
       <div className='nexalgo-code-header'>
-        <span>{LANGUAGE_OPTIONS.find((option) => option.value === language)?.label}</span>
+        <span>
+          {label ? `${label} — ` : ''}
+          {LANGUAGE_OPTIONS.find((option) => option.value === language)?.label}
+        </span>
+        <button type='button' className={`nexalgo-code-copy-btn ${copied ? 'copied' : ''}`} onClick={handleCopy}>
+          {copied ? 'Copied' : 'Copy'}
+        </button>
       </div>
       <div className='nexalgo-code-body'>
         <pre className='nexalgo-code-content'>{code || '// Solution will appear after editorial approval.'}</pre>
       </div>
     </div>
   )
+}
+
+// Solution strings store two top-level classes back to back: a naive/brute-force
+// `Solution` (or `Solution { ... }` for Java/C++) followed by the efficient
+// `SolutionOptimal`. Split on that boundary so each approach renders as its own
+// labeled code block instead of one undifferentiated wall of code.
+function splitApproaches(code: string): { bruteForce: string; optimal: string } {
+  if (!code) {
+    return { bruteForce: '', optimal: '' }
+  }
+
+  const marker = /\b(class|def)\s+SolutionOptimal\b/
+  const match = code.match(marker)
+
+  if (!match || match.index === undefined) {
+    return { bruteForce: code, optimal: '' }
+  }
+
+  return {
+    bruteForce: code.slice(0, match.index).trim(),
+    optimal: code.slice(match.index).trim(),
+  }
 }
 
 export default function NexAlgoPage() {
@@ -845,14 +887,14 @@ export default function NexAlgoPage() {
                     {problem.problemNumber ? `${problem.problemNumber}. ` : ''}
                     {problem.title}
                   </h3>
-                  <p className={`nexalgo-meta-line ${difficultyToneClass(problem.difficulty)}`}>
-                    {problem.difficulty || 'Difficulty pending'}
-                  </p>
-                  <p
-                    className={`nexalgo-meta-line ${statusToneClass(
-                      statusMap[problem.id] ?? 'unvisited',
-                    )}`}>
-                    {statusMap[problem.id] ?? 'unvisited'}
+                  <p className='nexalgo-meta-line'>
+                    <span className={difficultyToneClass(problem.difficulty)}>
+                      {(problem.difficulty || 'pending').toUpperCase()}
+                    </span>
+                    {'  ·  '}
+                    <span className={statusToneClass(statusMap[problem.id] ?? 'unvisited')}>
+                      {statusMap[problem.id] ?? 'unvisited'}
+                    </span>
                   </p>
                   <p className='nexalgo-meta-line'>{displayPlatform(getPrimaryPlatform(problem))}</p>
                   <p className='nexalgo-meta-line'>{problem.topics.join(', ') || 'No topics yet'}</p>
@@ -880,19 +922,31 @@ export default function NexAlgoPage() {
                     <p className={`nexalgo-detail-subcopy ${difficultyToneClass(selectedProblem.difficulty)}`}>
                       {selectedProblem.difficulty || 'Difficulty pending'}
                     </p>
+                    {selectedProblem.sources[0]?.normalizedUrl ? (
+                      <p className='nexalgo-detail-subcopy'>
+                        <a
+                          className='nexalgo-link-btn'
+                          href={selectedProblem.sources[0].normalizedUrl}
+                          target='_blank'
+                          rel='noreferrer'>
+                          View on LeetCode ↗
+                        </a>
+                      </p>
+                    ) : null}
                   </div>
                   <div className='nexalgo-detail-actions'>
                     <button
                       type='button'
-                      className='nexalgo-secondary-btn'
-                      onClick={() => void updateProgress(selectedProblem.id, 'attempted')}>
-                      Mark Attempted
-                    </button>
-                    <button
-                      type='button'
-                      className='nexalgo-save-btn'
-                      onClick={() => void updateProgress(selectedProblem.id, 'solved')}>
-                      Mark Solved
+                      className={`nexalgo-markdone ${
+                        statusMap[selectedProblem.id] === 'solved' ? 'is-done' : ''
+                      }`}
+                      onClick={() =>
+                        void updateProgress(
+                          selectedProblem.id,
+                          statusMap[selectedProblem.id] === 'solved' ? 'attempted' : 'solved',
+                        )
+                      }>
+                      {statusMap[selectedProblem.id] === 'solved' ? '✘ marked solid' : 'mark solid'}
                     </button>
                     {isEditor ? (
                       <button type='button' className='nexalgo-link-btn' onClick={openRevisionDraft}>
@@ -906,15 +960,6 @@ export default function NexAlgoPage() {
                   <section className='nexalgo-section'>
                     <h3>Problem statement</h3>
                     <p>{selectedProblem.problemStatement}</p>
-                  </section>
-
-                  <section className='nexalgo-section'>
-                    <h3>Hints</h3>
-                    <ul>
-                      {selectedProblem.hints.map((hint) => (
-                        <li key={hint}>{hint}</li>
-                      ))}
-                    </ul>
                   </section>
 
                   <section className='nexalgo-section'>
@@ -940,20 +985,17 @@ export default function NexAlgoPage() {
                   </section>
 
                   <section className='nexalgo-section'>
+                    <h3>Clarifying questions / hints</h3>
+                    <ul>
+                      {selectedProblem.hints.map((hint) => (
+                        <li key={hint}>{hint}</li>
+                      ))}
+                    </ul>
+                  </section>
+
+                  <section className='nexalgo-section'>
                     <h3>Intuition</h3>
                     <p>{selectedProblem.intuition || 'Editorial intuition will appear after review.'}</p>
-                  </section>
-
-                  <section className='nexalgo-section'>
-                    <h3>Code walkthrough</h3>
-                    <p>{selectedProblem.walkthrough || 'Walkthrough pending.'}</p>
-                  </section>
-
-                  <section className='nexalgo-section'>
-                    <h3>Complexity analysis</h3>
-                    <p>
-                      {selectedProblem.complexityAnalysis || 'Complexity analysis pending.'}
-                    </p>
                   </section>
 
                   <section className='nexalgo-section'>
@@ -969,10 +1011,37 @@ export default function NexAlgoPage() {
                         </button>
                       ))}
                     </div>
-                    <CodeBlock
-                      language={selectedLanguage}
-                      code={selectedProblem.solutions[selectedLanguage] || ''}
-                    />
+                    {(() => {
+                      const { bruteForce, optimal } = splitApproaches(
+                        selectedProblem.solutions[selectedLanguage] || '',
+                      )
+                      return (
+                        <>
+                          <div className='nexalgo-approach-block'>
+                            <p className='nexalgo-approach-label'>Brute force</p>
+                            <CodeBlock language={selectedLanguage} code={bruteForce} />
+                          </div>
+                          {optimal ? (
+                            <div className='nexalgo-approach-block'>
+                              <p className='nexalgo-approach-label'>Optimal</p>
+                              <CodeBlock language={selectedLanguage} code={optimal} />
+                            </div>
+                          ) : null}
+                        </>
+                      )
+                    })()}
+                  </section>
+
+                  <section className='nexalgo-section'>
+                    <h3>Code walkthrough</h3>
+                    <p>{selectedProblem.walkthrough || 'Walkthrough pending.'}</p>
+                  </section>
+
+                  <section className='nexalgo-section'>
+                    <h3>Complexity analysis</h3>
+                    <p className='nexalgo-complexity-box'>
+                      {selectedProblem.complexityAnalysis || 'Complexity analysis pending.'}
+                    </p>
                   </section>
 
                   {false ? (

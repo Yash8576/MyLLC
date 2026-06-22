@@ -30,11 +30,17 @@ if ($CloudSqlInstance) {
 }
 
 & gcloud.cmd @args
+if ($LASTEXITCODE -ne 0) {
+  throw "gcloud run deploy failed with exit code $LASTEXITCODE."
+}
 
 $serviceUrl = & gcloud.cmd run services describe $ServiceName `
   --project $ProjectId `
   --region $Region `
   --format "value(status.url)"
+if ($LASTEXITCODE -ne 0) {
+  throw "gcloud run services describe failed with exit code $LASTEXITCODE."
+}
 
 Write-Host "NexAlgo backend deployed: $serviceUrl"
 Write-Host "Set NEXT_PUBLIC_NEXALGO_API_BASE_URL=$serviceUrl/v1 in the nexacoreglobal.org frontend build environment."
