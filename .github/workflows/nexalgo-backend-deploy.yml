@@ -130,6 +130,17 @@ jobs:
             exit 1
           fi
 
+          EXISTING_DATABASE_URL="$(
+            gcloud run services describe "$CLOUD_RUN_SERVICE" \
+              --project "$GCP_PROJECT_ID" \
+              --region "$GCP_REGION" \
+              --format=json 2>/dev/null | node -e "let input=''; process.stdin.on('data', (chunk) => input += chunk); process.stdin.on('end', () => { try { const service = JSON.parse(input); const env = service?.spec?.template?.spec?.containers?.[0]?.env ?? []; process.stdout.write(env.find((item) => item.name === 'DATABASE_URL')?.value ?? ''); } catch { process.stdout.write(''); } })"
+          )"
+
+          if [[ -n "$EXISTING_DATABASE_URL" ]]; then
+            NEXALGO_DATABASE_URL="$EXISTING_DATABASE_URL"
+          fi
+
           NEXALGO_DATABASE_URL="$(DATABASE_URL="$NEXALGO_DATABASE_URL" node <<'EOF'
           const raw = process.env.DATABASE_URL || ''
           const match = raw.match(/^(postgres(?:ql)?:\/\/[^:]+:)(.*)(@(?:localhost)?\/.*)$/)
