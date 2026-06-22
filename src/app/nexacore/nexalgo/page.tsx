@@ -257,8 +257,14 @@ export default function NexAlgoPage() {
   const [draftForm, setDraftForm] = useState<DraftFormState>(emptyDraft())
   const [backendError, setBackendError] = useState('')
   const [accountMenuOpen, setAccountMenuOpen] = useState(false)
-  const [activeNav, setActiveNav] = useState<'platform' | 'sorted' | 'companies' | 'topics'>('platform')
-  const [activeFilter, setActiveFilter] = useState('all')
+  const [activeNav, setActiveNav] = useState<'platform' | 'difficulty' | 'companies' | 'topics'>('platform')
+  const [platformFilters, setPlatformFilters] = useState<string[]>([])
+  const [difficultyFilters, setDifficultyFilters] = useState<string[]>([])
+  const [companyFilters, setCompanyFilters] = useState<string[]>([])
+  const [topicFilters, setTopicFilters] = useState<string[]>([])
+  const [sortByNumber, setSortByNumber] = useState(true)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [listPaneCollapsed, setListPaneCollapsed] = useState(false)
 
   useEffect(() => {
     if (pathname?.startsWith('/nexacore/')) {
@@ -362,25 +368,30 @@ export default function NexAlgoPage() {
     if (activeNav === 'topics') {
       return Array.from(new Set(problems.flatMap((problem) => problem.topics))).sort()
     }
-    return ['number', 'title', 'easy', 'medium', 'hard']
+    return ['easy', 'medium', 'hard']
   }, [activeNav, problems])
 
   const filteredProblems = useMemo(() => {
     const nextProblems = problems.filter((problem) => {
-      if (activeFilter === 'all') return true
-      if (activeNav === 'platform') return getPrimaryPlatform(problem) === activeFilter
-      if (activeNav === 'companies') return problem.companies.includes(activeFilter)
-      if (activeNav === 'topics') return problem.topics.includes(activeFilter)
-      if (['easy', 'medium', 'hard'].includes(activeFilter)) {
-        return problem.difficulty?.toLowerCase() === activeFilter
+      if (platformFilters.length > 0 && !platformFilters.includes(getPrimaryPlatform(problem))) {
+        return false
+      }
+      if (
+        difficultyFilters.length > 0 &&
+        !difficultyFilters.includes(problem.difficulty?.toLowerCase() || '')
+      ) {
+        return false
+      }
+      if (companyFilters.length > 0 && !companyFilters.some((company) => problem.companies.includes(company))) {
+        return false
+      }
+      if (topicFilters.length > 0 && !topicFilters.some((topic) => problem.topics.includes(topic))) {
+        return false
       }
       return true
     })
 
-    if (activeNav === 'sorted') {
-      if (activeFilter === 'title') {
-        return [...nextProblems].sort((left, right) => left.title.localeCompare(right.title))
-      }
+    if (sortByNumber) {
       return [...nextProblems].sort((left, right) => {
         const leftNumber = left.problemNumber ?? Number.MAX_SAFE_INTEGER
         const rightNumber = right.problemNumber ?? Number.MAX_SAFE_INTEGER
@@ -389,7 +400,29 @@ export default function NexAlgoPage() {
     }
 
     return nextProblems
-  }, [activeFilter, activeNav, problems])
+  }, [companyFilters, difficultyFilters, platformFilters, problems, sortByNumber, topicFilters])
+
+  function activeFiltersForNav(nav: typeof activeNav) {
+    if (nav === 'platform') return platformFilters
+    if (nav === 'difficulty') return difficultyFilters
+    if (nav === 'companies') return companyFilters
+    return topicFilters
+  }
+
+  function setActiveFiltersForNav(nav: typeof activeNav, next: string[]) {
+    if (nav === 'platform') setPlatformFilters(next)
+    else if (nav === 'difficulty') setDifficultyFilters(next)
+    else if (nav === 'companies') setCompanyFilters(next)
+    else setTopicFilters(next)
+  }
+
+  function toggleFilterValue(nav: typeof activeNav, value: string) {
+    const current = activeFiltersForNav(nav)
+    const next = current.includes(value)
+      ? current.filter((item) => item !== value)
+      : [...current, value]
+    setActiveFiltersForNav(nav, next)
+  }
 
   async function handleLoginSubmit(event: React.FormEvent) {
     event.preventDefault()
@@ -757,153 +790,192 @@ export default function NexAlgoPage() {
         </main>
       ) : (
         <main className='nexalgo-main'>
-          <aside className='nexalgo-sidebar expanded'>
-            <div className='nexalgo-sidebar-header'>
-              <p className='nexalgo-menu-title'>Browse</p>
-            </div>
-            <nav className='nexalgo-nav' aria-label='Problem filters'>
-              {[
-                ['platform', 'Platform'],
-                ['sorted', 'Sorted'],
-                ['companies', 'Companies'],
-                ['topics', 'Topics'],
-              ].map(([value, label]) => (
-                <button
-                  key={value}
-                  type='button'
-                  className={activeNav === value ? 'active' : ''}
-                  onClick={() => {
-                    setActiveNav(value as typeof activeNav)
-                    setActiveFilter('all')
-                  }}>
-                  <span className='nexalgo-nav-icon'>{label.slice(0, 2)}</span>
-                  <span>{label}</span>
-                </button>
-              ))}
-            </nav>
-            <div className='nexalgo-sidebar-filters'>
-              <p className='nexalgo-filter-label'>
-                {activeNav === 'sorted' ? 'Sort / Difficulty' : 'Filter'}
-              </p>
-              <button
-                type='button'
-                className={`nexalgo-sidebar-filter-btn ${activeFilter === 'all' ? 'active' : ''}`}
-                onClick={() => setActiveFilter('all')}>
-                All
-              </button>
-              {navItems.map((item) => (
-                <button
-                  key={item}
-                  type='button'
-                  className={`nexalgo-sidebar-filter-btn ${activeFilter === item ? 'active' : ''}`}
-                  onClick={() => setActiveFilter(item)}>
-                  {activeNav === 'platform' ? displayPlatform(item) : item}
-                </button>
-              ))}
-            </div>
-            {isEditor ? (
-              <div className='nexalgo-review-queue-panel'>
-                <div className='nexalgo-queue-head'>
-                  <div>
-                    <p className='nexalgo-menu-title'>Review</p>
-                    <h3>Waiting Approval</h3>
-                  </div>
-                  <span className='nexalgo-status-pill visited'>{queue.length}</span>
+          <aside className={`nexalgo-sidebar ${sidebarCollapsed ? 'collapsed' : 'expanded'}`}>
+            <button
+              type='button'
+              className='nexalgo-pane-collapse-btn'
+              aria-label={sidebarCollapsed ? 'Expand filters' : 'Collapse filters'}
+              onClick={() => setSidebarCollapsed((current) => !current)}>
+              {sidebarCollapsed ? '»' : '«'}
+            </button>
+            {sidebarCollapsed ? null : (
+              <>
+                <div className='nexalgo-sidebar-header'>
+                  <p className='nexalgo-menu-title'>Browse</p>
                 </div>
-                {queue.length === 0 ? (
-                  <p className='nexalgo-detail-subcopy'>No pending drafts.</p>
-                ) : (
-                  <div className='nexalgo-queue-list'>
-                    {queue.map((submission) => (
-                      <div key={submission.id} className='nexalgo-queue-card'>
-                        <strong>{submission.proposedProblem.title}</strong>
-                        <p className='nexalgo-detail-subcopy'>
-                          {displayPlatform(submission.platform)} - {submission.type} - submitted by{' '}
-                          {submission.submittedBy.email}
-                        </p>
-                        <p className='nexalgo-detail-subcopy'>
-                          {submission.proposedProblem.problemStatement.slice(0, 140)}
-                          {submission.proposedProblem.problemStatement.length > 140 ? '...' : ''}
-                        </p>
-                        <div className='nexalgo-queue-actions'>
-                          <button
-                            type='button'
-                            className='nexalgo-secondary-btn'
-                            onClick={() => void handleRegenerate(submission.id)}>
-                            Regenerate
-                          </button>
-                          <button
-                            type='button'
-                            className='nexalgo-danger-btn'
-                            onClick={() => void handleReject(submission.id)}>
-                            Reject
-                          </button>
-                          <button
-                            type='button'
-                            className='nexalgo-save-btn'
-                            onClick={() => void handleApprove(submission.id)}>
-                            Approve
-                          </button>
-                        </div>
-                      </div>
+                <nav className='nexalgo-nav' aria-label='Problem filters'>
+                  {[
+                    ['platform', 'Platform'],
+                    ['difficulty', 'Difficulty'],
+                    ['companies', 'Companies'],
+                    ['topics', 'Topics'],
+                  ].map(([value, label]) => (
+                    <button
+                      key={value}
+                      type='button'
+                      className={activeNav === value ? 'active' : ''}
+                      onClick={() => setActiveNav(value as typeof activeNav)}>
+                      <span className='nexalgo-nav-icon'>{label.slice(0, 2)}</span>
+                      <span>{label}</span>
+                      {activeFiltersForNav(value as typeof activeNav).length > 0 ? (
+                        <span className='nexalgo-nav-count'>
+                          {activeFiltersForNav(value as typeof activeNav).length}
+                        </span>
+                      ) : null}
+                    </button>
+                  ))}
+                </nav>
+                <div className='nexalgo-sidebar-scroll'>
+                  <div className='nexalgo-sidebar-filters'>
+                    <p className='nexalgo-filter-label'>
+                      {activeNav === 'difficulty' ? 'Difficulty' : 'Filter'}
+                    </p>
+                    <button
+                      type='button'
+                      className={`nexalgo-sidebar-filter-btn ${
+                        activeFiltersForNav(activeNav).length === 0 ? 'active' : ''
+                      }`}
+                      onClick={() => setActiveFiltersForNav(activeNav, [])}>
+                      All
+                    </button>
+                    {navItems.map((item) => (
+                      <button
+                        key={item}
+                        type='button'
+                        className={`nexalgo-sidebar-filter-btn ${
+                          activeFiltersForNav(activeNav).includes(item) ? 'active' : ''
+                        }`}
+                        onClick={() => toggleFilterValue(activeNav, item)}>
+                        {activeNav === 'platform' ? displayPlatform(item) : item}
+                      </button>
                     ))}
                   </div>
-                )}
-              </div>
-            ) : null}
+                  {isEditor ? (
+                    <div className='nexalgo-review-queue-panel'>
+                      <div className='nexalgo-queue-head'>
+                        <div>
+                          <p className='nexalgo-menu-title'>Review</p>
+                          <h3>Waiting Approval</h3>
+                        </div>
+                        <span className='nexalgo-status-pill visited'>{queue.length}</span>
+                      </div>
+                      {queue.length === 0 ? (
+                        <p className='nexalgo-detail-subcopy'>No pending drafts.</p>
+                      ) : (
+                        <div className='nexalgo-queue-list'>
+                          {queue.map((submission) => (
+                            <div key={submission.id} className='nexalgo-queue-card'>
+                              <strong>{submission.proposedProblem.title}</strong>
+                              <p className='nexalgo-detail-subcopy'>
+                                {displayPlatform(submission.platform)} - {submission.type} - submitted by{' '}
+                                {submission.submittedBy.email}
+                              </p>
+                              <p className='nexalgo-detail-subcopy'>
+                                {submission.proposedProblem.problemStatement.slice(0, 140)}
+                                {submission.proposedProblem.problemStatement.length > 140 ? '...' : ''}
+                              </p>
+                              <div className='nexalgo-queue-actions'>
+                                <button
+                                  type='button'
+                                  className='nexalgo-secondary-btn'
+                                  onClick={() => void handleRegenerate(submission.id)}>
+                                  Regenerate
+                                </button>
+                                <button
+                                  type='button'
+                                  className='nexalgo-danger-btn'
+                                  onClick={() => void handleReject(submission.id)}>
+                                  Reject
+                                </button>
+                                <button
+                                  type='button'
+                                  className='nexalgo-save-btn'
+                                  onClick={() => void handleApprove(submission.id)}>
+                                  Approve
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+              </>
+            )}
           </aside>
 
-          <section className='nexalgo-list-pane nexalgo-list-pane-normal'>
-            <div className='nexalgo-pane-head'>
-              <div>
-                <h2>Problems</h2>
-                <p className='nexalgo-detail-subcopy'>
-                  {filteredProblems.length} of {problems.length} published questions
-                </p>
-              </div>
-              <div className='nexalgo-pane-controls'>
-                <button type='button' className='nexalgo-pane-toggle' onClick={openCreateDraft}>
-                  Submit draft
-                </button>
-              </div>
-            </div>
+          <section
+            className={`nexalgo-list-pane ${listPaneCollapsed ? 'collapsed' : 'nexalgo-list-pane-normal'}`}>
+            <button
+              type='button'
+              className='nexalgo-pane-collapse-btn'
+              aria-label={listPaneCollapsed ? 'Expand problem list' : 'Collapse problem list'}
+              onClick={() => setListPaneCollapsed((current) => !current)}>
+              {listPaneCollapsed ? '»' : '«'}
+            </button>
+            {listPaneCollapsed ? null : (
+              <>
+                <div className='nexalgo-pane-head'>
+                  <div>
+                    <h2>Problems</h2>
+                    <p className='nexalgo-detail-subcopy'>
+                      {filteredProblems.length} of {problems.length} published questions
+                    </p>
+                  </div>
+                  <div className='nexalgo-pane-controls'>
+                    <label className='nexalgo-sort-toggle'>
+                      <input
+                        type='checkbox'
+                        checked={sortByNumber}
+                        onChange={(event) => setSortByNumber(event.target.checked)}
+                      />
+                      Sort by number
+                    </label>
+                    <button type='button' className='nexalgo-pane-toggle' onClick={openCreateDraft}>
+                      Submit draft
+                    </button>
+                  </div>
+                </div>
 
-            {loading ? <div className='nexalgo-empty-state'>Loading problems...</div> : null}
-            {backendError ? <div className='nexalgo-empty-state'>{backendError}</div> : null}
+                {loading ? <div className='nexalgo-empty-state'>Loading problems...</div> : null}
+                {backendError ? <div className='nexalgo-empty-state'>{backendError}</div> : null}
 
-            <div className='nexalgo-problem-list'>
-              {filteredProblems.map((problem) => (
-                <button
-                  key={problem.id}
-                  type='button'
-                  className={`nexalgo-problem-card ${
-                    selectedProblemId === problem.id ? 'active' : ''
-                  }`}
-                  onClick={() => {
-                    setSelectedProblemId(problem.id)
-                    void updateProgress(problem.id, 'visited')
-                  }}>
-                  <h3>
-                    {problem.problemNumber ? `${problem.problemNumber}. ` : ''}
-                    {problem.title}
-                  </h3>
-                  <p className='nexalgo-meta-line'>
-                    <span className={difficultyToneClass(problem.difficulty)}>
-                      {(problem.difficulty || 'pending').toUpperCase()}
-                    </span>
-                    {'  ·  '}
-                    <span className={statusToneClass(statusMap[problem.id] ?? 'unvisited')}>
-                      {statusMap[problem.id] ?? 'unvisited'}
-                    </span>
-                  </p>
-                  <p className='nexalgo-meta-line'>{displayPlatform(getPrimaryPlatform(problem))}</p>
-                  <p className='nexalgo-meta-line'>{problem.topics.join(', ') || 'No topics yet'}</p>
-                </button>
-              ))}
-            </div>
-            {!loading && filteredProblems.length === 0 ? (
-              <div className='nexalgo-empty-state'>No problems match this filter.</div>
-            ) : null}
+                <div className='nexalgo-problem-list'>
+                  {filteredProblems.map((problem) => (
+                    <button
+                      key={problem.id}
+                      type='button'
+                      className={`nexalgo-problem-card ${
+                        selectedProblemId === problem.id ? 'active' : ''
+                      }`}
+                      onClick={() => {
+                        setSelectedProblemId(problem.id)
+                        void updateProgress(problem.id, 'visited')
+                      }}>
+                      <h3>
+                        {problem.problemNumber ? `${problem.problemNumber}. ` : ''}
+                        {problem.title}
+                      </h3>
+                      <p className='nexalgo-meta-line'>
+                        <span className={difficultyToneClass(problem.difficulty)}>
+                          {(problem.difficulty || 'pending').toUpperCase()}
+                        </span>
+                        {'  ·  '}
+                        <span className={statusToneClass(statusMap[problem.id] ?? 'unvisited')}>
+                          {statusMap[problem.id] ?? 'unvisited'}
+                        </span>
+                      </p>
+                      <p className='nexalgo-meta-line'>{displayPlatform(getPrimaryPlatform(problem))}</p>
+                      <p className='nexalgo-meta-line'>{problem.topics.join(', ') || 'No topics yet'}</p>
+                    </button>
+                  ))}
+                </div>
+                {!loading && filteredProblems.length === 0 ? (
+                  <div className='nexalgo-empty-state'>No problems match this filter.</div>
+                ) : null}
+              </>
+            )}
           </section>
 
           <section className='nexalgo-detail-pane'>

@@ -206,15 +206,48 @@
   position: sticky;
   top: var(--nexalgo-topbar-height);
   height: calc(100vh - var(--nexalgo-topbar-height));
-  overflow-y: auto;
+  overflow: hidden;
+}
+
+.nexalgo-sidebar.collapsed {
+  width: 36px;
+  flex: 0 0 36px;
+  align-items: center;
+}
+
+.nexalgo-pane-collapse-btn {
+  flex: 0 0 auto;
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--nx-line);
+  color: var(--nx-ink-faint);
+  font-family: var(--nx-mono);
+  font-size: 13px;
+  padding: 10px 0;
+  cursor: pointer;
+  transition: 0.12s;
+}
+
+.nexalgo-sidebar.collapsed .nexalgo-pane-collapse-btn,
+.nexalgo-list-pane.collapsed .nexalgo-pane-collapse-btn {
+  border-bottom: none;
+  height: 100%;
+}
+
+.nexalgo-pane-collapse-btn:hover {
+  background: var(--nx-panel-2);
+  color: var(--nx-ink);
 }
 
 .nexalgo-sidebar-header {
+  flex: 0 0 auto;
   padding: 16px 18px 10px;
   border-bottom: 1px solid var(--nx-line);
 }
 
 .nexalgo-nav {
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   padding: 10px 10px;
@@ -257,6 +290,22 @@
   border: 1px solid var(--nx-line);
   padding: 2px 4px;
   flex: 0 0 auto;
+}
+
+.nexalgo-nav-count {
+  margin-left: auto;
+  font-family: var(--nx-mono);
+  font-size: 9px;
+  color: #fff;
+  background: var(--nx-signal);
+  border-radius: 999px;
+  padding: 1px 6px;
+  flex: 0 0 auto;
+}
+
+.nexalgo-sidebar-scroll {
+  flex: 1;
+  overflow-y: auto;
 }
 
 .nexalgo-sidebar-filters {
@@ -318,13 +367,32 @@
   overflow: hidden;
 }
 
+.nexalgo-list-pane.collapsed {
+  width: 36px;
+  flex: 0 0 36px;
+  align-items: center;
+}
+
 .nexalgo-pane-head {
+  flex: 0 0 auto;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
-  padding: 16px 18px 12px;
+  padding: 10px 18px;
   border-bottom: 1px solid var(--nx-line);
+}
+
+.nexalgo-sort-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--nx-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--nx-ink-dim);
+  cursor: pointer;
 }
 
 .nexalgo-pane-head h2 {
@@ -1125,6 +1193,11 @@
     height: auto;
     position: relative;
     top: 0;
+  }
+
+  .nexalgo-sidebar.collapsed,
+  .nexalgo-list-pane.collapsed {
+    width: 100%;
   }
 
   .nexalgo-sidebar {
