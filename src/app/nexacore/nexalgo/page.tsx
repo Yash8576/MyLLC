@@ -12,6 +12,7 @@ import {
 } from 'firebase/auth'
 import { nexalgoApi, nexalgoApiConfigured } from './lib/api'
 import { auth, firebaseClientConfigured, missingFirebaseEnvKeys } from './lib/firebase'
+import generatedSeed from './generatedSeed.json'
 import type {
   LanguageKey,
   ProblemProgressStatus,
@@ -29,6 +30,12 @@ const LANGUAGE_OPTIONS: Array<{ value: LanguageKey; label: string }> = [
 ]
 
 const LANGUAGE_STORAGE_KEY = 'nexalgoDefaultLanguage'
+const LOCAL_SESSION_USER: SessionUser = {
+  id: 'local-preview',
+  firebaseUid: 'local-preview',
+  email: 'local-preview@nexalgo.dev',
+  roles: ['viewer'],
+}
 
 type DraftFormState = {
   platform: string
@@ -153,6 +160,49 @@ function getPrimaryPlatform(problem: ProblemRecord) {
   return problem.sources[0]?.platform || 'unknown'
 }
 
+function isLocalNexalgoPreview() {
+  if (typeof window === 'undefined') return false
+  return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+}
+
+function seedToProblemRecord(seedProblem: any): ProblemRecord {
+  const problemNumber = typeof seedProblem.id === 'number' ? seedProblem.id : undefined
+  const slug = seedProblem.slug || String(seedProblem.title || 'local-problem').toLowerCase().replace(/\s+/g, '-')
+  const normalizedUrl = seedProblem.link || ''
+
+  return {
+    id: String(seedProblem.id ?? slug),
+    problemNumber,
+    title: seedProblem.title || 'Untitled problem',
+    slug,
+    difficulty: seedProblem.difficulty || null,
+    problemStatement: seedProblem.problemStatement || '',
+    hints: Array.isArray(seedProblem.hints) ? seedProblem.hints : [],
+    intuition: seedProblem.intuition || null,
+    walkthrough: seedProblem.walkthrough || null,
+    complexityAnalysis: seedProblem.complexity || seedProblem.complexityAnalysis || null,
+    topics: Array.isArray(seedProblem.topics) ? seedProblem.topics : [],
+    companies: Array.isArray(seedProblem.companies) ? seedProblem.companies : [],
+    solutions: {
+      python: seedProblem.starterCodeByLanguage?.python || '',
+      java: seedProblem.starterCodeByLanguage?.java || '',
+      cpp: seedProblem.starterCodeByLanguage?.cpp || '',
+    },
+    status: 'published',
+    publishedAt: null,
+    sources: [
+      {
+        id: `${slug}-leetcode`,
+        platform: 'leetcode',
+        externalId: problemNumber ? String(problemNumber) : null,
+        slug,
+        normalizedUrl,
+        sourceKey: normalizedUrl || slug,
+      },
+    ],
+  }
+}
+
 function difficultyToneClass(difficulty?: string | null) {
   const normalized = difficulty?.trim().toLowerCase()
   if (normalized === 'easy') return 'nexalgo-difficulty-easy'
@@ -235,6 +285,7 @@ export default function NexAlgoPage() {
   const isProjectsRoute = pathname?.startsWith('/projects/')
   const backLinkHref = isProjectsRoute ? '/#projects' : '/'
 
+  const [isLocalPreview, setIsLocalPreview] = useState(false)
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null)
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null)
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('signup')
@@ -272,6 +323,10 @@ export default function NexAlgoPage() {
   }, [pathname, router])
 
   useEffect(() => {
+    setIsLocalPreview(isLocalNexalgoPreview())
+  }, [])
+
+  useEffect(() => {
     const stored = window.localStorage.getItem(LANGUAGE_STORAGE_KEY) as LanguageKey | null
     if (stored && LANGUAGE_OPTIONS.some((option) => option.value === stored)) {
       setSelectedLanguage(stored)
@@ -280,7 +335,18 @@ export default function NexAlgoPage() {
 
   useEffect(() => {
     async function bootstrapProblems() {
-      if (!firebaseClientConfigured || !nexalgoApiConfigured) {
+      if (isLocalPreview && !nexalgoApiConfigured) {
+        const localProblems = (generatedSeed as any[]).map(seedToProblemRecord)
+        setProblems(localProblems)
+        if (localProblems[0]) {
+          setSelectedProblemId(localProblems[0].id)
+        }
+        setBackendError('')
+        setLoading(false)
+        return
+      }
+
+      if (!nexalgoApiConfigured || (!isLocalPreview && !firebaseClientConfigured)) {
         setLoading(false)
         return
       }
@@ -300,9 +366,15 @@ export default function NexAlgoPage() {
     }
 
     void bootstrapProblems()
-  }, [])
+  }, [isLocalPreview])
 
   useEffect(() => {
+    if (isLocalPreview) {
+      setSessionUser(LOCAL_SESSION_USER)
+      setLoading(false)
+      return
+    }
+
     if (!firebaseClientConfigured || !auth) {
       setLoading(false)
       return
@@ -328,7 +400,7 @@ export default function NexAlgoPage() {
     })
 
     return () => unsubscribe()
-  }, [])
+  }, [isLocalPreview])
 
   useEffect(() => {
     async function loadQueue() {
@@ -354,8 +426,9 @@ export default function NexAlgoPage() {
     [problems, selectedProblemId],
   )
 
-  const isEditor = !!sessionUser?.roles.some((role) => role === 'admin' || role === 'editor')
-  const isSignedIn = !!firebaseUser && !!sessionUser
+  const effectiveSessionUser = isLocalPreview ? LOCAL_SESSION_USER : sessionUser
+  const isEditor = !!effectiveSessionUser?.roles.some((role) => role === 'admin' || role === 'editor')
+  const isSignedIn = isLocalPreview || (!!firebaseUser && !!sessionUser)
 
   const navItems = useMemo(() => {
     if (activeNav === 'platform') {
@@ -585,7 +658,7 @@ export default function NexAlgoPage() {
     return null
   }
 
-  if (!firebaseClientConfigured || !nexalgoApiConfigured) {
+  if (!isLocalPreview && (!firebaseClientConfigured || !nexalgoApiConfigured)) {
     const missingConfig = [
       ...missingFirebaseEnvKeys,
       ...(nexalgoApiConfigured ? [] : ['NEXT_PUBLIC_NEXALGO_API_BASE_URL']),
@@ -681,7 +754,7 @@ export default function NexAlgoPage() {
             <div className='nexalgo-menu-head'>
               <div>
                 <p className='nexalgo-menu-title'>Account</p>
-                <h3>{sessionUser?.email}</h3>
+                <h3>{effectiveSessionUser?.email}</h3>
               </div>
               <button
                 type='button'
@@ -693,7 +766,7 @@ export default function NexAlgoPage() {
             <div className='nexalgo-menu-section'>
               <h3>Roles</h3>
               <div className='nexalgo-role-list'>
-                {sessionUser?.roles.map((role) => (
+                {effectiveSessionUser?.roles.map((role) => (
                   <span key={role} className='nexalgo-chip'>
                     {role}
                   </span>
