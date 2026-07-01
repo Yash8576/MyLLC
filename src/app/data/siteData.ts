@@ -20,6 +20,7 @@ export const HeaderData: HeaderType[] = [
       { label: 'Nanolink', href: '/projects/nanolink' },
       { label: 'Todo App', href: '/projects/todo' },
       { label: 'Digital Clock', href: '/projects/digitalclock' },
+      { label: 'NexaBench', href: '/projects/benchmark' },
     ]
   },
   { label: 'Contact Me', href: '/#contact' },
@@ -60,6 +61,13 @@ export const ProjectData: ProjectType[] = [
     imgSrc: '/images/portfolio/mock03.png',
     status: 'Live',
     link: '/projects/digitalclock',
+  },
+  {
+    title: 'NexaBench',
+    description: 'An in-browser device benchmark covering CPU, GPU, memory, storage and web-workload performance, plus a battery efficiency score, all run entirely client-side.',
+    imgSrc: '/images/portfolio/NexaBench.png',
+    status: 'New',
+    link: '/projects/benchmark',
   },
 ]
 

@@ -14,7 +14,8 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
     pathname === '/projects/nexalgo' ||
     pathname === '/projects/buzzcart' ||
     pathname === '/projects/buzzcart/login' ||
-    pathname === '/projects/buzzcart/signup'
+    pathname === '/projects/buzzcart/signup' ||
+    pathname === '/projects/benchmark'
 
   if (isPortfolio || isNexacoreProject || isProjectApp) {
     return <>{children}</>
