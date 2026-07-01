@@ -39,6 +39,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# local dev tools (downloaded binaries)
+scripts/cloud-sql-proxy
+
 # source drop folders kept outside version control after integration
 /BuzzCart/
 /BuzzCart1/
