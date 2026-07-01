@@ -288,7 +288,7 @@ export default function NexAlgoPage() {
   const [isLocalPreview, setIsLocalPreview] = useState(false)
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null)
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null)
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('signup')
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login')
   const [authForm, setAuthForm] = useState({
     email: '',
     password: '',
@@ -845,12 +845,14 @@ export default function NexAlgoPage() {
                 <button
                   type='button'
                   className='nexalgo-auth-switch'
-                  onClick={() =>
+                  onClick={() => {
+                    setAuthError('')
+                    setAuthMessage('')
                     setAuthMode((current) => (current === 'login' ? 'signup' : 'login'))
-                  }>
+                  }}>
                   {authMode === 'login'
-                    ? 'Need an account? Create one'
-                    : 'Already have an account? Log in'}
+                    ? 'New to NexAlgo? Create your problem-solving streak'
+                    : 'Already building your streak? Log in'}
                 </button>
               </form>
             </div>
