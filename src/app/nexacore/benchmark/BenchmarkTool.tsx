@@ -31,8 +31,9 @@ const REF = {
   battDrainPctPerHour: 40,
 }
 
-const ESTIMATE_MS = { cpu: 4700, gpu: 7600, ram: 1500, ssd: 1400, web: 3500, battery: 300, display: 1600 }
+const ESTIMATE_MS = { cpu: 4700, gpu: 7600, ram: 1500, ssd: 6200, web: 3500, battery: 300, display: 1600 }
 const TOTAL_ESTIMATE_MS = Object.values(ESTIMATE_MS).reduce((a, b) => a + b, 0)
+const STORAGE_MIN_SAMPLE_MS = 5000
 
 function clampScore(n: number): number {
   if (!isFinite(n) || n < 0) return 0
@@ -52,6 +53,13 @@ function fmt(n: number, digits = 1): string {
   return n.toLocaleString(undefined, { maximumFractionDigits: digits, minimumFractionDigits: digits })
 }
 
+function fmtOps(n: number): string {
+  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(2)}B`
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(2)}K`
+  return n.toFixed(0)
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms))
 }
@@ -63,6 +71,115 @@ function guessMemoryArchitecture(renderer: string): 'unified' | 'discrete' | 'un
   const unifiedHints = ['apple', 'intel', 'iris', 'uhd graphics', 'radeon graphics', 'adreno', 'mali', 'powervr']
   if (unifiedHints.some((h) => r.includes(h))) return 'unified'
   return 'unknown'
+}
+
+type DeviceDetails = {
+  platform: string
+  cores: number | string
+  memory: string
+  viewport: string
+  pixelRatio: number | string
+  ua: string
+  gpuRenderer: string
+  gpuAdapter: string
+  memArch: 'unified' | 'discrete' | 'unknown'
+  processor: string
+  coreTopology: string
+  cpuFrequency: string
+  gpuVendor: string
+  gpuCores: string
+  gpuGeneration: string
+}
+
+function normalizePlatform(userAgent: string, platformHint?: string, architecture?: string) {
+  const ua = userAgent.toLowerCase()
+  const platform = (platformHint || '').toLowerCase()
+  const arch = architecture ? ` · ${architecture}` : ''
+
+  if (ua.includes('mac os x') || platform.includes('macos')) {
+    if (platform === 'macintel' && (ua.includes('arm') || architecture === 'arm')) {
+      return `macOS · Apple Silicon${arch}`
+    }
+    return `macOS${arch}`
+  }
+  if (ua.includes('windows') || platform.includes('windows')) return `Windows${arch}`
+  if (ua.includes('android') || platform.includes('android')) return `Android${arch}`
+  if (ua.includes('linux') || platform.includes('linux')) return `Linux${arch}`
+  if (ua.includes('iphone') || ua.includes('ipad')) return `iOS / iPadOS${arch}`
+  return platformHint || 'unknown'
+}
+
+function detectGpuVendor(renderer: string) {
+  const r = renderer.toLowerCase()
+  if (r.includes('apple')) return 'Apple'
+  if (r.includes('nvidia') || r.includes('geforce') || r.includes('rtx') || r.includes('gtx')) return 'NVIDIA'
+  if (r.includes('amd') || r.includes('radeon')) return 'AMD'
+  if (r.includes('intel') || r.includes('iris') || r.includes('uhd')) return 'Intel'
+  if (r.includes('adreno')) return 'Qualcomm'
+  if (r.includes('mali')) return 'Arm'
+  return 'not exposed'
+}
+
+function inferProcessor(userAgent: string, renderer: string, architecture?: string) {
+  const ua = userAgent.toLowerCase()
+  const r = renderer.toLowerCase()
+  const arch = architecture || 'not exposed'
+
+  const appleMatch = renderer.match(/Apple\s+(M\d(?:\s?(?:Pro|Max|Ultra))?)/i)
+  if (appleMatch) return `${appleMatch[1].replace(/\s+/g, ' ')} family (${arch})`
+  if ((ua.includes('mac os x') || ua.includes('macintosh')) && (r.includes('apple') || architecture === 'arm')) {
+    return `Apple Silicon (${arch})`
+  }
+  if (r.includes('intel')) return `Intel CPU (${arch})`
+  if (r.includes('amd') || r.includes('radeon')) return `AMD CPU/GPU platform (${arch})`
+  return `Browser exposes architecture only: ${arch}`
+}
+
+function inferGpuGeneration(renderer: string) {
+  const r = renderer.toLowerCase()
+  const appleMatch = renderer.match(/Apple\s+(M\d(?:\s?(?:Pro|Max|Ultra))?)/i)
+  if (appleMatch) return appleMatch[1].replace(/\s+/g, ' ')
+  const rtx = renderer.match(/RTX\s?(\d{4})/i)
+  if (rtx) return `GeForce RTX ${rtx[1][0]}0-series`
+  const gtx = renderer.match(/GTX\s?(\d{3,4})/i)
+  if (gtx) return `GeForce GTX ${gtx[1][0]}00-series`
+  const rx = renderer.match(/RX\s?(\d{3,4})/i)
+  if (rx) return `Radeon RX ${rx[1][0]}000/series`
+  if (r.includes('iris xe')) return 'Intel Iris Xe'
+  if (r.includes('uhd')) return 'Intel UHD'
+  return 'not exposed by browser'
+}
+
+async function getBrowserHardwareHints() {
+  const uaData = (navigator as unknown as {
+    userAgentData?: {
+      platform?: string
+      getHighEntropyValues?: (keys: string[]) => Promise<Record<string, string>>
+    }
+  }).userAgentData
+
+  if (!uaData?.getHighEntropyValues) {
+    return {
+      platform: navigator.platform || '',
+      architecture: '',
+      bitness: '',
+      model: '',
+    }
+  }
+
+  const hints = await uaData.getHighEntropyValues([
+    'architecture',
+    'bitness',
+    'model',
+    'platform',
+    'platformVersion',
+  ])
+  return {
+    platform: hints.platform || uaData.platform || navigator.platform || '',
+    architecture: hints.architecture || '',
+    bitness: hints.bitness || '',
+    model: hints.model || '',
+  }
 }
 
 function pickBytesForDevice(large: number, mid: number, small: number): number {
@@ -225,10 +342,31 @@ export default function BenchmarkTool() {
   const [activeTab, setActiveTab] = useState<ResultKey | 'report'>('cpu')
   const [results, setResults] = useState<ResultsMap>({})
 
+  function clearResult(key: ResultKey) {
+    setResults((current) => {
+      const next = { ...current }
+      delete next[key]
+      return next
+    })
+  }
+
   /* ---- device strip ---- */
-  const [device, setDevice] = useState({
-    platform: '—', cores: '—' as number | string, memory: '—', viewport: '—', pixelRatio: '—' as number | string,
-    ua: '', gpuRenderer: '—', memArch: 'unknown' as 'unified' | 'discrete' | 'unknown',
+  const [device, setDevice] = useState<DeviceDetails>({
+    platform: '—',
+    cores: '—',
+    memory: '—',
+    viewport: '—',
+    pixelRatio: '—',
+    ua: '',
+    gpuRenderer: '—',
+    gpuAdapter: '—',
+    memArch: 'unknown',
+    processor: '—',
+    coreTopology: 'not exposed by browser',
+    cpuFrequency: 'not exposed by browser',
+    gpuVendor: '—',
+    gpuCores: 'not exposed by browser',
+    gpuGeneration: 'not exposed by browser',
   })
 
   useEffect(() => {
@@ -236,22 +374,68 @@ export default function BenchmarkTool() {
   }, [])
 
   useEffect(() => {
-    const mem = (navigator as unknown as { deviceMemory?: number }).deviceMemory
-    setDevice((d) => ({
-      ...d,
-      platform: navigator.platform || 'unknown',
-      cores: navigator.hardwareConcurrency || 'unknown',
-      memory: mem ? `${mem} GB` : 'unknown',
-      viewport: `${window.innerWidth} × ${window.innerHeight}`,
-      pixelRatio: window.devicePixelRatio || 1,
-      ua: navigator.userAgent,
-    }))
-    const canvas = document.createElement('canvas')
-    const gl = (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')) as WebGLRenderingContext | null
-    if (gl) {
-      const dbg = gl.getExtension('WEBGL_debug_renderer_info')
-      const renderer = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER)
-      setDevice((d) => ({ ...d, gpuRenderer: String(renderer), memArch: guessMemoryArchitecture(String(renderer)) }))
+    let cancelled = false
+
+    async function inspectDevice() {
+      const mem = (navigator as unknown as { deviceMemory?: number }).deviceMemory
+      const hints = await getBrowserHardwareHints()
+      let renderer = 'not exposed'
+      let adapterLabel = 'not exposed'
+
+      const canvas = document.createElement('canvas')
+      const gl = (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')) as WebGLRenderingContext | null
+      if (gl) {
+        const dbg = gl.getExtension('WEBGL_debug_renderer_info')
+        renderer = String(dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER))
+      }
+
+      const gpuNav = (navigator as unknown as { gpu?: { requestAdapter?: () => Promise<any> } }).gpu
+      try {
+        const adapter = await gpuNav?.requestAdapter?.()
+        if (adapter?.info) {
+          const info = adapter.info
+          adapterLabel = [info.vendor, info.architecture, info.device, info.description]
+            .filter(Boolean)
+            .join(' · ') || 'WebGPU adapter exposed'
+        } else if (adapter?.requestAdapterInfo) {
+          const info = await adapter.requestAdapterInfo()
+          adapterLabel = [info.vendor, info.architecture, info.device, info.description]
+            .filter(Boolean)
+            .join(' · ') || 'WebGPU adapter exposed'
+        }
+      } catch {
+        adapterLabel = 'not exposed'
+      }
+
+      if (cancelled) return
+
+      const architecture = hints.architecture
+        ? `${hints.architecture}${hints.bitness ? `-${hints.bitness}` : ''}`
+        : ''
+      const platform = normalizePlatform(navigator.userAgent, hints.platform, hints.architecture)
+      const gpuVendor = detectGpuVendor(`${renderer} ${adapterLabel}`)
+      setDevice({
+        platform,
+        cores: navigator.hardwareConcurrency || 'unknown',
+        memory: mem ? `${mem} GB` : 'not exposed',
+        viewport: `${window.innerWidth} × ${window.innerHeight}`,
+        pixelRatio: window.devicePixelRatio || 1,
+        ua: navigator.userAgent,
+        gpuRenderer: renderer,
+        gpuAdapter: adapterLabel,
+        memArch: guessMemoryArchitecture(`${renderer} ${adapterLabel}`),
+        processor: hints.model || inferProcessor(navigator.userAgent, renderer, architecture),
+        coreTopology: 'P/E/S-eff core counts are not exposed to browser JavaScript',
+        cpuFrequency: 'not exposed to browser JavaScript',
+        gpuVendor,
+        gpuCores: 'not exposed to browser JavaScript',
+        gpuGeneration: inferGpuGeneration(`${renderer} ${adapterLabel}`),
+      })
+    }
+
+    void inspectDevice()
+    return () => {
+      cancelled = true
     }
   }, [])
 
@@ -297,7 +481,18 @@ export default function BenchmarkTool() {
 
   async function executeCpuTest() {
     markSessionBatteryStart()
-    setCpu((c) => ({ ...c, running: true, status: 'Warming up…' }))
+    clearResult('cpu')
+    setCpu((c) => ({
+      ...c,
+      running: true,
+      status: 'Warming up…',
+      singleInt: null,
+      singleFloat: null,
+      multiInt: null,
+      multiFloat: null,
+      scaling: null,
+      score: null,
+    }))
     const cores = navigator.hardwareConcurrency || 4
     const SEG = 1100
 
@@ -328,14 +523,14 @@ export default function BenchmarkTool() {
     setResults((r) => ({
       ...r,
       cpu: {
-        summary: `${overall}/100 · ${(singleInt + singleFloat).toLocaleString()} single / ${(multiInt + multiFloat).toLocaleString()} multi ops/s`,
+        summary: `${overall}/100 · ${fmtOps(singleInt + singleFloat)} single / ${fmtOps(multiInt + multiFloat)} multi ops/s`,
         score: overall,
         grade: scoreToGrade(overall),
         subs: [
-          { label: 'Single-core (integer)', value: `${singleInt.toLocaleString()} ops/s`, score: clampScore((singleInt / REF.cpuIntSingle) * 100) },
-          { label: 'Single-core (float)', value: `${singleFloat.toLocaleString()} ops/s`, score: clampScore((singleFloat / REF.cpuFloatSingle) * 100) },
-          { label: 'Multi-core (integer)', value: `${multiInt.toLocaleString()} ops/s`, score: clampScore((multiInt / REF.cpuIntMulti) * 100) },
-          { label: 'Multi-core (float)', value: `${multiFloat.toLocaleString()} ops/s`, score: clampScore((multiFloat / REF.cpuFloatMulti) * 100) },
+          { label: 'Single-core (integer)', value: `${fmtOps(singleInt)} ops/s`, score: clampScore((singleInt / REF.cpuIntSingle) * 100) },
+          { label: 'Single-core (float)', value: `${fmtOps(singleFloat)} ops/s`, score: clampScore((singleFloat / REF.cpuFloatSingle) * 100) },
+          { label: 'Multi-core (integer)', value: `${fmtOps(multiInt)} ops/s`, score: clampScore((multiInt / REF.cpuIntMulti) * 100) },
+          { label: 'Multi-core (float)', value: `${fmtOps(multiFloat)} ops/s`, score: clampScore((multiFloat / REF.cpuFloatMulti) * 100) },
           { label: 'Scaling efficiency', value: `${(scaling * 100).toFixed(0)}% of ${cores} cores`, score: null },
         ],
       },
@@ -534,7 +729,19 @@ export default function BenchmarkTool() {
   }
 
   async function executeGpuTest() {
-    setGpu((g) => ({ ...g, running: true, status: 'Rendering pass — particle field under load…' }))
+    clearResult('gpu')
+    setGpu((g) => ({
+      ...g,
+      running: true,
+      status: 'Rendering pass — particle field under load…',
+      particles: null,
+      renderFps: null,
+      exportFps: null,
+      exportReadbackMBs: null,
+      aimlGflops: null,
+      aimlAvailable: true,
+      score: null,
+    }))
     const render = await runGpuRenderPass()
     setGpu((g) => ({ ...g, status: 'Export pass — 4K offscreen raster + pixel readback…', renderFps: render.fps }))
     const exp = await runGpuExportPass()
@@ -634,7 +841,18 @@ export default function BenchmarkTool() {
 
   async function executeRamTest() {
     const bytes = pickBytesForDevice(256 * 1024 * 1024, 128 * 1024 * 1024, 64 * 1024 * 1024)
-    setRam((r) => ({ ...r, running: true, bytes, status: 'Sequential write / read / random-access passes…' }))
+    clearResult('ram')
+    setRam({
+      running: true,
+      bytes,
+      status: 'Sequential write / read / random-access passes…',
+      writeGBs: null,
+      readGBs: null,
+      randomMOpsSec: null,
+      vramUploadMBs: null,
+      vramDownloadMBs: null,
+      score: null,
+    })
     const pass = await runRamWorkerPass(bytes)
 
     let vram: { uploadMBs: number; downloadMBs: number; score: number } | null = null
@@ -685,41 +903,77 @@ export default function BenchmarkTool() {
     writeMBs: null as number | null, readMBs: null as number | null, score: null as number | null,
   })
 
-  async function runIndexedDbFallback(chunk: Uint8Array, total: number, onStatus: (s: string) => void): Promise<{ writeMBs: number; readMBs: number }> {
+  async function runIndexedDbFallback(chunk: Uint8Array, total: number, onStatus: (s: string) => void): Promise<{ writeMBs: number; readMBs: number; sampleMs: number }> {
     return new Promise((resolve, reject) => {
-      const req = indexedDB.open('bx-bench-db', 1)
-      req.onupgradeneeded = () => { req.result.createObjectStore('chunks') }
+      const runId = `run-${Date.now()}-${Math.random().toString(36).slice(2)}`
+      const req = indexedDB.open('bx-bench-db', 2)
+      req.onupgradeneeded = () => {
+        const db = req.result
+        if (!db.objectStoreNames.contains('chunks')) db.createObjectStore('chunks')
+      }
       req.onerror = () => reject(req.error)
       req.onsuccess = () => {
         const db = req.result
         const count = Math.ceil(total / chunk.byteLength)
-        onStatus('IndexedDB · sequential write pass…')
-        const t0 = performance.now()
-        const tx = db.transaction('chunks', 'readwrite')
-        const store = tx.objectStore('chunks')
-        for (let i = 0; i < count; i++) store.put(chunk, i)
-        tx.oncomplete = () => {
-          const t1 = performance.now()
-          const writeMBs = (count * chunk.byteLength / 1e6) / ((t1 - t0) / 1000)
-          onStatus('IndexedDB · sequential read pass…')
-          let readBytes = 0
-          const t2 = performance.now()
-          const tx2 = db.transaction('chunks', 'readonly')
-          const store2 = tx2.objectStore('chunks')
-          for (let i = 0; i < count; i++) {
-            const getReq = store2.get(i)
-            getReq.onsuccess = () => { readBytes += (getReq.result as Uint8Array).byteLength }
+        let writeBytes = 0
+        let readBytes = 0
+        let writeMs = 0
+        let readMs = 0
+        let pass = 0
+        const startedAt = performance.now()
+
+        const runPass = () => {
+          pass++
+          crypto.getRandomValues(chunk.subarray(0, Math.min(65536, chunk.byteLength)))
+          onStatus(`IndexedDB · write/read sampling pass ${pass}…`)
+          const t0 = performance.now()
+          const tx = db.transaction('chunks', 'readwrite')
+          const store = tx.objectStore('chunks')
+          for (let i = 0; i < count; i++) store.put(chunk, `${runId}-${pass}-${i}`)
+          tx.oncomplete = () => {
+            const t1 = performance.now()
+            writeMs += t1 - t0
+            writeBytes += count * chunk.byteLength
+
+            const t2 = performance.now()
+            const tx2 = db.transaction('chunks', 'readonly')
+            const store2 = tx2.objectStore('chunks')
+            let passReadBytes = 0
+            for (let i = 0; i < count; i++) {
+              const getReq = store2.get(`${runId}-${pass}-${i}`)
+              getReq.onsuccess = () => {
+                passReadBytes += (getReq.result as Uint8Array | undefined)?.byteLength ?? 0
+              }
+            }
+            tx2.oncomplete = () => {
+              const t3 = performance.now()
+              readMs += t3 - t2
+              readBytes += passReadBytes
+              const elapsed = performance.now() - startedAt
+              if (elapsed < STORAGE_MIN_SAMPLE_MS) {
+                runPass()
+                return
+              }
+
+              const txDel = db.transaction('chunks', 'readwrite')
+              const storeDel = txDel.objectStore('chunks')
+              const range = IDBKeyRange.bound(`${runId}-`, `${runId}.\uffff`)
+              storeDel.delete(range)
+              txDel.oncomplete = () => {
+                db.close()
+                resolve({
+                  writeMBs: (writeBytes / 1e6) / (writeMs / 1000),
+                  readMBs: (readBytes / 1e6) / (readMs / 1000),
+                  sampleMs: elapsed,
+                })
+              }
+            }
+            tx2.onerror = () => reject(tx2.error)
           }
-          tx2.oncomplete = () => {
-            const t3 = performance.now()
-            const readMBs = (readBytes / 1e6) / ((t3 - t2) / 1000)
-            const txDel = db.transaction('chunks', 'readwrite')
-            txDel.objectStore('chunks').clear()
-            txDel.oncomplete = () => { db.close(); resolve({ writeMBs, readMBs }) }
-          }
-          tx2.onerror = () => reject(tx2.error)
+          tx.onerror = () => reject(tx.error)
         }
-        tx.onerror = () => reject(tx.error)
+
+        runPass()
       }
     })
   }
@@ -729,38 +983,70 @@ export default function BenchmarkTool() {
     const CHUNK = 4 * 1024 * 1024
     const chunk = new Uint8Array(CHUNK)
     crypto.getRandomValues(chunk.subarray(0, 65536))
-    setSsd((s) => ({ ...s, running: true, bytes: TOTAL, status: 'Preparing storage test file…' }))
+    setSsd({
+      status: 'Preparing fresh storage sample…',
+      running: true,
+      engine: '—',
+      bytes: TOTAL,
+      writeMBs: null,
+      readMBs: null,
+      score: null,
+    })
+    clearResult('ssd')
 
     let engine = 'OPFS'
     let writeMBs = 0
     let readMBs = 0
+    let sampleMs = 0
 
     try {
       if (!('storage' in navigator) || !navigator.storage.getDirectory) throw new Error('no-opfs')
-      setSsd((s) => ({ ...s, status: 'OPFS · sequential write pass…' }))
+      setSsd((s) => ({ ...s, status: 'OPFS · polling write/read for at least 5 seconds…' }))
       const root = await navigator.storage.getDirectory()
-      const handle = await root.getFileHandle('bx-bench-tmp.bin', { create: true })
-      const writable = await handle.createWritable()
-      let written = 0
-      const t0 = performance.now()
-      while (written < TOTAL) { await writable.write(chunk); written += CHUNK }
-      await writable.close()
-      const t1 = performance.now()
-      writeMBs = (written / 1e6) / ((t1 - t0) / 1000)
+      const filename = `bx-bench-${Date.now()}-${Math.random().toString(36).slice(2)}.bin`
+      const handle = await root.getFileHandle(filename, { create: true })
+      let writeBytes = 0
+      let readBytes = 0
+      let writeMs = 0
+      let readMs = 0
+      let pass = 0
+      const startedAt = performance.now()
 
-      setSsd((s) => ({ ...s, status: 'OPFS · sequential read pass…' }))
-      const t2 = performance.now()
-      const file = await handle.getFile()
-      const ab = await file.arrayBuffer()
-      const t3 = performance.now()
-      readMBs = (ab.byteLength / 1e6) / ((t3 - t2) / 1000)
+      do {
+        pass++
+        crypto.getRandomValues(chunk.subarray(0, 65536))
+        setSsd((s) => ({ ...s, status: `OPFS · write/read sampling pass ${pass}…` }))
+        const writable = await handle.createWritable()
+        let written = 0
+        const t0 = performance.now()
+        while (written < TOTAL) {
+          await writable.write(chunk)
+          written += CHUNK
+        }
+        await writable.close()
+        const t1 = performance.now()
+        writeMs += t1 - t0
+        writeBytes += written
 
-      await root.removeEntry('bx-bench-tmp.bin')
+        const t2 = performance.now()
+        const file = await handle.getFile()
+        const ab = await file.arrayBuffer()
+        const t3 = performance.now()
+        readMs += t3 - t2
+        readBytes += ab.byteLength
+        sampleMs = performance.now() - startedAt
+      } while (sampleMs < STORAGE_MIN_SAMPLE_MS)
+
+      writeMBs = (writeBytes / 1e6) / (writeMs / 1000)
+      readMBs = (readBytes / 1e6) / (readMs / 1000)
+
+      await root.removeEntry(filename)
     } catch {
       engine = 'IndexedDB'
       const res = await runIndexedDbFallback(chunk, TOTAL, (status) => setSsd((s) => ({ ...s, status })))
       writeMBs = res.writeMBs
       readMBs = res.readMBs
+      sampleMs = res.sampleMs
     }
 
     const score = clampScore((writeMBs / REF.ssdWriteMBs) * 45 + (readMBs / REF.ssdReadMBs) * 55)
@@ -774,6 +1060,7 @@ export default function BenchmarkTool() {
         subs: [
           { label: `Sequential write (${engine})`, value: `${fmt(writeMBs, 0)} MB/s`, score: clampScore((writeMBs / REF.ssdWriteMBs) * 100) },
           { label: `Sequential read (${engine})`, value: `${fmt(readMBs, 0)} MB/s`, score: clampScore((readMBs / REF.ssdReadMBs) * 100) },
+          { label: 'Sampling duration', value: `${fmt(sampleMs / 1000, 1)} seconds`, score: null },
         ],
       },
     }))
@@ -788,7 +1075,17 @@ export default function BenchmarkTool() {
   })
 
   async function executeWebTest() {
-    setWeb((w) => ({ ...w, running: true, status: 'Preparing offscreen workspace…' }))
+    clearResult('web')
+    setWeb({
+      running: true,
+      status: 'Preparing offscreen workspace…',
+      domChurnOpsSec: null,
+      layoutOpsSec: null,
+      textEditOpsSec: null,
+      listOpsSec: null,
+      jsonOpsSec: null,
+      score: null,
+    })
     const container = document.createElement('div')
     container.style.position = 'fixed'
     container.style.top = '-9999px'
@@ -945,6 +1242,7 @@ export default function BenchmarkTool() {
   }
 
   async function executeBatteryTest() {
+    clearResult('battery')
     const b = await ensureBatteryObj()
     if (!b) {
       setBattery((s) => ({ ...s, supported: 'Not supported in this browser' }))
@@ -1167,7 +1465,21 @@ export default function BenchmarkTool() {
   const overall = computeOverall()
 
   async function copyReport() {
-    const lines = ['NexaBench — NexaCore device report', '—'.repeat(28)]
+    const lines = [
+      'NexaBench — NexaCore device report',
+      '—'.repeat(28),
+      `Platform: ${device.platform}`,
+      `Processor: ${device.processor}`,
+      `Logical cores: ${device.cores}`,
+      `Core topology: ${device.coreTopology}`,
+      `CPU frequency: ${device.cpuFrequency}`,
+      `GPU vendor: ${device.gpuVendor}`,
+      `GPU renderer: ${device.gpuRenderer}`,
+      `GPU adapter: ${device.gpuAdapter}`,
+      `GPU generation: ${device.gpuGeneration}`,
+      `GPU cores: ${device.gpuCores}`,
+      '—'.repeat(28),
+    ]
     TAB_ORDER.forEach((k) => {
       const r = results[k]
       lines.push(`${LABELS[k]}: ${r ? r.summary + ' (' + r.grade + ')' : 'not run'}`)
@@ -1218,11 +1530,23 @@ export default function BenchmarkTool() {
 
         <div className="bx-device-strip">
           <div className="bx-cell"><div className="bx-k">Platform</div><div className="bx-v">{device.platform}</div></div>
+          <div className="bx-cell"><div className="bx-k">Processor</div><div className="bx-v">{device.processor}</div></div>
           <div className="bx-cell"><div className="bx-k">Logical cores</div><div className="bx-v">{device.cores}</div></div>
+          <div className="bx-cell"><div className="bx-k">Core topology</div><div className="bx-v">{device.coreTopology}</div></div>
+          <div className="bx-cell"><div className="bx-k">CPU frequency</div><div className="bx-v">{device.cpuFrequency}</div></div>
           <div className="bx-cell"><div className="bx-k">Memory (approx)</div><div className="bx-v">{device.memory}</div></div>
+          <div className="bx-cell"><div className="bx-k">GPU vendor</div><div className="bx-v">{device.gpuVendor}</div></div>
           <div className="bx-cell"><div className="bx-k">GPU</div><div className="bx-v">{device.gpuRenderer}</div></div>
+          <div className="bx-cell"><div className="bx-k">GPU adapter</div><div className="bx-v">{device.gpuAdapter}</div></div>
+          <div className="bx-cell"><div className="bx-k">GPU generation</div><div className="bx-v">{device.gpuGeneration}</div></div>
+          <div className="bx-cell"><div className="bx-k">GPU cores</div><div className="bx-v">{device.gpuCores}</div></div>
           <div className="bx-cell"><div className="bx-k">Pixel ratio</div><div className="bx-v">{device.pixelRatio}</div></div>
         </div>
+        <p className="bx-hardware-note">
+          Exact P/E-core counts, live CPU frequency, GPU core counts and vendor driver IDs are hidden
+          by browser privacy sandboxes on many Intel, AMD, NVIDIA and Apple devices; NexaBench shows
+          native WebGL/WebGPU/UA Client Hint data wherever the browser exposes it.
+        </p>
 
         <div className="bx-fullrun">
           <div className="bx-fullrun-copy">
@@ -1268,11 +1592,11 @@ export default function BenchmarkTool() {
             <div className="bx-readout">
               <div className="bx-stat-row"><span className="bx-label">Status</span><span className="bx-val">{cpu.status}</span></div>
               <div className="bx-subhead">Single-core</div>
-              <div className="bx-stat-row"><span className="bx-label">Integer ops/sec</span><span className="bx-val big">{cpu.singleInt?.toLocaleString() ?? '—'}</span></div>
-              <div className="bx-stat-row"><span className="bx-label">Floating point ops/sec</span><span className="bx-val big">{cpu.singleFloat?.toLocaleString() ?? '—'}</span></div>
+              <div className="bx-stat-row"><span className="bx-label">Integer ops/sec</span><span className="bx-val big">{cpu.singleInt !== null ? fmtOps(cpu.singleInt) : '—'}</span></div>
+              <div className="bx-stat-row"><span className="bx-label">Floating point ops/sec</span><span className="bx-val big">{cpu.singleFloat !== null ? fmtOps(cpu.singleFloat) : '—'}</span></div>
               <div className="bx-subhead">Multi-core ({cpu.cores} threads)</div>
-              <div className="bx-stat-row"><span className="bx-label">Integer ops/sec</span><span className="bx-val big">{cpu.multiInt?.toLocaleString() ?? '—'}</span></div>
-              <div className="bx-stat-row"><span className="bx-label">Floating point ops/sec</span><span className="bx-val big">{cpu.multiFloat?.toLocaleString() ?? '—'}</span></div>
+              <div className="bx-stat-row"><span className="bx-label">Integer ops/sec</span><span className="bx-val big">{cpu.multiInt !== null ? fmtOps(cpu.multiInt) : '—'}</span></div>
+              <div className="bx-stat-row"><span className="bx-label">Floating point ops/sec</span><span className="bx-val big">{cpu.multiFloat !== null ? fmtOps(cpu.multiFloat) : '—'}</span></div>
               <div className="bx-stat-row"><span className="bx-label">Scaling efficiency</span><span className="bx-val">{cpu.scaling !== null ? `${(cpu.scaling * 100).toFixed(0)}% of ${cpu.cores} cores` : '—'}</span></div>
             </div>
             <div className="bx-readout bx-score-block">
