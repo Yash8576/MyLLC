@@ -1,5 +1,6 @@
 import {
   Prisma,
+  ProblemProgressStatus,
   ProblemStatus,
   SubmissionStatus,
   SubmissionType,
@@ -399,32 +400,77 @@ export async function listUserProgress(userId: string) {
   return records
 }
 
+function resolveProgressStatus(
+  current: ProblemProgressStatus,
+  requested: ProblemProgressStatus,
+  allowSolvedDowngrade: boolean,
+) {
+  if (requested === ProblemProgressStatus.solved) return ProblemProgressStatus.solved
+  if (requested === ProblemProgressStatus.attempted) {
+    if (current === ProblemProgressStatus.solved && !allowSolvedDowngrade) {
+      return ProblemProgressStatus.solved
+    }
+    return ProblemProgressStatus.attempted
+  }
+  if (requested === ProblemProgressStatus.visited) {
+    return current === ProblemProgressStatus.unvisited ? ProblemProgressStatus.visited : current
+  }
+  return current
+}
+
 export async function upsertProblemProgress(
   userId: string,
   problemId: string,
-  status: 'visited' | 'attempted' | 'solved' | 'unvisited',
+  requestedStatus: ProblemProgressStatus,
+  allowSolvedDowngrade = false,
 ) {
   const now = new Date()
-  return prisma.userProblemProgress.upsert({
-    where: {
-      userId_problemId: {
-        userId,
-        problemId,
-      },
-    },
-    update: {
-      status,
-      lastVisitedAt: now,
-      attemptedAt: status === 'attempted' ? now : undefined,
-      solvedAt: status === 'solved' ? now : undefined,
-    },
-    create: {
+  const progressKey = {
+    userId_problemId: {
       userId,
       problemId,
-      status,
-      lastVisitedAt: now,
-      attemptedAt: status === 'attempted' ? now : undefined,
-      solvedAt: status === 'solved' ? now : undefined,
     },
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const existing = await tx.userProblemProgress.findUnique({
+      where: progressKey,
+    })
+    const currentStatus = existing?.status ?? ProblemProgressStatus.unvisited
+    const status = resolveProgressStatus(currentStatus, requestedStatus, allowSolvedDowngrade)
+    const attemptedAt =
+      status === ProblemProgressStatus.attempted && !existing?.attemptedAt
+        ? now
+        : undefined
+    const solvedAt =
+      status === ProblemProgressStatus.solved
+        ? now
+        : existing?.status === ProblemProgressStatus.solved &&
+            status === ProblemProgressStatus.attempted &&
+            allowSolvedDowngrade
+          ? null
+          : undefined
+
+    return tx.userProblemProgress.upsert({
+      where: progressKey,
+      update: {
+        status,
+        lastVisitedAt: now,
+        attemptedAt,
+        solvedAt,
+      },
+      create: {
+        userId,
+        problemId,
+        status,
+        lastVisitedAt: now,
+        attemptedAt: status === ProblemProgressStatus.attempted ? now : undefined,
+        solvedAt: status === ProblemProgressStatus.solved ? now : undefined,
+      },
+      select: {
+        problemId: true,
+        status: true,
+      },
+    })
   })
 }

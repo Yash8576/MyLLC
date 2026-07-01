@@ -1,5 +1,6 @@
 import type {
   LanguageKey,
+  ProblemProgressRecord,
   ProblemProgressStatus,
   ProblemRecord,
   ReviewQueueItem,
@@ -59,13 +60,18 @@ export const nexalgoApi = {
       method: 'PUT',
       body: JSON.stringify({ defaultLanguage }),
     }, idToken),
-  updateProgress: async (idToken: string, problemId: string, status: ProblemProgressStatus) =>
-    request(`/users/me/progress/${problemId}`, {
+  updateProgress: async (
+    idToken: string,
+    problemId: string,
+    status: ProblemProgressStatus,
+    allowSolvedDowngrade = false,
+  ) =>
+    request<{ progress: ProblemProgressRecord }>(`/users/me/progress/${problemId}`, {
       method: 'PUT',
-      body: JSON.stringify({ status }),
-    }, idToken),
+      body: JSON.stringify({ status, allowSolvedDowngrade }),
+    }, idToken).then((result) => result.progress),
   getProgress: async (idToken: string) =>
-    request<{ progress: { problemId: string; status: ProblemProgressStatus }[] }>(
+    request<{ progress: ProblemProgressRecord[] }>(
       '/users/me/progress',
       undefined,
       idToken,

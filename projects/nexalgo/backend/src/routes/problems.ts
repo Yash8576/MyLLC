@@ -58,12 +58,14 @@ problemsRouter.put(
   asyncRoute(async (req: AuthenticatedRequest, res) => {
     const schema = z.object({
       status: z.enum(['unvisited', 'visited', 'attempted', 'solved']),
+      allowSolvedDowngrade: z.boolean().optional(),
     })
     const body = schema.parse(req.body)
     const progress = await upsertProblemProgress(
       req.currentUser!.id,
       String(req.params.problemId),
       body.status,
+      body.allowSolvedDowngrade ?? false,
     )
     res.json({ progress })
   }),

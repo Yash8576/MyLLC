@@ -1,5 +1,9 @@
 export type LanguageKey = 'python' | 'java' | 'cpp'
 export type ProblemProgressStatus = 'unvisited' | 'visited' | 'attempted' | 'solved'
+export type ProblemProgressRecord = {
+  problemId: string
+  status: ProblemProgressStatus
+}
 export type AppRole = 'admin' | 'editor' | 'viewer'
 
 export type ProblemSource = {

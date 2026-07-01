@@ -218,6 +218,22 @@ function statusToneClass(status?: ProblemProgressStatus) {
   return 'nexalgo-status-unvisited'
 }
 
+function resolveProgressStatus(
+  current: ProblemProgressStatus = 'unvisited',
+  requested: ProblemProgressStatus,
+  allowSolvedDowngrade = false,
+): ProblemProgressStatus {
+  if (requested === 'solved') return 'solved'
+  if (requested === 'attempted') {
+    if (current === 'solved' && !allowSolvedDowngrade) return 'solved'
+    return 'attempted'
+  }
+  if (requested === 'visited') {
+    return current === 'unvisited' ? 'visited' : current
+  }
+  return current
+}
+
 const CODE_KEYWORDS: Record<LanguageKey, Set<string>> = {
   python: new Set([
     'False',
@@ -709,12 +725,26 @@ export default function NexAlgoPage() {
     await nexalgoApi.updatePreference(idToken, language)
   }
 
-  async function updateProgress(problemId: string, status: ProblemProgressStatus) {
-    setStatusMap((current) => ({ ...current, [problemId]: status }))
+  async function updateProgress(
+    problemId: string,
+    status: ProblemProgressStatus,
+    options: { allowSolvedDowngrade?: boolean } = {},
+  ) {
+    const allowSolvedDowngrade = options.allowSolvedDowngrade ?? false
+    setStatusMap((current) => ({
+      ...current,
+      [problemId]: resolveProgressStatus(current[problemId], status, allowSolvedDowngrade),
+    }))
     if (!firebaseUser) return
 
     const idToken = await firebaseUser.getIdToken()
-    await nexalgoApi.updateProgress(idToken, problemId, status)
+    const progress = await nexalgoApi.updateProgress(
+      idToken,
+      problemId,
+      status,
+      allowSolvedDowngrade,
+    )
+    setStatusMap((current) => ({ ...current, [progress.problemId]: progress.status }))
   }
 
   function openCreateDraft() {
@@ -1270,7 +1300,8 @@ export default function NexAlgoPage() {
                           className='nexalgo-link-btn'
                           href={selectedProblem.sources[0].normalizedUrl}
                           target='_blank'
-                          rel='noreferrer'>
+                          rel='noreferrer'
+                          onClick={() => void updateProgress(selectedProblem.id, 'attempted')}>
                           View on LeetCode ↗
                         </a>
                       </p>
@@ -1286,6 +1317,7 @@ export default function NexAlgoPage() {
                         void updateProgress(
                           selectedProblem.id,
                           statusMap[selectedProblem.id] === 'solved' ? 'attempted' : 'solved',
+                          { allowSolvedDowngrade: statusMap[selectedProblem.id] === 'solved' },
                         )
                       }>
                       {statusMap[selectedProblem.id] === 'solved' ? '✘ marked solved' : 'mark solved'}
