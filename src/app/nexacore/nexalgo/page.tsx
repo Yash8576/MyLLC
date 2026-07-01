@@ -152,6 +152,7 @@ function detectPlatformFromUrl(url: string) {
 
 function displayPlatform(platform?: string | null) {
   if (!platform) return 'unknown'
+  if (platform === 'leetcode') return 'LC'
   if (platform === 'gfg') return 'GeeksforGeeks'
   return platform.charAt(0).toUpperCase() + platform.slice(1)
 }
@@ -1232,9 +1233,6 @@ export default function NexAlgoPage() {
                       «
                     </button>
                     <span className='nexalgo-sort-label'>Sorted by number</span>
-                    <button type='button' className='nexalgo-pane-toggle' onClick={openCreateDraft}>
-                      Submit draft
-                    </button>
                   </div>
                 </div>
 
@@ -1302,7 +1300,7 @@ export default function NexAlgoPage() {
                           target='_blank'
                           rel='noreferrer'
                           onClick={() => void updateProgress(selectedProblem.id, 'attempted')}>
-                          View on LeetCode ↗
+                          View on LC ↗
                         </a>
                       </p>
                     ) : null}
