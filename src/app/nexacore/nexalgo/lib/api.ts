@@ -64,6 +64,12 @@ export const nexalgoApi = {
       method: 'PUT',
       body: JSON.stringify({ status }),
     }, idToken),
+  getProgress: async (idToken: string) =>
+    request<{ progress: { problemId: string; status: ProblemProgressStatus }[] }>(
+      '/users/me/progress',
+      undefined,
+      idToken,
+    ).then((result) => result.progress),
   getReviewQueue: async (idToken: string) =>
     request<{ submissions: ReviewQueueItem[] }>('/submissions', undefined, idToken).then(
       (result) => result.submissions,

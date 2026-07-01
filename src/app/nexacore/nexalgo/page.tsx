@@ -383,6 +383,7 @@ export default function NexAlgoPage() {
     const unsubscribe = onAuthStateChanged(auth, async (nextUser) => {
       setFirebaseUser(nextUser)
       setSessionUser(null)
+      setStatusMap({})
 
       if (!nextUser) {
         return
@@ -394,6 +395,11 @@ export default function NexAlgoPage() {
         setSessionUser(user)
         setAuthMessage(`Signed in as ${user.email}`)
         setAuthError('')
+
+        const progress = await nexalgoApi.getProgress(idToken)
+        setStatusMap(
+          Object.fromEntries(progress.map((entry) => [entry.problemId, entry.status])),
+        )
       } catch (error) {
         setAuthError(error instanceof Error ? error.message : 'Unable to start session.')
       }

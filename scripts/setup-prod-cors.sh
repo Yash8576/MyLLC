@@ -33,13 +33,13 @@ echo "==> Updating CORS on NexAlgo backend (adds http://localhost:3000)..."
 gcloud run services update nexalgo-backend \
   --project nexalgo-ace83 \
   --region us-east4 \
-  --update-env-vars "CORS_ORIGIN=https://nexacoreglobal.org,http://localhost:3000"
+  --update-env-vars "^;^CORS_ORIGIN=https://nexacoreglobal.org,http://localhost:3000"
 
 echo "==> Updating CORS on NanoLink backend (adds http://localhost:3000,http://localhost:3001)..."
 gcloud run services update nanolink-backend \
   --project nanolink-498216 \
   --region us-east4 \
-  --update-env-vars "CORS_ORIGIN=https://nexacoreglobal.org/projects/nanolink,http://localhost:3000,http://localhost:3001"
+  --update-env-vars "^;^CORS_ORIGIN=https://nexacoreglobal.org/projects/nanolink,http://localhost:3000,http://localhost:3001"
 
 # ── Patch .env.local files with real URLs ───────────────────
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -49,12 +49,12 @@ echo "==> Writing production URLs into .env.local files..."
 
 # Root site
 sed -i '' \
-  "s|NEXT_PUBLIC_NEXALGO_API_BASE_URL=.*|NEXT_PUBLIC_NEXALGO_API_BASE_URL=${NEXALGO_URL}/v1|" \
+  "s|^NEXT_PUBLIC_NEXALGO_API_BASE_URL=.*|NEXT_PUBLIC_NEXALGO_API_BASE_URL=${NEXALGO_URL}/v1|" \
   "$REPO_ROOT/.env.local"
 
 # NanoLink frontend
 sed -i '' \
-  "s|NEXT_PUBLIC_NANOLINK_API_BASE_URL=https://nanolink-backend-837491606409.us-east4.run.app|NEXT_PUBLIC_NANOLINK_API_BASE_URL=${NANOLINK_URL}|" \
+  "s|^NEXT_PUBLIC_NANOLINK_API_BASE_URL=.*|NEXT_PUBLIC_NANOLINK_API_BASE_URL=${NANOLINK_URL}|" \
   "$REPO_ROOT/projects/nanolink/frontend/.env.local"
 
 echo ""

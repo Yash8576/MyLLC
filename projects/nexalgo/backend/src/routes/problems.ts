@@ -5,6 +5,7 @@ import { authenticateRequest, type AuthenticatedRequest } from '../middleware/au
 import {
   getProblemById,
   listPublishedProblems,
+  listUserProgress,
   lookupProblem,
   normalizeSubmissionInput,
   upsertProblemProgress,
@@ -41,6 +42,15 @@ problemsRouter.put('/users/me/preferences', authenticateRequest, asyncRoute(asyn
   const preference = await upsertUserPreference(req.currentUser!.id, body.defaultLanguage)
   res.json({ preference })
 }))
+
+problemsRouter.get(
+  '/users/me/progress',
+  authenticateRequest,
+  asyncRoute(async (req: AuthenticatedRequest, res) => {
+    const progress = await listUserProgress(req.currentUser!.id)
+    res.json({ progress })
+  }),
+)
 
 problemsRouter.put(
   '/users/me/progress/:problemId',
