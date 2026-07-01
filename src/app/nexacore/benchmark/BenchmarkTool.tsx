@@ -3,7 +3,7 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 
 /* ---------------------------------------------------------------------
-   Calibration constants — the numbers a 100 score maps to. Picked from
+   Calibration constants - the numbers a 100 score maps to. Picked from
    rough mid-range 2023 laptop / discrete-GPU figures so results are
    comparable device-to-device, not an absolute industry index.
    --------------------------------------------------------------------- */
@@ -47,6 +47,13 @@ function scoreToGrade(score: number | null): string {
   if (score >= 40) return 'fair'
   if (score > 0) return 'weak'
   return 'not run'
+}
+
+function scoreToneClass(score: number | null): 'good' | 'warn' | 'bad' | 'na' {
+  if (score === null) return 'na'
+  if (score >= 65) return 'good'
+  if (score >= 40) return 'warn'
+  return 'bad'
 }
 
 function fmt(n: number, digits = 1): string {
@@ -352,19 +359,19 @@ export default function BenchmarkTool() {
 
   /* ---- device strip ---- */
   const [device, setDevice] = useState<DeviceDetails>({
-    platform: '—',
-    cores: '—',
-    memory: '—',
-    viewport: '—',
-    pixelRatio: '—',
+    platform: '-',
+    cores: '-',
+    memory: '-',
+    viewport: '-',
+    pixelRatio: '-',
     ua: '',
-    gpuRenderer: '—',
-    gpuAdapter: '—',
+    gpuRenderer: '-',
+    gpuAdapter: '-',
     memArch: 'unknown',
-    processor: '—',
+    processor: '-',
     coreTopology: 'not exposed by browser',
     cpuFrequency: 'not exposed by browser',
-    gpuVendor: '—',
+    gpuVendor: '-',
     gpuCores: 'not exposed by browser',
     gpuGeneration: 'not exposed by browser',
   })
@@ -473,7 +480,7 @@ export default function BenchmarkTool() {
 
   /* ================= CPU ================= */
   const [cpu, setCpu] = useState({
-    status: 'Idle — press run', running: false,
+    status: 'Idle - press run', running: false,
     singleInt: null as number | null, singleFloat: null as number | null,
     multiInt: null as number | null, multiFloat: null as number | null,
     cores: (typeof navigator !== 'undefined' ? navigator.hardwareConcurrency : 4) || 4, scaling: null as number | null, score: null as number | null,
@@ -541,7 +548,7 @@ export default function BenchmarkTool() {
   const gpuCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const gpuGlRef = useRef<WebGLRenderingContext | null>(null)
   const [gpu, setGpu] = useState({
-    status: 'Idle — press run', running: false, particles: null as number | null,
+    status: 'Idle - press run', running: false, particles: null as number | null,
     renderFps: null as number | null, exportFps: null as number | null, exportReadbackMBs: null as number | null,
     aimlGflops: null as number | null, aimlAvailable: true, score: null as number | null,
   })
@@ -733,7 +740,7 @@ export default function BenchmarkTool() {
     setGpu((g) => ({
       ...g,
       running: true,
-      status: 'Rendering pass — particle field under load…',
+      status: 'Rendering pass - particle field under load…',
       particles: null,
       renderFps: null,
       exportFps: null,
@@ -743,9 +750,9 @@ export default function BenchmarkTool() {
       score: null,
     }))
     const render = await runGpuRenderPass()
-    setGpu((g) => ({ ...g, status: 'Export pass — 4K offscreen raster + pixel readback…', renderFps: render.fps }))
+    setGpu((g) => ({ ...g, status: 'Export pass - 4K offscreen raster + pixel readback…', renderFps: render.fps }))
     const exp = await runGpuExportPass()
-    setGpu((g) => ({ ...g, status: 'AI/ML pass — WebGPU matrix-multiply compute…', exportFps: exp.fps, exportReadbackMBs: exp.readbackMBs }))
+    setGpu((g) => ({ ...g, status: 'AI/ML pass - WebGPU matrix-multiply compute…', exportFps: exp.fps, exportReadbackMBs: exp.readbackMBs }))
     const aiml = await runGpuComputePass()
 
     const parts = [
@@ -780,7 +787,7 @@ export default function BenchmarkTool() {
 
   /* ================= RAM ================= */
   const [ram, setRam] = useState({
-    status: 'Idle — press run', running: false, bytes: 0,
+    status: 'Idle - press run', running: false, bytes: 0,
     writeGBs: null as number | null, readGBs: null as number | null, randomMOpsSec: null as number | null,
     vramUploadMBs: null as number | null, vramDownloadMBs: null as number | null, score: null as number | null,
   })
@@ -857,7 +864,7 @@ export default function BenchmarkTool() {
 
     let vram: { uploadMBs: number; downloadMBs: number; score: number } | null = null
     if (device.memArch === 'discrete') {
-      setRam((r) => ({ ...r, status: 'Discrete GPU detected — sampling VRAM upload/download bandwidth…' }))
+      setRam((r) => ({ ...r, status: 'Discrete GPU detected - sampling VRAM upload/download bandwidth…' }))
       vram = await runVramApprox()
     }
 
@@ -880,7 +887,7 @@ export default function BenchmarkTool() {
       { label: 'Random access', value: `${fmt(pass.randomMOpsSec, 0)} M ops/s`, score: clampScore((pass.randomMOpsSec / REF.ramRandomMOpsSec) * 100) },
     ]
     if (device.memArch === 'unified') {
-      subs.push({ label: 'Memory architecture', value: 'Unified — GPU shares this pool', score: null })
+      subs.push({ label: 'Memory architecture', value: 'Unified - GPU shares this pool', score: null })
     } else if (vram) {
       subs.push({ label: 'VRAM upload (approx.)', value: `${fmt(vram.uploadMBs, 0)} MB/s`, score: clampScore((vram.uploadMBs / REF.vramUploadMBs) * 100) })
       subs.push({ label: 'VRAM download (approx.)', value: `${fmt(vram.downloadMBs, 0)} MB/s`, score: clampScore((vram.downloadMBs / REF.vramDownloadMBs) * 100) })
@@ -899,7 +906,7 @@ export default function BenchmarkTool() {
 
   /* ================= SSD ================= */
   const [ssd, setSsd] = useState({
-    status: 'Idle — press run', running: false, engine: '—', bytes: 0,
+    status: 'Idle - press run', running: false, engine: '-', bytes: 0,
     writeMBs: null as number | null, readMBs: null as number | null, score: null as number | null,
   })
 
@@ -986,7 +993,7 @@ export default function BenchmarkTool() {
     setSsd({
       status: 'Preparing fresh storage sample…',
       running: true,
-      engine: '—',
+      engine: '-',
       bytes: TOTAL,
       writeMBs: null,
       readMBs: null,
@@ -1068,7 +1075,7 @@ export default function BenchmarkTool() {
 
   /* ================= Web browsing ================= */
   const [web, setWeb] = useState({
-    status: 'Idle — press run', running: false,
+    status: 'Idle - press run', running: false,
     domChurnOpsSec: null as number | null, layoutOpsSec: null as number | null,
     textEditOpsSec: null as number | null, listOpsSec: null as number | null,
     jsonOpsSec: null as number | null, score: null as number | null,
@@ -1098,7 +1105,7 @@ export default function BenchmarkTool() {
     let sink = 0
 
     try {
-      setWeb((w) => ({ ...w, status: 'DOM churn — creating & removing list nodes…' }))
+      setWeb((w) => ({ ...w, status: 'DOM churn - creating & removing list nodes…' }))
       await sleep(20)
       let end = performance.now() + SEG
       let iters = 0
@@ -1114,7 +1121,7 @@ export default function BenchmarkTool() {
       const domChurnOpsSec = iters / (SEG / 1000)
       setWeb((w) => ({ ...w, domChurnOpsSec }))
 
-      setWeb((w) => ({ ...w, status: 'Layout — forced reflow pass…' }))
+      setWeb((w) => ({ ...w, status: 'Layout - forced reflow pass…' }))
       await sleep(20)
       end = performance.now() + SEG
       iters = 0
@@ -1126,7 +1133,7 @@ export default function BenchmarkTool() {
       const layoutOpsSec = iters / (SEG / 1000)
       setWeb((w) => ({ ...w, layoutOpsSec }))
 
-      setWeb((w) => ({ ...w, status: 'Text editing — simulated typing…' }))
+      setWeb((w) => ({ ...w, status: 'Text editing - simulated typing…' }))
       await sleep(20)
       end = performance.now() + SEG
       iters = 0
@@ -1141,7 +1148,7 @@ export default function BenchmarkTool() {
       const textEditOpsSec = iters / (SEG / 1000)
       setWeb((w) => ({ ...w, textEditOpsSec }))
 
-      setWeb((w) => ({ ...w, status: 'List sort & filter — re-render pass…' }))
+      setWeb((w) => ({ ...w, status: 'List sort & filter - re-render pass…' }))
       await sleep(20)
       const data = Array.from({ length: 2000 }, (_, i) => ({ id: i, name: `Item ${i}`, value: Math.random() }))
       end = performance.now() + SEG
@@ -1155,7 +1162,7 @@ export default function BenchmarkTool() {
       const listOpsSec = iters / (SEG / 1000)
       setWeb((w) => ({ ...w, listOpsSec }))
 
-      setWeb((w) => ({ ...w, status: 'JSON — serialize & parse pass…' }))
+      setWeb((w) => ({ ...w, status: 'JSON - serialize & parse pass…' }))
       await sleep(20)
       const obj = { id: 1, items: Array.from({ length: 200 }, (_, i) => ({ i, name: `n${i}`, tags: ['a', 'b', 'c'] })) }
       end = performance.now() + SEG
@@ -1206,9 +1213,9 @@ export default function BenchmarkTool() {
   const batteryObjRef = useRef<any>(null)
   const sessionBatteryRef = useRef<{ level: number; time: number; charging: boolean } | null>(null)
   const [battery, setBattery] = useState({
-    supported: '—', level: null as number | null, charging: null as boolean | null,
-    time: '—', drainSample: '—', drainRunning: false,
-    sessionDrain: '—', sessionScore: null as number | null,
+    supported: '-', level: null as number | null, charging: null as boolean | null,
+    time: '-', drainSample: '-', drainRunning: false,
+    sessionDrain: '-', sessionScore: null as number | null,
   })
 
   async function ensureBatteryObj(): Promise<any | null> {
@@ -1257,13 +1264,13 @@ export default function BenchmarkTool() {
 
       await markSessionBatteryStart()
       const base = sessionBatteryRef.current
-      let sessionDrain = 'not enough runtime to measure — run a test first'
+      let sessionDrain = 'not enough runtime to measure - run a test first'
       let sessionScore: number | null = null
       if (base) {
         const elapsedMin = (performance.now() - base.time) / 60000
         const deltaPct = (base.level - b.level) * 100
         if (base.charging || b.charging) {
-          sessionDrain = 'charging — drain not measurable'
+          sessionDrain = 'charging - drain not measurable'
         } else if (deltaPct <= 0 || elapsedMin <= 0) {
           sessionDrain = 'no measurable drop yet this session'
         } else {
@@ -1307,7 +1314,7 @@ export default function BenchmarkTool() {
 
   /* ================= Display ================= */
   const [display, setDisplay] = useState({
-    res: '—', dpr: '—', color: '—', gamut: '—', hdr: '—', hz: '—', measuring: false,
+    res: '-', dpr: '-', color: '-', gamut: '-', hdr: '-', hz: '-', measuring: false,
   })
 
   useEffect(() => {
@@ -1369,7 +1376,7 @@ export default function BenchmarkTool() {
   /* ================= Speakers ================= */
   const audioCtxRef = useRef<AudioContext | null>(null)
   const activeOscRef = useRef<OscillatorNode | null>(null)
-  const [speakers, setSpeakers] = useState({ freq: 440, ctxStatus: 'not started', channels: '—' })
+  const [speakers, setSpeakers] = useState({ freq: 440, ctxStatus: 'not started', channels: '-' })
 
   function ensureAudioCtx(): AudioContext {
     if (!audioCtxRef.current) {
@@ -1466,8 +1473,8 @@ export default function BenchmarkTool() {
 
   async function copyReport() {
     const lines = [
-      'NexaBench — NexaCore device report',
-      '—'.repeat(28),
+      'NexaBench - NexaCore device report',
+      '-'.repeat(28),
       `Platform: ${device.platform}`,
       `Processor: ${device.processor}`,
       `Logical cores: ${device.cores}`,
@@ -1478,7 +1485,7 @@ export default function BenchmarkTool() {
       `GPU adapter: ${device.gpuAdapter}`,
       `GPU generation: ${device.gpuGeneration}`,
       `GPU cores: ${device.gpuCores}`,
-      '—'.repeat(28),
+      '-'.repeat(28),
     ]
     TAB_ORDER.forEach((k) => {
       const r = results[k]
@@ -1486,10 +1493,10 @@ export default function BenchmarkTool() {
       r?.subs.forEach((s) => lines.push(`  · ${s.label}: ${s.value}${s.score !== null ? ' [' + s.score + ']' : ''}`))
     })
     if (overall !== null) {
-      lines.push('—'.repeat(28))
+      lines.push('-'.repeat(28))
       lines.push(`Overall score: ${overall} (${scoreToGrade(overall)})`)
     }
-    lines.push('—'.repeat(28), device.ua)
+    lines.push('-'.repeat(28), device.ua)
     const text = lines.join('\n')
     try { await navigator.clipboard.writeText(text) } catch { /* clipboard unavailable */ }
   }
@@ -1512,9 +1519,17 @@ export default function BenchmarkTool() {
       {fsSequence && (
         <div id="bx-fsOverlay" style={{ display: 'flex' }} onClick={advanceFullscreen}>
           <div style={{ width: '100%', height: '100%', background: fsSequence[fsIndex] }} />
-          <div className="bx-hint">click / tap or press any key to advance — ESC to exit</div>
+          <div className="bx-hint">click / tap or press any key to advance - ESC to exit</div>
         </div>
       )}
+
+      <aside className="bx-overall-dock" aria-label="Overall device score">
+        <div className="bx-overall-dock-label">Overall</div>
+        <div className={`bx-overall-dock-score ${scoreToneClass(overall)}`}>{overall ?? '--'}</div>
+        <div className={`bx-overall-dock-grade ${scoreToneClass(overall)}`}>
+          {overall === null ? 'run tests' : scoreToGrade(overall)}
+        </div>
+      </aside>
 
       <header className="bx-header">
         <div className="bx-scanline" />
@@ -1522,8 +1537,8 @@ export default function BenchmarkTool() {
         <h1>Know what you're<br /><span>actually</span> running on.</h1>
         <p className="bx-lede">
           CPU, GPU, memory, storage and real-DOM web workload stress tests that run entirely in
-          this tab — single and multi-core throughput, rendering / export / AI compute on the GPU,
-          RAM bandwidth, disk read/write, and a Speedometer-style browsing suite — plus a battery
+          this tab - single and multi-core throughput, rendering / export / AI compute on the GPU,
+          RAM bandwidth, disk read/write, and a Speedometer-style browsing suite - plus a battery
           efficiency score measured from the drain those tests cause. Run everything for a full
           report, or drill into one test at a time.
         </p>
@@ -1552,7 +1567,7 @@ export default function BenchmarkTool() {
           <div className="bx-fullrun-copy">
             <div className="bx-fullrun-title">Run everything</div>
             <div className="bx-fullrun-sub">
-              CPU, GPU, RAM, storage, web, battery &amp; display refresh — estimated <b>~{Math.round(TOTAL_ESTIMATE_MS / 1000)}s</b>
+              CPU, GPU, RAM, storage, web, battery &amp; display refresh - estimated <b>~{Math.round(TOTAL_ESTIMATE_MS / 1000)}s</b>
             </div>
           </div>
           <button className="bx-btn" disabled={anyRunning} onClick={runFullBenchmark}>
@@ -1582,7 +1597,7 @@ export default function BenchmarkTool() {
           <div className="bx-panel-head">
             <div>
               <h2>CPU throughput</h2>
-              <p>Runs blended integer + floating-point workloads for a fixed time on a single worker thread, then again split across every logical core — the same single-core / multi-core split industry benchmarks use.</p>
+              <p>Runs blended integer + floating-point workloads for a fixed time on a single worker thread, then again split across every logical core - the same single-core / multi-core split industry benchmarks use.</p>
             </div>
             <div className="bx-btn-row">
               <button className="bx-btn" disabled={anyRunning} onClick={executeCpuTest}>Run test</button>
@@ -1592,17 +1607,17 @@ export default function BenchmarkTool() {
             <div className="bx-readout">
               <div className="bx-stat-row"><span className="bx-label">Status</span><span className="bx-val">{cpu.status}</span></div>
               <div className="bx-subhead">Single-core</div>
-              <div className="bx-stat-row"><span className="bx-label">Integer ops/sec</span><span className="bx-val big">{cpu.singleInt !== null ? fmtOps(cpu.singleInt) : '—'}</span></div>
-              <div className="bx-stat-row"><span className="bx-label">Floating point ops/sec</span><span className="bx-val big">{cpu.singleFloat !== null ? fmtOps(cpu.singleFloat) : '—'}</span></div>
+              <div className="bx-stat-row"><span className="bx-label">Integer ops/sec</span><span className="bx-val big">{cpu.singleInt !== null ? fmtOps(cpu.singleInt) : '-'}</span></div>
+              <div className="bx-stat-row"><span className="bx-label">Floating point ops/sec</span><span className="bx-val big">{cpu.singleFloat !== null ? fmtOps(cpu.singleFloat) : '-'}</span></div>
               <div className="bx-subhead">Multi-core ({cpu.cores} threads)</div>
-              <div className="bx-stat-row"><span className="bx-label">Integer ops/sec</span><span className="bx-val big">{cpu.multiInt !== null ? fmtOps(cpu.multiInt) : '—'}</span></div>
-              <div className="bx-stat-row"><span className="bx-label">Floating point ops/sec</span><span className="bx-val big">{cpu.multiFloat !== null ? fmtOps(cpu.multiFloat) : '—'}</span></div>
-              <div className="bx-stat-row"><span className="bx-label">Scaling efficiency</span><span className="bx-val">{cpu.scaling !== null ? `${(cpu.scaling * 100).toFixed(0)}% of ${cpu.cores} cores` : '—'}</span></div>
+              <div className="bx-stat-row"><span className="bx-label">Integer ops/sec</span><span className="bx-val big">{cpu.multiInt !== null ? fmtOps(cpu.multiInt) : '-'}</span></div>
+              <div className="bx-stat-row"><span className="bx-label">Floating point ops/sec</span><span className="bx-val big">{cpu.multiFloat !== null ? fmtOps(cpu.multiFloat) : '-'}</span></div>
+              <div className="bx-stat-row"><span className="bx-label">Scaling efficiency</span><span className="bx-val">{cpu.scaling !== null ? `${(cpu.scaling * 100).toFixed(0)}% of ${cpu.cores} cores` : '-'}</span></div>
             </div>
             <div className="bx-readout bx-score-block">
               <div className="bx-score-label">CPU score</div>
-              <div className="bx-score-num">{cpu.score ?? '--'}</div>
-              <div className={`bx-score-grade ${cpu.score === null ? 'na' : ''}`}>{scoreToGrade(cpu.score)}</div>
+              <div className={`bx-score-num ${scoreToneClass(cpu.score)}`}>{cpu.score ?? '--'}</div>
+              <div className={`bx-score-grade ${scoreToneClass(cpu.score)}`}>{scoreToGrade(cpu.score)}</div>
               <p className="bx-note">Runs entirely off the main thread via Web Workers, so the UI stays smooth while it runs. Score is relative (0–100), not an absolute index.</p>
             </div>
           </div>
@@ -1627,15 +1642,15 @@ export default function BenchmarkTool() {
               <div className="bx-stat-row"><span className="bx-label">Status</span><span className="bx-val" style={{ fontSize: 12 }}>{gpu.status}</span></div>
               <div className="bx-stat-row"><span className="bx-label">Renderer</span><span className="bx-val" style={{ maxWidth: 220, fontSize: 12 }}>{device.gpuRenderer}</span></div>
               <div className="bx-subhead">Rendering</div>
-              <div className="bx-stat-row"><span className="bx-label">Particles / FPS</span><span className="bx-val">{gpu.particles?.toLocaleString() ?? '—'} · {gpu.renderFps ? fmt(gpu.renderFps) : '—'} fps</span></div>
+              <div className="bx-stat-row"><span className="bx-label">Particles / FPS</span><span className="bx-val">{gpu.particles?.toLocaleString() ?? '-'} · {gpu.renderFps ? fmt(gpu.renderFps) : '-'} fps</span></div>
               <div className="bx-subhead">Export</div>
-              <div className="bx-stat-row"><span className="bx-label">4K raster FPS / readback</span><span className="bx-val">{gpu.exportFps ? fmt(gpu.exportFps) : '—'} fps · {gpu.exportReadbackMBs ? fmt(gpu.exportReadbackMBs, 0) : '—'} MB/s</span></div>
+              <div className="bx-stat-row"><span className="bx-label">4K raster FPS / readback</span><span className="bx-val">{gpu.exportFps ? fmt(gpu.exportFps) : '-'} fps · {gpu.exportReadbackMBs ? fmt(gpu.exportReadbackMBs, 0) : '-'} MB/s</span></div>
               <div className="bx-subhead">AI / ML compute</div>
-              <div className="bx-stat-row"><span className="bx-label">Matmul throughput</span><span className="bx-val">{gpu.aimlGflops ? `${fmt(gpu.aimlGflops)} GFLOPS` : (gpu.status === 'Complete' ? 'unavailable (needs WebGPU)' : '—')}</span></div>
+              <div className="bx-stat-row"><span className="bx-label">Matmul throughput</span><span className="bx-val">{gpu.aimlGflops ? `${fmt(gpu.aimlGflops)} GFLOPS` : (gpu.status === 'Complete' ? 'unavailable (needs WebGPU)' : '-')}</span></div>
               <div className="bx-score-block" style={{ paddingTop: 16 }}>
                 <div className="bx-score-label">GPU score</div>
-                <div className="bx-score-num">{gpu.score ?? '--'}</div>
-                <div className={`bx-score-grade ${gpu.score === null ? 'na' : ''}`}>{scoreToGrade(gpu.score)}</div>
+                <div className={`bx-score-num ${scoreToneClass(gpu.score)}`}>{gpu.score ?? '--'}</div>
+                <div className={`bx-score-grade ${scoreToneClass(gpu.score)}`}>{scoreToGrade(gpu.score)}</div>
               </div>
             </div>
           </div>
@@ -1655,10 +1670,10 @@ export default function BenchmarkTool() {
           <div className="bx-grid-2">
             <div className="bx-readout">
               <div className="bx-stat-row"><span className="bx-label">Status</span><span className="bx-val" style={{ fontSize: 12.5 }}>{ram.status}</span></div>
-              <div className="bx-stat-row"><span className="bx-label">Test buffer size</span><span className="bx-val">{ram.bytes ? `${Math.round(ram.bytes / (1024 * 1024))} MB` : '—'}</span></div>
-              <div className="bx-stat-row"><span className="bx-label">Sequential write</span><span className="bx-val big">{ram.writeGBs ? `${fmt(ram.writeGBs, 2)} GB/s` : '—'}</span></div>
-              <div className="bx-stat-row"><span className="bx-label">Sequential read</span><span className="bx-val big">{ram.readGBs ? `${fmt(ram.readGBs, 2)} GB/s` : '—'}</span></div>
-              <div className="bx-stat-row"><span className="bx-label">Random access</span><span className="bx-val">{ram.randomMOpsSec ? `${fmt(ram.randomMOpsSec, 0)} M ops/s` : '—'}</span></div>
+              <div className="bx-stat-row"><span className="bx-label">Test buffer size</span><span className="bx-val">{ram.bytes ? `${Math.round(ram.bytes / (1024 * 1024))} MB` : '-'}</span></div>
+              <div className="bx-stat-row"><span className="bx-label">Sequential write</span><span className="bx-val big">{ram.writeGBs ? `${fmt(ram.writeGBs, 2)} GB/s` : '-'}</span></div>
+              <div className="bx-stat-row"><span className="bx-label">Sequential read</span><span className="bx-val big">{ram.readGBs ? `${fmt(ram.readGBs, 2)} GB/s` : '-'}</span></div>
+              <div className="bx-stat-row"><span className="bx-label">Random access</span><span className="bx-val">{ram.randomMOpsSec ? `${fmt(ram.randomMOpsSec, 0)} M ops/s` : '-'}</span></div>
               <div className="bx-stat-row"><span className="bx-label">Memory architecture</span><span className="bx-val">{device.memArch === 'unified' ? 'Unified (RAM ≈ VRAM)' : device.memArch === 'discrete' ? 'Discrete GPU' : 'Unknown'}</span></div>
               {ram.vramUploadMBs !== null && (
                 <div className="bx-stat-row"><span className="bx-label">VRAM upload / download (approx.)</span><span className="bx-val">{fmt(ram.vramUploadMBs, 0)} / {fmt(ram.vramDownloadMBs ?? 0, 0)} MB/s</span></div>
@@ -1666,8 +1681,8 @@ export default function BenchmarkTool() {
             </div>
             <div className="bx-readout bx-score-block">
               <div className="bx-score-label">Memory score</div>
-              <div className="bx-score-num">{ram.score ?? '--'}</div>
-              <div className={`bx-score-grade ${ram.score === null ? 'na' : ''}`}>{scoreToGrade(ram.score)}</div>
+              <div className={`bx-score-num ${scoreToneClass(ram.score)}`}>{ram.score ?? '--'}</div>
+              <div className={`bx-score-grade ${scoreToneClass(ram.score)}`}>{scoreToGrade(ram.score)}</div>
               <p className="bx-note">Buffer size scales down on lower-memory devices to avoid tab crashes. VRAM figures are an approximation bound by the WebGL upload path, not raw silicon bandwidth.</p>
             </div>
           </div>
@@ -1678,7 +1693,7 @@ export default function BenchmarkTool() {
           <div className="bx-panel-head">
             <div>
               <h2>Storage throughput</h2>
-              <p>Writes and reads a real multi-megabyte file through the Origin Private File System — genuine disk I/O through your browser's sandboxed storage, not a synthetic estimate. Falls back to IndexedDB where OPFS isn't available.</p>
+              <p>Writes and reads a real multi-megabyte file through the Origin Private File System - genuine disk I/O through your browser's sandboxed storage, not a synthetic estimate. Falls back to IndexedDB where OPFS isn't available.</p>
             </div>
             <div className="bx-btn-row">
               <button className="bx-btn" disabled={anyRunning} onClick={executeSsdTest}>Run test</button>
@@ -1688,14 +1703,14 @@ export default function BenchmarkTool() {
             <div className="bx-readout">
               <div className="bx-stat-row"><span className="bx-label">Status</span><span className="bx-val" style={{ fontSize: 12.5 }}>{ssd.status}</span></div>
               <div className="bx-stat-row"><span className="bx-label">Engine</span><span className="bx-val">{ssd.engine}</span></div>
-              <div className="bx-stat-row"><span className="bx-label">Test file size</span><span className="bx-val">{ssd.bytes ? `${Math.round(ssd.bytes / (1024 * 1024))} MB` : '—'}</span></div>
-              <div className="bx-stat-row"><span className="bx-label">Sequential write</span><span className="bx-val big">{ssd.writeMBs ? `${fmt(ssd.writeMBs, 0)} MB/s` : '—'}</span></div>
-              <div className="bx-stat-row"><span className="bx-label">Sequential read</span><span className="bx-val big">{ssd.readMBs ? `${fmt(ssd.readMBs, 0)} MB/s` : '—'}</span></div>
+              <div className="bx-stat-row"><span className="bx-label">Test file size</span><span className="bx-val">{ssd.bytes ? `${Math.round(ssd.bytes / (1024 * 1024))} MB` : '-'}</span></div>
+              <div className="bx-stat-row"><span className="bx-label">Sequential write</span><span className="bx-val big">{ssd.writeMBs ? `${fmt(ssd.writeMBs, 0)} MB/s` : '-'}</span></div>
+              <div className="bx-stat-row"><span className="bx-label">Sequential read</span><span className="bx-val big">{ssd.readMBs ? `${fmt(ssd.readMBs, 0)} MB/s` : '-'}</span></div>
             </div>
             <div className="bx-readout bx-score-block">
               <div className="bx-score-label">Storage score</div>
-              <div className="bx-score-num">{ssd.score ?? '--'}</div>
-              <div className={`bx-score-grade ${ssd.score === null ? 'na' : ''}`}>{scoreToGrade(ssd.score)}</div>
+              <div className={`bx-score-num ${scoreToneClass(ssd.score)}`}>{ssd.score ?? '--'}</div>
+              <div className={`bx-score-grade ${scoreToneClass(ssd.score)}`}>{scoreToGrade(ssd.score)}</div>
               <p className="bx-note">The test file is deleted immediately after the run. Numbers reflect your browser's storage layer, which sits below native disk speed on every platform.</p>
             </div>
           </div>
@@ -1706,7 +1721,7 @@ export default function BenchmarkTool() {
           <div className="bx-panel-head">
             <div>
               <h2>Web browsing</h2>
-              <p>Speedometer-style suite: DOM node churn, forced layout/reflow, simulated text input, list sort &amp; filter re-rendering, and JSON serialize/parse — the same categories of work real web apps spend most of their time on. Combined via geometric mean, so one weak workload can't be masked by strong ones.</p>
+              <p>Speedometer-style suite: DOM node churn, forced layout/reflow, simulated text input, list sort &amp; filter re-rendering, and JSON serialize/parse - the same categories of work real web apps spend most of their time on. Combined via geometric mean, so one weak workload can't be masked by strong ones.</p>
             </div>
             <div className="bx-btn-row">
               <button className="bx-btn" disabled={anyRunning} onClick={executeWebTest}>Run test</button>
@@ -1715,17 +1730,17 @@ export default function BenchmarkTool() {
           <div className="bx-grid-2">
             <div className="bx-readout">
               <div className="bx-stat-row"><span className="bx-label">Status</span><span className="bx-val" style={{ fontSize: 12.5 }}>{web.status}</span></div>
-              <div className="bx-stat-row"><span className="bx-label">DOM churn (create/remove)</span><span className="bx-val">{web.domChurnOpsSec ? `${fmt(web.domChurnOpsSec, 0)} batches/s` : '—'}</span></div>
-              <div className="bx-stat-row"><span className="bx-label">Forced layout / reflow</span><span className="bx-val">{web.layoutOpsSec ? `${fmt(web.layoutOpsSec, 0)} reads/s` : '—'}</span></div>
-              <div className="bx-stat-row"><span className="bx-label">Text input simulation</span><span className="bx-val">{web.textEditOpsSec ? `${fmt(web.textEditOpsSec, 0)} edits/s` : '—'}</span></div>
-              <div className="bx-stat-row"><span className="bx-label">List sort &amp; filter</span><span className="bx-val">{web.listOpsSec ? `${fmt(web.listOpsSec, 0)} passes/s` : '—'}</span></div>
-              <div className="bx-stat-row"><span className="bx-label">JSON serialize/parse</span><span className="bx-val">{web.jsonOpsSec ? `${fmt(web.jsonOpsSec, 0)} passes/s` : '—'}</span></div>
+              <div className="bx-stat-row"><span className="bx-label">DOM churn (create/remove)</span><span className="bx-val">{web.domChurnOpsSec ? `${fmt(web.domChurnOpsSec, 0)} batches/s` : '-'}</span></div>
+              <div className="bx-stat-row"><span className="bx-label">Forced layout / reflow</span><span className="bx-val">{web.layoutOpsSec ? `${fmt(web.layoutOpsSec, 0)} reads/s` : '-'}</span></div>
+              <div className="bx-stat-row"><span className="bx-label">Text input simulation</span><span className="bx-val">{web.textEditOpsSec ? `${fmt(web.textEditOpsSec, 0)} edits/s` : '-'}</span></div>
+              <div className="bx-stat-row"><span className="bx-label">List sort &amp; filter</span><span className="bx-val">{web.listOpsSec ? `${fmt(web.listOpsSec, 0)} passes/s` : '-'}</span></div>
+              <div className="bx-stat-row"><span className="bx-label">JSON serialize/parse</span><span className="bx-val">{web.jsonOpsSec ? `${fmt(web.jsonOpsSec, 0)} passes/s` : '-'}</span></div>
             </div>
             <div className="bx-readout bx-score-block">
               <div className="bx-score-label">Web score</div>
-              <div className="bx-score-num">{web.score ?? '--'}</div>
-              <div className={`bx-score-grade ${web.score === null ? 'na' : ''}`}>{scoreToGrade(web.score)}</div>
-              <p className="bx-note">Runs directly against the real DOM, so it briefly uses the main thread like any actual web page would — this is the one test that isn't perfectly smooth by design.</p>
+              <div className={`bx-score-num ${scoreToneClass(web.score)}`}>{web.score ?? '--'}</div>
+              <div className={`bx-score-grade ${scoreToneClass(web.score)}`}>{scoreToGrade(web.score)}</div>
+              <p className="bx-note">Runs directly against the real DOM, so it briefly uses the main thread like any actual web page would - this is the one test that isn't perfectly smooth by design.</p>
             </div>
           </div>
         </section>
@@ -1735,7 +1750,7 @@ export default function BenchmarkTool() {
           <div className="bx-panel-head">
             <div>
               <h2>Battery status</h2>
-              <p>Reads live battery telemetry where the browser exposes it. Records the charge level the moment you start your first test, then scores how much it drained by the time you check back — a real efficiency reading from the load you just put on the device.</p>
+              <p>Reads live battery telemetry where the browser exposes it. Records the charge level the moment you start your first test, then scores how much it drained by the time you check back - a real efficiency reading from the load you just put on the device.</p>
             </div>
             <div className="bx-btn-row">
               <button className="bx-btn" disabled={anyRunning} onClick={executeBatteryTest}>Check battery</button>
@@ -1745,18 +1760,18 @@ export default function BenchmarkTool() {
           <div className="bx-grid-2">
             <div className="bx-readout">
               <div className="bx-stat-row"><span className="bx-label">Support</span><span className="bx-val">{battery.supported}</span></div>
-              <div className="bx-stat-row"><span className="bx-label">Charge level</span><span className="bx-val big">{battery.level !== null ? `${battery.level}%` : '—'}</span></div>
-              <div className="bx-stat-row"><span className="bx-label">Charging</span><span className="bx-val">{battery.charging === null ? '—' : battery.charging ? 'Yes' : 'No'}</span></div>
+              <div className="bx-stat-row"><span className="bx-label">Charge level</span><span className="bx-val big">{battery.level !== null ? `${battery.level}%` : '-'}</span></div>
+              <div className="bx-stat-row"><span className="bx-label">Charging</span><span className="bx-val">{battery.charging === null ? '-' : battery.charging ? 'Yes' : 'No'}</span></div>
               <div className="bx-stat-row"><span className="bx-label">Time to full / empty</span><span className="bx-val">{battery.time}</span></div>
               <div className="bx-stat-row"><span className="bx-label">Session drain (since first test)</span><span className="bx-val" style={{ fontSize: 12.5 }}>{battery.sessionDrain}</span></div>
               <div className="bx-stat-row"><span className="bx-label">30s drain sample</span><span className="bx-val">{battery.drainSample}</span></div>
             </div>
             <div className="bx-readout bx-score-block">
               <div className="bx-score-label">Battery efficiency score</div>
-              <div className="bx-score-num">{battery.sessionScore ?? '--'}</div>
-              <div className={`bx-score-grade ${battery.sessionScore === null ? 'na' : ''}`}>{scoreToGrade(battery.sessionScore)}</div>
-              <p className="bx-note">Chrome and Edge on desktop and Android expose the Battery Status API. Safari, Firefox and iOS block it for privacy — check system settings instead there.</p>
-              <p className="bx-note" style={{ marginTop: 12 }}>Extrapolated from a short sample, so it reads more extreme than steady-state use — accurate direction, noisy magnitude. Not counted in the overall device score.</p>
+              <div className={`bx-score-num ${scoreToneClass(battery.sessionScore)}`}>{battery.sessionScore ?? '--'}</div>
+              <div className={`bx-score-grade ${scoreToneClass(battery.sessionScore)}`}>{scoreToGrade(battery.sessionScore)}</div>
+              <p className="bx-note">Chrome and Edge on desktop and Android expose the Battery Status API. Safari, Firefox and iOS block it for privacy - check system settings instead there.</p>
+              <p className="bx-note" style={{ marginTop: 12 }}>Extrapolated from a short sample, so it reads more extreme than steady-state use - accurate direction, noisy magnitude. Not counted in the overall device score.</p>
             </div>
           </div>
         </section>
@@ -1822,7 +1837,7 @@ export default function BenchmarkTool() {
             </div>
             <div className="bx-readout">
               <p className="bx-note">Left / right only isolates each channel so you can confirm both speakers actually work and aren't swapped.</p>
-              <p className="bx-note" style={{ marginTop: 12 }}>The sweep plays every audible frequency in order — most phone and laptop speakers roll off before 20kHz and below ~150Hz, that's normal. Listen for crackling, distortion, or a channel that cuts out partway through, which isn't.</p>
+              <p className="bx-note" style={{ marginTop: 12 }}>The sweep plays every audible frequency in order - most phone and laptop speakers roll off before 20kHz and below ~150Hz, that's normal. Listen for crackling, distortion, or a channel that cuts out partway through, which isn't.</p>
               <div className="bx-stat-row" style={{ marginTop: 16 }}><span className="bx-label">Audio context</span><span className="bx-val">{speakers.ctxStatus}</span></div>
               <div className="bx-stat-row"><span className="bx-label">Output channels</span><span className="bx-val">{speakers.channels}</span></div>
             </div>
@@ -1847,18 +1862,18 @@ export default function BenchmarkTool() {
                 {TAB_ORDER.map((key) => {
                   const r = results[key]
                   if (!r) return (
-                    <tr key={key}><td>{LABELS[key]}</td><td>—</td><td>—</td><td><span className="bx-pill na">not run</span></td></tr>
+                    <tr key={key}><td>{LABELS[key]}</td><td>-</td><td>-</td><td><span className="bx-pill na">not run</span></td></tr>
                   )
                   const pillClass = r.grade === 'not available' ? 'na' : (typeof r.score === 'number' && r.score < 40 ? 'warn' : 'pass')
                   return (
                     <Fragment key={key}>
                       <tr>
-                        <td>{LABELS[key]}</td><td>{r.summary}</td><td>{r.score ?? '—'}</td>
+                        <td>{LABELS[key]}</td><td>{r.summary}</td><td>{r.score ?? '-'}</td>
                         <td><span className={`bx-pill ${pillClass}`}>{r.grade}</span></td>
                       </tr>
                       {r.subs.map((s) => (
                         <tr key={`${key}-${s.label}`} className="bx-subtest">
-                          <td>{s.label}</td><td>{s.value}{s.note ? ` — ${s.note}` : ''}</td><td>{s.score ?? '—'}</td><td></td>
+                          <td>{s.label}</td><td>{s.value}{s.note ? ` - ${s.note}` : ''}</td><td>{s.score ?? '-'}</td><td></td>
                         </tr>
                       ))}
                     </Fragment>
@@ -1870,8 +1885,8 @@ export default function BenchmarkTool() {
           <div className="bx-readout" style={{ marginTop: 18 }}>
             <div className="bx-score-block">
               <div className="bx-score-label">Overall device score</div>
-              <div className="bx-score-num">{overall ?? '--'}</div>
-              <div className={`bx-score-grade ${overall === null ? 'na' : ''}`}>{overall === null ? 'run tests to generate' : scoreToGrade(overall)}</div>
+              <div className={`bx-score-num ${scoreToneClass(overall)}`}>{overall ?? '--'}</div>
+              <div className={`bx-score-grade ${scoreToneClass(overall)}`}>{overall === null ? 'run tests to generate' : scoreToGrade(overall)}</div>
               <p className="bx-note">Overall blends CPU (25%), GPU (25%), memory (15%), storage (15%) and web browsing (20%). Battery gets its own efficiency score but isn't part of this blend; display and speakers are diagnostic reads only.</p>
             </div>
           </div>
@@ -1879,7 +1894,7 @@ export default function BenchmarkTool() {
       </main>
 
       <footer className="bx-footer">
-        <span>NexaBench — runs entirely in your browser. Nothing is uploaded anywhere.</span>
+        <span>NexaBench - runs entirely in your browser. Nothing is uploaded anywhere.</span>
         <span>{device.ua.slice(0, 70)}</span>
       </footer>
     </>
