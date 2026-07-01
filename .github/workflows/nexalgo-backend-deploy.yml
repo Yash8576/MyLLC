@@ -184,7 +184,7 @@ jobs:
           {
             cat <<EOF
           NODE_ENV: "production"
-          CORS_ORIGIN: "https://nexacoreglobal.org"
+          CORS_ORIGIN: "https://nexacoreglobal.org,http://localhost:3000"
           DATABASE_URL: "${NEXALGO_DATABASE_URL}"
           FIREBASE_PROJECT_ID: "nexalgo-ace83"
           FIREBASE_CLIENT_EMAIL: "${FIREBASE_CLIENT_EMAIL}"

@@ -218,6 +218,160 @@ function statusToneClass(status?: ProblemProgressStatus) {
   return 'nexalgo-status-unvisited'
 }
 
+const CODE_KEYWORDS: Record<LanguageKey, Set<string>> = {
+  python: new Set([
+    'False',
+    'None',
+    'True',
+    'and',
+    'as',
+    'assert',
+    'break',
+    'class',
+    'continue',
+    'def',
+    'del',
+    'elif',
+    'else',
+    'except',
+    'finally',
+    'for',
+    'from',
+    'global',
+    'if',
+    'import',
+    'in',
+    'is',
+    'lambda',
+    'nonlocal',
+    'not',
+    'or',
+    'pass',
+    'raise',
+    'return',
+    'try',
+    'while',
+    'with',
+    'yield',
+  ]),
+  java: new Set([
+    'abstract',
+    'boolean',
+    'break',
+    'case',
+    'catch',
+    'class',
+    'continue',
+    'default',
+    'do',
+    'double',
+    'else',
+    'extends',
+    'final',
+    'finally',
+    'for',
+    'if',
+    'implements',
+    'import',
+    'int',
+    'interface',
+    'long',
+    'new',
+    'null',
+    'private',
+    'protected',
+    'public',
+    'return',
+    'static',
+    'this',
+    'throw',
+    'throws',
+    'true',
+    'false',
+    'void',
+    'while',
+  ]),
+  cpp: new Set([
+    'auto',
+    'bool',
+    'break',
+    'case',
+    'class',
+    'const',
+    'continue',
+    'double',
+    'else',
+    'false',
+    'for',
+    'if',
+    'include',
+    'int',
+    'long',
+    'namespace',
+    'new',
+    'nullptr',
+    'private',
+    'public',
+    'return',
+    'std',
+    'string',
+    'struct',
+    'true',
+    'using',
+    'vector',
+    'void',
+    'while',
+  ]),
+}
+
+function tokenClass(language: LanguageKey, token: string, previousToken?: string) {
+  if (/^(\/\/|#|\/\*)/.test(token)) return 'nexalgo-token-comment'
+  if (/^(['"`])/.test(token)) return 'nexalgo-token-string'
+  if (/^\d/.test(token)) return 'nexalgo-token-number'
+  if (/^[{}()[\];,.+\-*/%=<>!&|?:]+$/.test(token)) return 'nexalgo-token-punctuation'
+  if (CODE_KEYWORDS[language].has(token)) return 'nexalgo-token-keyword'
+  if (previousToken === 'class' || previousToken === 'new') return 'nexalgo-token-type'
+  if (/^[A-Z]\w*$/.test(token)) return 'nexalgo-token-type'
+  return 'nexalgo-token-identifier'
+}
+
+function highlightCode(language: LanguageKey, value: string) {
+  const codeToRender = value || '// Solution will appear after editorial approval.'
+  const tokenPattern =
+    /(\/\/.*|#.*|\/\*[\s\S]*?\*\/|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|\b\d+(?:\.\d+)?\b|\b[A-Za-z_]\w*\b|[{}()[\];,.+\-*/%=<>!&|?:]+)/g
+  const nodes: React.ReactNode[] = []
+  let cursor = 0
+  let previousWord: string | undefined
+
+  for (const match of codeToRender.matchAll(tokenPattern)) {
+    const token = match[0]
+    const index = match.index ?? 0
+
+    if (index > cursor) {
+      nodes.push(codeToRender.slice(cursor, index))
+    }
+
+    const className = tokenClass(language, token, previousWord)
+    nodes.push(
+      <span key={`${index}-${token}`} className={className}>
+        {token}
+      </span>,
+    )
+
+    if (/^\b[A-Za-z_]\w*\b$/.test(token)) {
+      previousWord = token
+    }
+
+    cursor = index + token.length
+  }
+
+  if (cursor < codeToRender.length) {
+    nodes.push(codeToRender.slice(cursor))
+  }
+
+  return nodes
+}
+
 function CodeBlock({
   language,
   code,
@@ -251,7 +405,7 @@ function CodeBlock({
         </button>
       </div>
       <div className='nexalgo-code-body'>
-        <pre className='nexalgo-code-content'>{code || '// Solution will appear after editorial approval.'}</pre>
+        <pre className='nexalgo-code-content'>{highlightCode(language, code)}</pre>
       </div>
     </div>
   )
@@ -743,6 +897,8 @@ export default function NexAlgoPage() {
               aria-label='Open account menu'
               onClick={() => setAccountMenuOpen(true)}>
               <span aria-hidden='true' />
+              <span aria-hidden='true' />
+              <span aria-hidden='true' />
             </button>
           ) : null}
         </div>
@@ -1105,7 +1261,7 @@ export default function NexAlgoPage() {
                         : ''}
                       {selectedProblem.title}
                     </h2>
-                    <p className={`nexalgo-detail-subcopy ${difficultyToneClass(selectedProblem.difficulty)}`}>
+                    <p className={`nexalgo-detail-difficulty ${difficultyToneClass(selectedProblem.difficulty)}`}>
                       {selectedProblem.difficulty || 'Difficulty pending'}
                     </p>
                     {selectedProblem.sources[0]?.normalizedUrl ? (
@@ -1132,7 +1288,7 @@ export default function NexAlgoPage() {
                           statusMap[selectedProblem.id] === 'solved' ? 'attempted' : 'solved',
                         )
                       }>
-                      {statusMap[selectedProblem.id] === 'solved' ? '✘ marked solid' : 'mark solid'}
+                      {statusMap[selectedProblem.id] === 'solved' ? '✘ marked solved' : 'mark solved'}
                     </button>
                     {isEditor ? (
                       <button type='button' className='nexalgo-link-btn' onClick={openRevisionDraft}>

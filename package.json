@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "lsof -ti tcp:3000 | xargs kill -9 2>/dev/null || true && next dev -p 3000",
     "build": "npm run build:pages",
     "build:next": "next build",
     "build:pages": "bash ./scripts/build-cloudflare-pages.sh",

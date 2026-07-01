@@ -164,32 +164,26 @@
   height: 32px;
   border: 1px solid var(--nx-line);
   background: transparent;
-  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
   cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
 }
 
-.nexalgo-hamburger span,
-.nexalgo-hamburger span::before,
-.nexalgo-hamburger span::after {
-  content: '';
-  position: absolute;
-  left: 10px;
-  right: 10px;
-  height: 2px;
-  background: var(--nx-ink-dim);
+.nexalgo-hamburger:hover {
+  border-color: var(--nx-signal-dim);
+  background: rgba(101, 86, 255, 0.08);
 }
 
 .nexalgo-hamburger span {
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-.nexalgo-hamburger span::before {
-  top: -7px;
-}
-
-.nexalgo-hamburger span::after {
-  top: 7px;
+  display: block;
+  width: 18px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--nx-ink-dim);
 }
 
 /* ---- main layout ---- */
@@ -628,6 +622,22 @@
   margin: 6px 0 0;
 }
 
+.nexalgo-detail-difficulty {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin: 9px 0 0;
+  border: 1px solid currentColor;
+  background: color-mix(in srgb, currentColor 13%, transparent);
+  padding: 4px 10px;
+  font-family: var(--nx-mono);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
 .nexalgo-detail-actions,
 .nexalgo-status-actions {
   display: flex;
@@ -797,9 +807,38 @@
   font-family: var(--nx-mono);
   font-size: 12.6px;
   line-height: 1.62;
-  color: #cdd6df;
+  color: #d4d4d4;
   white-space: pre;
   tab-size: 4;
+}
+
+.nexalgo-token-keyword {
+  color: #569cd6;
+}
+
+.nexalgo-token-type {
+  color: #4ec9b0;
+}
+
+.nexalgo-token-identifier {
+  color: #9cdcfe;
+}
+
+.nexalgo-token-string {
+  color: #ce9178;
+}
+
+.nexalgo-token-number {
+  color: #b5cea8;
+}
+
+.nexalgo-token-comment {
+  color: #6a9955;
+  font-style: italic;
+}
+
+.nexalgo-token-punctuation {
+  color: #d4d4d4;
 }
 
 .nexalgo-approach-block {
