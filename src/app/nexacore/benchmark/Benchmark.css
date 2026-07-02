@@ -434,6 +434,13 @@
   font-family: var(--bx-mono); color: rgba(255,255,255,.55); font-size: 13px; letter-spacing: .05em;
 }
 #bx-fsOverlay .bx-hint { position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%); }
+#bx-fsOverlay .bx-fs-toggle {
+  position: absolute; top: 20px; right: 20px; z-index: 1;
+  background: rgba(0,0,0,.5); color: rgba(255,255,255,.75); border: 1px solid rgba(255,255,255,.25);
+  border-radius: 4px; padding: 7px 14px; font-family: var(--bx-mono); font-size: 12px; letter-spacing: .04em;
+  cursor: pointer;
+}
+#bx-fsOverlay .bx-fs-toggle:hover { background: rgba(0,0,0,.7); color: #fff; }
 
 .bx-table { width: 100%; border-collapse: collapse; font-family: var(--bx-mono); font-size: 12.5px; }
 .bx-table th { text-align: left; color: var(--bx-ink-faint); font-weight: 500; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; padding: 8px 10px; border-bottom: 1px solid var(--bx-line); }

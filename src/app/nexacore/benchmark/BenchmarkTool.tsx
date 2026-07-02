@@ -1359,11 +1359,17 @@ export default function BenchmarkTool() {
   const colorSequence = ['#ff0000', '#00ff00', '#0000ff', '#ffffff', '#000000', 'linear-gradient(90deg,#000,#fff)']
   const [fsSequence, setFsSequence] = useState<string[] | null>(null)
   const [fsIndex, setFsIndex] = useState(0)
+  const fsOverlayRef = useRef<HTMLDivElement | null>(null)
   function showFullscreenColor(sequence: string[]) { setFsSequence(sequence); setFsIndex(0) }
   function advanceFullscreen() {
     if (!fsSequence) return
     if (fsIndex + 1 >= fsSequence.length) { setFsSequence(null); return }
     setFsIndex((i) => i + 1)
+  }
+  function toggleFullscreen(e: React.MouseEvent) {
+    e.stopPropagation()
+    if (document.fullscreenElement) { document.exitFullscreen().catch(() => { /* ignore */ }) }
+    else if (fsOverlayRef.current?.requestFullscreen) { fsOverlayRef.current.requestFullscreen().catch(() => { /* ignore */ }) }
   }
   useEffect(() => {
     if (!fsSequence) return
@@ -1372,6 +1378,18 @@ export default function BenchmarkTool() {
     return () => document.removeEventListener('keydown', onKey)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fsSequence, fsIndex])
+  useEffect(() => {
+    if (fsSequence && fsOverlayRef.current?.requestFullscreen) {
+      fsOverlayRef.current.requestFullscreen().catch(() => { /* user can retry via the button */ })
+    } else if (!fsSequence && document.fullscreenElement) {
+      document.exitFullscreen().catch(() => { /* ignore */ })
+    }
+  }, [fsSequence])
+  useEffect(() => {
+    const onFsChange = () => { if (!document.fullscreenElement) setFsSequence(null) }
+    document.addEventListener('fullscreenchange', onFsChange)
+    return () => document.removeEventListener('fullscreenchange', onFsChange)
+  }, [])
 
   /* ================= Speakers ================= */
   const audioCtxRef = useRef<AudioContext | null>(null)
@@ -1414,22 +1432,28 @@ export default function BenchmarkTool() {
     const gain = ctx.createGain()
     gain.gain.value = 0.15
     osc.type = 'sine'
+    const duration = 8
     osc.frequency.setValueAtTime(20, ctx.currentTime)
-    osc.frequency.exponentialRampToValueAtTime(20000, ctx.currentTime + 8)
+    osc.frequency.exponentialRampToValueAtTime(20000, ctx.currentTime + duration)
     osc.connect(gain).connect(ctx.destination)
     osc.start()
     activeOscRef.current = osc
+    osc.onended = () => { if (activeOscRef.current === osc) activeOscRef.current = null }
     const startT = performance.now()
     const update = () => {
       if (activeOscRef.current !== osc) return
       const elapsed = (performance.now() - startT) / 1000
-      if (elapsed > 8) return
-      const freq = 20 * Math.pow(1000, elapsed / 8)
+      if (elapsed >= duration) {
+        activeOscRef.current = null
+        setSpeakers((s) => ({ ...s, freq: 440 }))
+        return
+      }
+      const freq = 20 * Math.pow(1000, elapsed / duration)
       setSpeakers((s) => ({ ...s, freq: Math.min(20000, Math.round(freq)) }))
       requestAnimationFrame(update)
     }
     requestAnimationFrame(update)
-    osc.stop(ctx.currentTime + 8)
+    osc.stop(ctx.currentTime + duration)
   }
 
   /* ================= Full run ================= */
@@ -1517,8 +1541,11 @@ export default function BenchmarkTool() {
   return (
     <>
       {fsSequence && (
-        <div id="bx-fsOverlay" style={{ display: 'flex' }} onClick={advanceFullscreen}>
+        <div id="bx-fsOverlay" ref={fsOverlayRef} style={{ display: 'flex' }} onClick={advanceFullscreen}>
           <div style={{ width: '100%', height: '100%', background: fsSequence[fsIndex] }} />
+          <button type="button" className="bx-fs-toggle" onClick={toggleFullscreen}>
+            {typeof document !== 'undefined' && document.fullscreenElement ? 'Exit fullscreen' : 'Go fullscreen'}
+          </button>
           <div className="bx-hint">click / tap or press any key to advance - ESC to exit</div>
         </div>
       )}
