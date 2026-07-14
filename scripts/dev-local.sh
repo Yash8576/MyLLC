@@ -49,9 +49,9 @@ trap 'echo ""; echo "Stopping all services..."; kill 0' EXIT INT TERM
 
 # ── Cloud SQL Proxy ──────────────────────────────────────────
 echo "==> Starting Cloud SQL Auth Proxy..."
-"$PROXY" --port=5433 "nexalgo-ace83:us-east4:nexalgo-ace83-instance"   &
-"$PROXY" --port=5434 "nanolink-498216:us-east4:nanolink-c1bc5-instance" &
-"$PROXY" --port=5435 "buzzcart-daeb6:us-east4:buzzcart-daeb6-instance"  &
+"$PROXY" --port=5433 "nexalgo-mig01:us-east4:nexalgo-mig01-instance"   &
+"$PROXY" --port=5434 "nanolink-mig01:us-east4:nanolink-mig01-instance" &
+"$PROXY" --port=5435 "buzzcart-mig01:us-east4:buzzcart-mig01-instance"  &
 
 echo "    Waiting for proxies to be ready..."
 sleep 3

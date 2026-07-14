@@ -8,7 +8,7 @@ spec:
       annotations:
         autoscaling.knative.dev/minScale: "0"
         autoscaling.knative.dev/maxScale: "10"
-        run.googleapis.com/cloudsql-instances: buzzcart-daeb6:us-east4:buzzcart-daeb6-instance
+        run.googleapis.com/cloudsql-instances: buzzcart-mig01:us-east4:buzzcart-mig01-instance
         run.googleapis.com/vpc-access-connector: projects/YOUR_GCP_PROJECT_ID/locations/us-east4/connectors/YOUR_VPC_CONNECTOR
         run.googleapis.com/vpc-access-egress: private-ranges-only
     spec:
@@ -22,7 +22,7 @@ spec:
             - name: PORT
               value: "8080"
             - name: DATABASE_URL
-              value: postgres://buzzcart_app:replace-me@/buzzcart-daeb6-database?host=/cloudsql/buzzcart-daeb6:us-east4:buzzcart-daeb6-instance
+              value: postgres://buzzcart_app:replace-me@/buzzcart-daeb6-database?host=/cloudsql/buzzcart-mig01:us-east4:buzzcart-mig01-instance
             - name: JWT_SECRET
               value: replace-with-a-long-random-secret
             - name: REDIS_URL
@@ -30,9 +30,9 @@ spec:
             - name: ALLOWED_FRONTEND_ORIGINS
               value: https://your-frontend-domain.web.app,https://your-custom-domain.com
             - name: FIREBASE_PROJECT_ID
-              value: buzzcart-daeb6
+              value: buzzcart-mig01
             - name: FIREBASE_STORAGE_BUCKET
-              value: gs://buzzcart-daeb6.firebasestorage.app
+              value: gs://buzzcart-mig01.firebasestorage.app
             - name: FIREBASE_STORAGE_LOCATION
               value: us-east1
             - name: FIREBASE_STORAGE_PUBLIC_BASE_URL

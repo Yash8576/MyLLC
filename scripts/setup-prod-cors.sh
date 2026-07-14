@@ -8,19 +8,19 @@
 #
 # Prerequisites: gcloud CLI installed and authenticated
 #   gcloud auth login
-#   gcloud config set project nexalgo-ace83   (or nanolink-498216)
+#   gcloud config set project nexalgo-mig01   (or nanolink-mig01)
 
 set -e
 
 echo "==> Fetching production Cloud Run URLs..."
 
 NEXALGO_URL=$(gcloud run services describe nexalgo-backend \
-  --project nexalgo-ace83 \
+  --project nexalgo-mig01 \
   --region us-east4 \
   --format='value(status.url)' 2>/dev/null) || { echo "ERROR: Could not fetch nexalgo-backend URL. Is gcloud authenticated?"; exit 1; }
 
 NANOLINK_URL=$(gcloud run services describe nanolink-backend \
-  --project nanolink-498216 \
+  --project nanolink-mig01 \
   --region us-east4 \
   --format='value(status.url)' 2>/dev/null) || { echo "ERROR: Could not fetch nanolink-backend URL."; exit 1; }
 
@@ -31,13 +31,13 @@ echo "    NanoLink: $NANOLINK_URL"
 echo ""
 echo "==> Updating CORS on NexAlgo backend (adds http://localhost:3000)..."
 gcloud run services update nexalgo-backend \
-  --project nexalgo-ace83 \
+  --project nexalgo-mig01 \
   --region us-east4 \
   --update-env-vars "^;^CORS_ORIGIN=https://nexacoreglobal.org,http://localhost:3000"
 
 echo "==> Updating CORS on NanoLink backend (adds http://localhost:3000,http://localhost:3001)..."
 gcloud run services update nanolink-backend \
-  --project nanolink-498216 \
+  --project nanolink-mig01 \
   --region us-east4 \
   --update-env-vars "^;^CORS_ORIGIN=https://nexacoreglobal.org/projects/nanolink,http://localhost:3000,http://localhost:3001"
 

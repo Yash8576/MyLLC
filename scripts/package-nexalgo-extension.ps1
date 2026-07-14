@@ -2,7 +2,7 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$ApiBaseUrl,
   [string]$WebBaseUrl = "https://nexacoreglobal.org/projects/nexalgo",
-  [string]$FirebaseApiKey = "AIzaSyChiOs7D_dHdXY4aadUfJyB-6f6XFXPPwo",
+  [string]$FirebaseApiKey = "AIzaSyAUX-zIMiYyjHBEik2tXkP91jbxbH-4ojU",
   [string]$OutputDir = "projects\nexalgo\extension\dist"
 )
 
