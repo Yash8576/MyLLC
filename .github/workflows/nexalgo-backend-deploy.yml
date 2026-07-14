@@ -22,10 +22,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GCP_PROJECT_ID: nexalgo-ace83
+  GCP_PROJECT_ID: nexalgo-mig01
   GCP_REGION: us-east4
   CLOUD_RUN_SERVICE: nexalgo-backend
-  CLOUD_SQL_INSTANCE: nexalgo-ace83:us-east4:nexalgo-ace83-instance
+  CLOUD_SQL_INSTANCE: nexalgo-mig01:us-east4:nexalgo-mig01-instance
 
 jobs:
   build:
@@ -186,7 +186,7 @@ jobs:
           NODE_ENV: "production"
           CORS_ORIGIN: "https://nexacoreglobal.org,http://localhost:3000"
           DATABASE_URL: "${NEXALGO_DATABASE_URL}"
-          FIREBASE_PROJECT_ID: "nexalgo-ace83"
+          FIREBASE_PROJECT_ID: "nexalgo-mig01"
           FIREBASE_CLIENT_EMAIL: "${FIREBASE_CLIENT_EMAIL}"
           FIREBASE_PRIVATE_KEY: "${FIREBASE_PRIVATE_KEY}"
           OPENAI_API_KEY: "${NEXALGO_OPENAI_API_KEY}"

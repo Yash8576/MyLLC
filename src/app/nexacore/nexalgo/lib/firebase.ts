@@ -12,12 +12,12 @@ const firebaseEnv = {
 }
 
 const firebaseConfig = {
-  apiKey: firebaseEnv.apiKey ?? 'AIzaSyChiOs7D_dHdXY4aadUfJyB-6f6XFXPPwo',
-  authDomain: firebaseEnv.authDomain ?? 'nexalgo-ace83.firebaseapp.com',
-  projectId: firebaseEnv.projectId ?? 'nexalgo-ace83',
-  storageBucket: firebaseEnv.storageBucket ?? 'nexalgo-ace83.firebasestorage.app',
-  messagingSenderId: firebaseEnv.messagingSenderId ?? '140224951663',
-  appId: firebaseEnv.appId ?? '1:140224951663:web:5c5ba53ca43443ff36a49a',
+  apiKey: firebaseEnv.apiKey ?? 'AIzaSyAUX-zIMiYyjHBEik2tXkP91jbxbH-4ojU',
+  authDomain: firebaseEnv.authDomain ?? 'nexalgo-mig01.firebaseapp.com',
+  projectId: firebaseEnv.projectId ?? 'nexalgo-mig01',
+  storageBucket: firebaseEnv.storageBucket ?? 'nexalgo-mig01.firebasestorage.app',
+  messagingSenderId: firebaseEnv.messagingSenderId ?? '335068424622',
+  appId: firebaseEnv.appId ?? '1:335068424622:web:5a847f185fe6a532bd003f',
 }
 
 export const requiredFirebaseEnvKeys = [

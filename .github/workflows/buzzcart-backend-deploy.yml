@@ -22,11 +22,12 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GCP_PROJECT_ID: buzzcart-daeb6
+  GCP_PROJECT_ID: buzzcart-mig01
   GCP_REGION: us-east4
   CLOUD_RUN_SERVICE: buzzcart-backend
-  CLOUD_SQL_INSTANCE: buzzcart-daeb6:us-east4:buzzcart-daeb6-instance
-  CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT: all-permissions@buzzcart-daeb6.iam.gserviceaccount.com
+  CLOUD_SQL_INSTANCE: buzzcart-mig01:us-east4:buzzcart-mig01-instance
+  CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT: all-permissions@buzzcart-mig01.iam.gserviceaccount.com
+  VPC_CONNECTOR: buzzcart-vpc
 
 jobs:
   backend-build:
@@ -114,7 +115,7 @@ jobs:
             exit 1
           fi
 
-          if [[ "$ACTIVE_ACCOUNT" == *"nexalgo-ace83"* ]]; then
+          if [[ "$ACTIVE_ACCOUNT" == *"nexalgo-mig01"* ]]; then
             echo "::error::BuzzCart deploy is authenticated as the NexAlgo service account. Configure BUZZCART_GCP_* GitHub secrets for project $GCP_PROJECT_ID."
             exit 1
           fi
@@ -162,8 +163,8 @@ jobs:
           JWT_SECRET: "${BUZZCART_JWT_SECRET}"
           REDIS_URL: "${BUZZCART_REDIS_URL}"
           ALLOWED_FRONTEND_ORIGINS: "${BUZZCART_ALLOWED_FRONTEND_ORIGINS}"
-          FIREBASE_PROJECT_ID: "buzzcart-daeb6"
-          FIREBASE_STORAGE_BUCKET: "gs://buzzcart-daeb6.firebasestorage.app"
+          FIREBASE_PROJECT_ID: "buzzcart-mig01"
+          FIREBASE_STORAGE_BUCKET: "gs://buzzcart-mig01.firebasestorage.app"
           FIREBASE_STORAGE_LOCATION: "us-east1"
           FIREBASE_STORAGE_PUBLIC_BASE_URL: "https://firebasestorage.googleapis.com/v0/b"
           EOF
@@ -181,6 +182,8 @@ jobs:
             --allow-unauthenticated
             --service-account "$CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT"
             --add-cloudsql-instances "$CLOUD_SQL_INSTANCE"
+            --vpc-connector "$VPC_CONNECTOR"
+            --vpc-egress private-ranges-only
           )
 
           if [[ "${{ steps.env-config.outputs.mode }}" == "file" ]]; then

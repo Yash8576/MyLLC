@@ -1,5 +1,5 @@
 param(
-    [string]$InstanceConnectionName = "buzzcart-daeb6:us-east4:buzzcart-daeb6-instance",
+    [string]$InstanceConnectionName = "buzzcart-mig01:us-east4:buzzcart-mig01-instance",
     [int]$Port = 5432
 )
 

@@ -1,11 +1,11 @@
 [CmdletBinding()]
 param(
-    [string]$ProjectId = "buzzcart-daeb6",
+    [string]$ProjectId = "buzzcart-mig01",
     [string]$Region = "us-east4",
     [string]$ServiceName = "buzzcart-backend",
-    [string]$CloudSqlInstance = "buzzcart-daeb6:us-east4:buzzcart-daeb6-instance",
+    [string]$CloudSqlInstance = "buzzcart-mig01:us-east4:buzzcart-mig01-instance",
     [string]$EnvFile = "..\\cloudrun.env.example",
-    [string]$VpcConnector = "",
+    [string]$VpcConnector = "buzzcart-vpc",
     [string]$VpcEgress = "private-ranges-only"
 )
 

@@ -8,12 +8,12 @@ const firebaseConfig = {
     process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain:
     process.env.NEXT_PUBLIC_NANOLINK_FIREBASE_AUTH_DOMAIN ??
-    'nanolink-c1bc5.firebaseapp.com',
+    'nanolink-mig01.firebaseapp.com',
   projectId:
-    process.env.NEXT_PUBLIC_NANOLINK_FIREBASE_PROJECT_ID ?? 'nanolink-c1bc5',
+    process.env.NEXT_PUBLIC_NANOLINK_FIREBASE_PROJECT_ID ?? 'nanolink-mig01',
   storageBucket:
     process.env.NEXT_PUBLIC_NANOLINK_FIREBASE_STORAGE_BUCKET ??
-    'nanolink-c1bc5.firebasestorage.app',
+    'nanolink-mig01.firebasestorage.app',
   messagingSenderId:
     process.env.NEXT_PUBLIC_NANOLINK_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_NANOLINK_FIREBASE_APP_ID,

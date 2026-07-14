@@ -22,10 +22,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GCP_PROJECT_ID: nanolink-498216
+  GCP_PROJECT_ID: nanolink-mig01
   GCP_REGION: us-east4
   CLOUD_RUN_SERVICE: nanolink-backend
-  CLOUD_SQL_INSTANCE: nanolink-498216:us-east4:nanolink-c1bc5-instance
+  CLOUD_SQL_INSTANCE: nanolink-mig01:us-east4:nanolink-mig01-instance
   PUBLIC_BASE_URL: https://nexacoreglobal.org
   FRONTEND_URL: https://nexacoreglobal.org/projects/nanolink
 
@@ -125,7 +125,7 @@ jobs:
           NODE_ENV: "production"
           PUBLIC_BASE_URL: "$PUBLIC_BASE_URL"
           CORS_ORIGIN: "$FRONTEND_URL"
-          FIREBASE_PROJECT_ID: "nanolink-c1bc5"
+          FIREBASE_PROJECT_ID: "nanolink-mig01"
           DB_HOST: "/cloudsql/$CLOUD_SQL_INSTANCE"
           DB_PORT: "5432"
           DB_USER: "nanolink_app"
