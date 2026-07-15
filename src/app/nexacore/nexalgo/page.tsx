@@ -178,6 +178,18 @@ function sortAlpha(values: string[]) {
   return [...values].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
 }
 
+// Editorial prose (intuition, walkthrough body) is written one bullet point
+// per line. Split on newlines and strip any leading "-"/"•"/"*" marker the
+// model may have added, so we render clean <li> bullets instead of a single
+// wall-of-text paragraph.
+function splitBulletLines(text: string): string[] {
+  if (!text) return []
+  return text
+    .split(/\n+/)
+    .map((line) => line.trim().replace(/^[-•*]\s*/, ''))
+    .filter(Boolean)
+}
+
 function isLocalNexalgoPreview() {
   if (typeof window === 'undefined') return false
   return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
@@ -1522,11 +1534,6 @@ export default function NexAlgoPage() {
 
                 <div className='nexalgo-detail-sections'>
                   <section className='nexalgo-section'>
-                    <h3>Problem statement</h3>
-                    <p>{selectedProblem.problemStatement}</p>
-                  </section>
-
-                  <section className='nexalgo-section'>
                     <h3>Topics</h3>
                     <div className='nexalgo-topic-row'>
                       {selectedProblem.topics.map((topic) => (
@@ -1549,7 +1556,7 @@ export default function NexAlgoPage() {
                   </section>
 
                   <section className='nexalgo-section'>
-                    <h3>Clarifying questions / hints</h3>
+                    <h3>Hints</h3>
                     <ul>
                       {selectedProblem.hints.map((hint) => (
                         <li key={hint}>{hint}</li>
@@ -1559,7 +1566,15 @@ export default function NexAlgoPage() {
 
                   <section className='nexalgo-section'>
                     <h3>Intuition</h3>
-                    <p>{selectedProblem.intuition || 'Editorial intuition will appear after review.'}</p>
+                    {selectedProblem.intuition ? (
+                      <ul>
+                        {splitBulletLines(selectedProblem.intuition).map((line, index) => (
+                          <li key={index}>{line}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p>Editorial intuition will appear after review.</p>
+                    )}
                   </section>
 
                   <section className='nexalgo-section'>
@@ -1607,12 +1622,18 @@ export default function NexAlgoPage() {
                         part.label ? (
                           <div className='nexalgo-approach-block' key={index}>
                             <p className='nexalgo-approach-label'>{part.label}</p>
-                            <p className='nexalgo-approach-textbox'>{part.body}</p>
+                            <ul className='nexalgo-approach-textbox'>
+                              {splitBulletLines(part.body).map((line, lineIndex) => (
+                                <li key={lineIndex}>{line}</li>
+                              ))}
+                            </ul>
                           </div>
                         ) : (
-                          <p className='nexalgo-approach-intro' key={index}>
-                            {part.body}
-                          </p>
+                          <ul key={index}>
+                            {splitBulletLines(part.body).map((line, lineIndex) => (
+                              <li key={lineIndex}>{line}</li>
+                            ))}
+                          </ul>
                         ),
                       )
                     ) : (
