@@ -6,6 +6,7 @@ import type {
   ReviewQueueItem,
   ScrapedProblemInput,
   SessionUser,
+  ThemePreference,
 } from './types'
 
 const apiBaseUrl =
@@ -56,15 +57,16 @@ export const nexalgoApi = {
       (result) => result.user,
     ),
   getPreference: async (idToken: string) =>
-    request<{ preference: { defaultLanguage: LanguageKey } | null }>(
-      '/users/me/preferences',
-      undefined,
-      idToken,
-    ).then((result) => result.preference),
-  updatePreference: async (idToken: string, defaultLanguage: LanguageKey) =>
+    request<{
+      preference: { defaultLanguage: LanguageKey; theme: ThemePreference } | null
+    }>('/users/me/preferences', undefined, idToken).then((result) => result.preference),
+  updatePreference: async (
+    idToken: string,
+    updates: { defaultLanguage?: LanguageKey; theme?: ThemePreference },
+  ) =>
     request('/users/me/preferences', {
       method: 'PUT',
-      body: JSON.stringify({ defaultLanguage }),
+      body: JSON.stringify(updates),
     }, idToken),
   updateProgress: async (
     idToken: string,

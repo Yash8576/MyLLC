@@ -45,11 +45,16 @@ problemsRouter.get(
 )
 
 problemsRouter.put('/users/me/preferences', authenticateRequest, asyncRoute(async (req: AuthenticatedRequest, res) => {
-  const schema = z.object({
-    defaultLanguage: z.enum(['python', 'java', 'cpp']),
-  })
+  const schema = z
+    .object({
+      defaultLanguage: z.enum(['python', 'java', 'cpp']).optional(),
+      theme: z.enum(['dark', 'light', 'device']).optional(),
+    })
+    .refine((body) => body.defaultLanguage !== undefined || body.theme !== undefined, {
+      message: 'At least one of defaultLanguage or theme is required.',
+    })
   const body = schema.parse(req.body)
-  const preference = await upsertUserPreference(req.currentUser!.id, body.defaultLanguage)
+  const preference = await upsertUserPreference(req.currentUser!.id, body)
   res.json({ preference })
 }))
 

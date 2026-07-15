@@ -1,4 +1,5 @@
 export type LanguageKey = 'python' | 'java' | 'cpp'
+export type ThemePreference = 'device' | 'dark' | 'light'
 export type ProblemProgressStatus = 'unvisited' | 'visited' | 'attempted' | 'solved'
 export type ProblemProgressRecord = {
   problemId: string

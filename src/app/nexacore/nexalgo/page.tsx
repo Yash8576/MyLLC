@@ -20,6 +20,7 @@ import type {
   ReviewQueueItem,
   ScrapedProblemInput,
   SessionUser,
+  ThemePreference,
 } from './lib/types'
 import './NexAlgo.css'
 
@@ -32,7 +33,6 @@ const LANGUAGE_OPTIONS: Array<{ value: LanguageKey; label: string }> = [
 const LANGUAGE_STORAGE_KEY = 'nexalgoDefaultLanguage'
 const THEME_STORAGE_KEY = 'nexalgoThemePreference'
 
-type ThemePreference = 'device' | 'dark' | 'light'
 type ResolvedTheme = 'dark' | 'light'
 
 const THEME_OPTIONS: Array<{ value: ThemePreference; label: string }> = [
@@ -599,9 +599,14 @@ export default function NexAlgoPage() {
     return () => media.removeEventListener('change', onChange)
   }, [])
 
-  function handleThemeChange(next: ThemePreference) {
+  async function handleThemeChange(next: ThemePreference) {
     setThemePreference(next)
     window.localStorage.setItem(THEME_STORAGE_KEY, next)
+
+    if (!firebaseUser) return
+
+    const idToken = await firebaseUser.getIdToken()
+    await nexalgoApi.updatePreference(idToken, { theme: next })
   }
 
   useEffect(() => {
@@ -692,6 +697,13 @@ export default function NexAlgoPage() {
         ) {
           setSelectedLanguage(preference.defaultLanguage)
           window.localStorage.setItem(LANGUAGE_STORAGE_KEY, preference.defaultLanguage)
+        }
+        if (
+          preference?.theme &&
+          THEME_OPTIONS.some((option) => option.value === preference.theme)
+        ) {
+          setThemePreference(preference.theme)
+          window.localStorage.setItem(THEME_STORAGE_KEY, preference.theme)
         }
       } catch (error) {
         setAuthError(error instanceof Error ? error.message : 'Unable to start session.')
@@ -862,7 +874,7 @@ export default function NexAlgoPage() {
     if (!firebaseUser) return
 
     const idToken = await firebaseUser.getIdToken()
-    await nexalgoApi.updatePreference(idToken, language)
+    await nexalgoApi.updatePreference(idToken, { defaultLanguage: language })
   }
 
   async function updateProgress(
@@ -1106,7 +1118,7 @@ export default function NexAlgoPage() {
                       themePreference === option.value ? ' active' : ''
                     }`}
                     aria-pressed={themePreference === option.value}
-                    onClick={() => handleThemeChange(option.value)}>
+                    onClick={() => void handleThemeChange(option.value)}>
                     {option.label}
                   </button>
                 ))}

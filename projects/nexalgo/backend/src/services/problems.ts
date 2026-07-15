@@ -380,13 +380,16 @@ export async function regenerateSubmissionContent(submissionId: string) {
   })
 }
 
-export async function upsertUserPreference(userId: string, defaultLanguage: string) {
+export async function upsertUserPreference(
+  userId: string,
+  updates: { defaultLanguage?: string; theme?: string },
+) {
   return prisma.userPreference.upsert({
     where: { userId },
-    update: { defaultLanguage },
+    update: updates,
     create: {
       userId,
-      defaultLanguage,
+      ...updates,
     },
   })
 }
