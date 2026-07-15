@@ -592,7 +592,7 @@
 }
 
 .nexalgo-detail-body {
-  max-width: 880px;
+  max-width: 760px;
   margin: 0 auto;
   padding: 30px 36px 90px;
 }
@@ -652,7 +652,7 @@
 
 /* sections, modelled on the "sec" pattern from the reference design */
 .nexalgo-section {
-  margin: 18px 0 0;
+  margin: 34px 0 0;
   padding: 0;
 }
 
@@ -669,16 +669,17 @@
   text-transform: uppercase;
   color: var(--nx-ink);
   font-weight: 600;
-  margin: 0 0 8px;
+  margin: 0 0 14px;
   padding-bottom: 6px;
   border-bottom: 1px solid var(--nx-line);
 }
 
 .nexalgo-section p {
-  color: var(--nx-ink-dim);
-  font-size: 14.5px;
-  line-height: 1.62;
+  color: #b0b9c2;
+  font-size: 15.5px;
+  line-height: 1.75;
   margin: 0;
+  white-space: pre-line;
 }
 
 .nexalgo-section ul {
@@ -687,15 +688,15 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: 12px;
 }
 
 .nexalgo-section ul li {
   position: relative;
   padding-left: 22px;
-  color: var(--nx-ink-dim);
-  font-size: 14px;
-  line-height: 1.55;
+  color: #b0b9c2;
+  font-size: 14.5px;
+  line-height: 1.65;
 }
 
 .nexalgo-section ul li::before {
@@ -842,7 +843,7 @@
 }
 
 .nexalgo-approach-block {
-  margin-bottom: 18px;
+  margin-bottom: 22px;
 }
 
 .nexalgo-approach-label {
@@ -851,7 +852,7 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--nx-signal);
-  margin: 0 0 8px;
+  margin: 0 0 10px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -864,19 +865,42 @@
   background: var(--nx-line);
 }
 
-.nexalgo-complexity-box {
-  margin-top: 10px;
-  font-family: var(--nx-mono);
-  font-size: 12px;
-  color: var(--nx-ink-dim);
-  padding: 10px 13px;
+.nexalgo-approach-textbox {
+  padding: 16px 18px;
   border: 1px solid var(--nx-line);
   border-left: 2px solid var(--nx-signal);
   background: var(--nx-panel);
 }
 
+.nexalgo-approach-intro {
+  margin: 0 0 18px;
+}
+
+.nexalgo-complexity-box {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .nexalgo-complexity-box b {
   color: var(--nx-ink);
+}
+
+.nexalgo-complexity-box .nexalgo-complexity-row {
+  margin: 0;
+  font-family: var(--nx-mono);
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--nx-ink-dim);
+  white-space: normal;
+}
+
+.nexalgo-complexity-row-label {
+  display: inline-block;
+  min-width: 52px;
+  margin-right: 8px;
+  color: var(--nx-signal);
+  font-weight: 600;
 }
 
 .nexalgo-talk-block {

@@ -450,6 +450,46 @@ function splitApproaches(code: string): { bruteForce: string; optimal: string } 
   }
 }
 
+// Editorial prose (walkthrough, complexity analysis) is written as separate
+// paragraphs per approach - e.g. "Brute force: ...\n\nOptimal: ..." - so split
+// on blank lines and pull the leading "Label: " off each paragraph to render
+// every approach in its own box instead of one undifferentiated paragraph.
+function splitLabeledParagraphs(text: string): { label: string; body: string }[] {
+  if (!text) {
+    return []
+  }
+
+  return text
+    .split(/\n\s*\n/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean)
+    .map((paragraph) => {
+      const match = paragraph.match(/^([^:\n]{1,90}):\s*/)
+      if (!match) {
+        return { label: '', body: paragraph }
+      }
+      return { label: match[1].trim(), body: paragraph.slice(match[0].length).trim() }
+    })
+}
+
+// Complexity paragraphs are written as "Time ...; Space ..." - split on that
+// semicolon boundary so time and space render as their own rows instead of
+// one run-on sentence.
+function splitTimeSpace(body: string): { label: string; body: string }[] {
+  const parts = body.split(/;\s*(?=Space\b)/)
+  if (parts.length !== 2) {
+    return [{ label: '', body }]
+  }
+
+  return parts.map((part) => {
+    const match = part.trim().match(/^(Time|Space)\b\s*/)
+    if (!match) {
+      return { label: '', body: part.trim() }
+    }
+    return { label: match[1], body: part.trim().slice(match[0].length).trim() }
+  })
+}
+
 export default function NexAlgoPage() {
   const pathname = usePathname()
   const router = useRouter()
@@ -1406,14 +1446,55 @@ export default function NexAlgoPage() {
 
                   <section className='nexalgo-section'>
                     <h3>Code walkthrough</h3>
-                    <p>{selectedProblem.walkthrough || 'Walkthrough pending.'}</p>
+                    {selectedProblem.walkthrough ? (
+                      splitLabeledParagraphs(selectedProblem.walkthrough).map((part, index) =>
+                        part.label ? (
+                          <div className='nexalgo-approach-block' key={index}>
+                            <p className='nexalgo-approach-label'>{part.label}</p>
+                            <p className='nexalgo-approach-textbox'>{part.body}</p>
+                          </div>
+                        ) : (
+                          <p className='nexalgo-approach-intro' key={index}>
+                            {part.body}
+                          </p>
+                        ),
+                      )
+                    ) : (
+                      <p>Walkthrough pending.</p>
+                    )}
                   </section>
 
                   <section className='nexalgo-section'>
                     <h3>Complexity analysis</h3>
-                    <p className='nexalgo-complexity-box'>
-                      {selectedProblem.complexityAnalysis || 'Complexity analysis pending.'}
-                    </p>
+                    {selectedProblem.complexityAnalysis ? (
+                      splitLabeledParagraphs(selectedProblem.complexityAnalysis).map((part, index) =>
+                        part.label ? (
+                          <div className='nexalgo-approach-block' key={index}>
+                            <p className='nexalgo-approach-label'>{part.label}</p>
+                            <div className='nexalgo-approach-textbox nexalgo-complexity-box'>
+                              {splitTimeSpace(part.body).map((row, rowIndex) =>
+                                row.label ? (
+                                  <p className='nexalgo-complexity-row' key={rowIndex}>
+                                    <span className='nexalgo-complexity-row-label'>{row.label}</span>
+                                    {row.body}
+                                  </p>
+                                ) : (
+                                  <p className='nexalgo-complexity-row' key={rowIndex}>
+                                    {row.body}
+                                  </p>
+                                ),
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <p className='nexalgo-approach-intro' key={index}>
+                            {part.body}
+                          </p>
+                        ),
+                      )
+                    ) : (
+                      <p>Complexity analysis pending.</p>
+                    )}
                   </section>
 
                   {false ? (
