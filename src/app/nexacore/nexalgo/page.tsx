@@ -171,6 +171,13 @@ function getPrimaryPlatform(problem: ProblemRecord) {
   return problem.sources[0]?.platform || 'unknown'
 }
 
+// Case-insensitive alphabetical sort, so lowercase-leading names (e.g. "eBay",
+// "tcs") interleave correctly with uppercase ones instead of clumping at the
+// end under a plain default `.sort()`.
+function sortAlpha(values: string[]) {
+  return [...values].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+}
+
 function isLocalNexalgoPreview() {
   if (typeof window === 'undefined') return false
   return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
@@ -760,13 +767,13 @@ export default function NexAlgoPage() {
 
   const navItems = useMemo(() => {
     if (activeNav === 'platform') {
-      return Array.from(new Set(problems.map(getPrimaryPlatform))).sort()
+      return sortAlpha(Array.from(new Set(problems.map(getPrimaryPlatform))))
     }
     if (activeNav === 'companies') {
-      return Array.from(new Set(problems.flatMap((problem) => problem.companies))).sort()
+      return sortAlpha(Array.from(new Set(problems.flatMap((problem) => problem.companies))))
     }
     if (activeNav === 'topics') {
-      return Array.from(new Set(problems.flatMap((problem) => problem.topics))).sort()
+      return sortAlpha(Array.from(new Set(problems.flatMap((problem) => problem.topics))))
     }
     return ['easy', 'medium', 'hard']
   }, [activeNav, problems])
@@ -1533,7 +1540,7 @@ export default function NexAlgoPage() {
                   <section className='nexalgo-section'>
                     <h3>Companies</h3>
                     <div className='nexalgo-company-row'>
-                      {selectedProblem.companies.map((company) => (
+                      {sortAlpha(selectedProblem.companies).map((company) => (
                         <span key={company} className='nexalgo-chip'>
                           {company}
                         </span>
