@@ -391,6 +391,10 @@ export async function upsertUserPreference(userId: string, defaultLanguage: stri
   })
 }
 
+export async function getUserPreference(userId: string) {
+  return prisma.userPreference.findUnique({ where: { userId } })
+}
+
 export async function listUserProgress(userId: string) {
   const records = await prisma.userProblemProgress.findMany({
     where: { userId },

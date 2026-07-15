@@ -4,6 +4,7 @@ import { asyncRoute } from '../middleware/asyncRoute.js'
 import { authenticateRequest, type AuthenticatedRequest } from '../middleware/auth.js'
 import {
   getProblemById,
+  getUserPreference,
   listPublishedProblems,
   listUserProgress,
   lookupProblem,
@@ -33,6 +34,15 @@ problemsRouter.post('/problems/lookup', asyncRoute(async (req, res) => {
   const problem = await lookupProblem(input)
   res.json({ problem })
 }))
+
+problemsRouter.get(
+  '/users/me/preferences',
+  authenticateRequest,
+  asyncRoute(async (req: AuthenticatedRequest, res) => {
+    const preference = await getUserPreference(req.currentUser!.id)
+    res.json({ preference })
+  }),
+)
 
 problemsRouter.put('/users/me/preferences', authenticateRequest, asyncRoute(async (req: AuthenticatedRequest, res) => {
   const schema = z.object({

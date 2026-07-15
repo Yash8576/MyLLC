@@ -682,6 +682,17 @@ export default function NexAlgoPage() {
         setStatusMap(
           Object.fromEntries(progress.map((entry) => [entry.problemId, entry.status])),
         )
+
+        // Saved account preference wins over whatever's in localStorage
+        // (e.g. signing in on a different device/browser).
+        const preference = await nexalgoApi.getPreference(idToken)
+        if (
+          preference?.defaultLanguage &&
+          LANGUAGE_OPTIONS.some((option) => option.value === preference.defaultLanguage)
+        ) {
+          setSelectedLanguage(preference.defaultLanguage)
+          window.localStorage.setItem(LANGUAGE_STORAGE_KEY, preference.defaultLanguage)
+        }
       } catch (error) {
         setAuthError(error instanceof Error ? error.message : 'Unable to start session.')
       }
@@ -1096,6 +1107,23 @@ export default function NexAlgoPage() {
                     }`}
                     aria-pressed={themePreference === option.value}
                     onClick={() => handleThemeChange(option.value)}>
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className='nexalgo-menu-section'>
+              <h3>Default language</h3>
+              <div className='nexalgo-theme-options' role='group' aria-label='Default language'>
+                {LANGUAGE_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    type='button'
+                    className={`nexalgo-theme-btn${
+                      selectedLanguage === option.value ? ' active' : ''
+                    }`}
+                    aria-pressed={selectedLanguage === option.value}
+                    onClick={() => void persistLanguage(option.value)}>
                     {option.label}
                   </button>
                 ))}

@@ -55,6 +55,12 @@ export const nexalgoApi = {
     request<{ user: SessionUser }>('/auth/session', { method: 'POST', body: '{}' }, idToken).then(
       (result) => result.user,
     ),
+  getPreference: async (idToken: string) =>
+    request<{ preference: { defaultLanguage: LanguageKey } | null }>(
+      '/users/me/preferences',
+      undefined,
+      idToken,
+    ).then((result) => result.preference),
   updatePreference: async (idToken: string, defaultLanguage: LanguageKey) =>
     request('/users/me/preferences', {
       method: 'PUT',
