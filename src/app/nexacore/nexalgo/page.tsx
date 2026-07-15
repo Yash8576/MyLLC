@@ -30,6 +30,16 @@ const LANGUAGE_OPTIONS: Array<{ value: LanguageKey; label: string }> = [
 ]
 
 const LANGUAGE_STORAGE_KEY = 'nexalgoDefaultLanguage'
+const THEME_STORAGE_KEY = 'nexalgoThemePreference'
+
+type ThemePreference = 'device' | 'dark' | 'light'
+type ResolvedTheme = 'dark' | 'light'
+
+const THEME_OPTIONS: Array<{ value: ThemePreference; label: string }> = [
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+  { value: 'device', label: 'Device' },
+]
 const LOCAL_SESSION_USER: SessionUser = {
   id: 'local-preview',
   firebaseUid: 'local-preview',
@@ -490,6 +500,41 @@ function splitTimeSpace(body: string): { label: string; body: string }[] {
   })
 }
 
+type SolutionApproach = 'bruteForce' | 'optimal'
+
+const APPROACH_OPTIONS: Array<{ value: SolutionApproach; label: string }> = [
+  { value: 'bruteForce', label: 'Brute force' },
+  { value: 'optimal', label: 'Optimal' },
+]
+
+// Classify an editorial paragraph label ("Brute force", "Optimal", "Naive
+// approach", ...) into an approach so walkthrough/complexity prose can be
+// filtered to match the selected code approach. Returns null for general
+// (intro / unlabeled) paragraphs, which stay visible under either approach.
+function classifyApproachLabel(label: string): SolutionApproach | null {
+  const value = label.toLowerCase()
+  if (/brute|naive|naïve/.test(value)) return 'bruteForce'
+  if (/optimal|optimi[sz]ed|efficient/.test(value)) return 'optimal'
+  return null
+}
+
+// Keep only the paragraphs belonging to the selected approach (plus any
+// general/unlabeled ones). If the prose isn't split by approach at all, leave
+// it untouched so nothing disappears for problems with a single write-up.
+function filterParagraphsByApproach(
+  parts: { label: string; body: string }[],
+  approach: SolutionApproach,
+): { label: string; body: string }[] {
+  const hasApproachLabels = parts.some((part) => classifyApproachLabel(part.label) !== null)
+  if (!hasApproachLabels) {
+    return parts
+  }
+  return parts.filter((part) => {
+    const tag = classifyApproachLabel(part.label)
+    return tag === null || tag === approach
+  })
+}
+
 export default function NexAlgoPage() {
   const pathname = usePathname()
   const router = useRouter()
@@ -511,6 +556,7 @@ export default function NexAlgoPage() {
   const [queue, setQueue] = useState<ReviewQueueItem[]>([])
   const [selectedProblemId, setSelectedProblemId] = useState<string>('')
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageKey>('python')
+  const [selectedApproach, setSelectedApproach] = useState<SolutionApproach>('bruteForce')
   const [statusMap, setStatusMap] = useState<Record<string, ProblemProgressStatus>>({})
   const [showDraftModal, setShowDraftModal] = useState(false)
   const [draftError, setDraftError] = useState('')
@@ -526,12 +572,37 @@ export default function NexAlgoPage() {
   const [topicFilters, setTopicFilters] = useState<string[]>([])
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [listPaneCollapsed, setListPaneCollapsed] = useState(false)
+  const [themePreference, setThemePreference] = useState<ThemePreference>('device')
+  const [systemPrefersDark, setSystemPrefersDark] = useState(true)
+
+  const resolvedTheme: ResolvedTheme =
+    themePreference === 'device' ? (systemPrefersDark ? 'dark' : 'light') : themePreference
 
   useEffect(() => {
     if (pathname?.startsWith('/nexacore/')) {
       router.replace('/projects/nexalgo')
     }
   }, [pathname, router])
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem(THEME_STORAGE_KEY) as ThemePreference | null
+    if (stored && THEME_OPTIONS.some((option) => option.value === stored)) {
+      setThemePreference(stored)
+    }
+  }, [])
+
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+    setSystemPrefersDark(media.matches)
+    const onChange = (event: MediaQueryListEvent) => setSystemPrefersDark(event.matches)
+    media.addEventListener('change', onChange)
+    return () => media.removeEventListener('change', onChange)
+  }, [])
+
+  function handleThemeChange(next: ThemePreference) {
+    setThemePreference(next)
+    window.localStorage.setItem(THEME_STORAGE_KEY, next)
+  }
 
   useEffect(() => {
     setIsLocalPreview(isLocalNexalgoPreview())
@@ -642,6 +713,23 @@ export default function NexAlgoPage() {
     () => problems.find((problem) => problem.id === selectedProblemId) ?? null,
     [problems, selectedProblemId],
   )
+
+  const solutionApproaches = useMemo(
+    () => splitApproaches(selectedProblem?.solutions[selectedLanguage] || ''),
+    [selectedProblem, selectedLanguage],
+  )
+  const hasBruteForce = Boolean(solutionApproaches.bruteForce)
+  const hasOptimal = Boolean(solutionApproaches.optimal)
+  // If the chosen approach isn't available for this problem/language, fall back
+  // to whichever one is, so the code + prose stay in sync.
+  const effectiveApproach: SolutionApproach =
+    selectedApproach === 'optimal' && !hasOptimal
+      ? 'bruteForce'
+      : selectedApproach === 'bruteForce' && !hasBruteForce && hasOptimal
+        ? 'optimal'
+        : selectedApproach
+  const activeApproachCode =
+    effectiveApproach === 'optimal' ? solutionApproaches.optimal : solutionApproaches.bruteForce
 
   const effectiveSessionUser = isLocalPreview ? LOCAL_SESSION_USER : sessionUser
   const isEditor = !!effectiveSessionUser?.roles.some((role) => role === 'admin' || role === 'editor')
@@ -896,7 +984,7 @@ export default function NexAlgoPage() {
     ]
 
     return (
-      <div className='nexalgo-shell'>
+      <div className='nexalgo-shell' data-theme={resolvedTheme}>
         <header className='nexalgo-topbar'>
           <div className='nexalgo-topbar-left'>
             <Link href={backLinkHref} className='back-to-nexacore'>
@@ -937,7 +1025,7 @@ export default function NexAlgoPage() {
   }
 
   return (
-    <div className='nexalgo-shell'>
+    <div className='nexalgo-shell' data-theme={resolvedTheme}>
       <header className='nexalgo-topbar'>
         <div className='nexalgo-topbar-left'>
           <Link href={backLinkHref} className='back-to-nexacore'>
@@ -995,6 +1083,23 @@ export default function NexAlgoPage() {
                 onClick={() => setAccountMenuOpen(false)}>
                 x
               </button>
+            </div>
+            <div className='nexalgo-menu-section'>
+              <h3>Appearance</h3>
+              <div className='nexalgo-theme-options' role='group' aria-label='Theme'>
+                {THEME_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    type='button'
+                    className={`nexalgo-theme-btn${
+                      themePreference === option.value ? ' active' : ''
+                    }`}
+                    aria-pressed={themePreference === option.value}
+                    onClick={() => handleThemeChange(option.value)}>
+                    {option.label}
+                  </button>
+                ))}
+              </div>
             </div>
             <div className='nexalgo-menu-section'>
               <h3>Roles</h3>
@@ -1412,6 +1517,25 @@ export default function NexAlgoPage() {
 
                   <section className='nexalgo-section'>
                     <h3>Solutions</h3>
+                    {hasBruteForce && hasOptimal ? (
+                      <div
+                        className='nexalgo-approach-toggle'
+                        role='group'
+                        aria-label='Solution approach'>
+                        {APPROACH_OPTIONS.map((option) => (
+                          <button
+                            type='button'
+                            key={option.value}
+                            className={`nexalgo-approach-btn${
+                              effectiveApproach === option.value ? ' active' : ''
+                            }`}
+                            aria-pressed={effectiveApproach === option.value}
+                            onClick={() => setSelectedApproach(option.value)}>
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
                     <div className='nexalgo-code-tabs'>
                       {LANGUAGE_OPTIONS.map((option) => (
                         <button
@@ -1423,31 +1547,16 @@ export default function NexAlgoPage() {
                         </button>
                       ))}
                     </div>
-                    {(() => {
-                      const { bruteForce, optimal } = splitApproaches(
-                        selectedProblem.solutions[selectedLanguage] || '',
-                      )
-                      return (
-                        <>
-                          <div className='nexalgo-approach-block'>
-                            <p className='nexalgo-approach-label'>Brute force</p>
-                            <CodeBlock language={selectedLanguage} code={bruteForce} />
-                          </div>
-                          {optimal ? (
-                            <div className='nexalgo-approach-block'>
-                              <p className='nexalgo-approach-label'>Optimal</p>
-                              <CodeBlock language={selectedLanguage} code={optimal} />
-                            </div>
-                          ) : null}
-                        </>
-                      )
-                    })()}
+                    <CodeBlock language={selectedLanguage} code={activeApproachCode} />
                   </section>
 
                   <section className='nexalgo-section'>
                     <h3>Code walkthrough</h3>
                     {selectedProblem.walkthrough ? (
-                      splitLabeledParagraphs(selectedProblem.walkthrough).map((part, index) =>
+                      filterParagraphsByApproach(
+                        splitLabeledParagraphs(selectedProblem.walkthrough),
+                        effectiveApproach,
+                      ).map((part, index) =>
                         part.label ? (
                           <div className='nexalgo-approach-block' key={index}>
                             <p className='nexalgo-approach-label'>{part.label}</p>
@@ -1467,7 +1576,10 @@ export default function NexAlgoPage() {
                   <section className='nexalgo-section'>
                     <h3>Complexity analysis</h3>
                     {selectedProblem.complexityAnalysis ? (
-                      splitLabeledParagraphs(selectedProblem.complexityAnalysis).map((part, index) =>
+                      filterParagraphsByApproach(
+                        splitLabeledParagraphs(selectedProblem.complexityAnalysis),
+                        effectiveApproach,
+                      ).map((part, index) =>
                         part.label ? (
                           <div className='nexalgo-approach-block' key={index}>
                             <p className='nexalgo-approach-label'>{part.label}</p>

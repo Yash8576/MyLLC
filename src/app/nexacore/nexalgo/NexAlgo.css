@@ -1,27 +1,34 @@
 /* ======================================================================
-   NexAlgo — dark terminal-drill theme
-   Palette + structure mirror the Tesla C++ prep reference: near-black
-   background, single red signal accent, square corners, monospace
-   labels, sidebar problem list + single detail pane.
+   NexAlgo — Uber-style monochrome theme
+   Rich black + white, minimal color (difficulty/status signals only),
+   rounded buttons/pills/highlights, monospace labels retained for the
+   terminal-drill sidebar/code affordances.
    ====================================================================== */
 
 .nexalgo-shell {
-  --nx-bg: #15171a;
-  --nx-panel: #1c1f23;
-  --nx-panel-2: #23272c;
-  --nx-line: #2e333a;
-  --nx-line-soft: #262b31;
-  --nx-ink: #e7eaed;
-  --nx-ink-dim: #9aa3ad;
-  --nx-ink-faint: #6b747e;
-  --nx-signal: #6556ff;
-  --nx-signal-dim: #4338b0;
+  --nx-bg: #050505;
+  --nx-panel: #0d0d0d;
+  --nx-panel-2: #171717;
+  --nx-line: #2b2b2b;
+  --nx-line-soft: #1c1c1c;
+  --nx-ink: #ffffff;
+  --nx-ink-dim: #a8a8a8;
+  --nx-ink-faint: #707070;
+  --nx-signal: #ffffff;
+  --nx-signal-dim: #565656;
+  --nx-signal-ink: #050505;
   --nx-easy: #3fb37f;
   --nx-med: #d9a23a;
   --nx-hard: #e3625b;
-  --nx-code-bg: #101316;
+  --nx-code-bg: #000000;
+  --nx-input-bg: #000000;
+  --nx-scrim: rgba(0, 0, 0, 0.72);
   --nx-mono: 'SFMono-Regular', ui-monospace, 'JetBrains Mono', 'Cascadia Code', Consolas, monospace;
   --nx-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --nx-radius-sm: 8px;
+  --nx-radius-md: 14px;
+  --nx-radius-lg: 20px;
+  --nx-radius-pill: 999px;
   --nexalgo-topbar-height: 64px;
   --nexalgo-mobile-pane-gap: 0.85rem;
 
@@ -34,13 +41,34 @@
   line-height: 1.5;
 }
 
+/* ---- light theme override ---- */
+.nexalgo-shell[data-theme='light'] {
+  --nx-bg: #ffffff;
+  --nx-panel: #f6f6f6;
+  --nx-panel-2: #ececec;
+  --nx-line: #e2e2e2;
+  --nx-line-soft: #eeeeee;
+  --nx-ink: #050505;
+  --nx-ink-dim: #565656;
+  --nx-ink-faint: #8a8a8a;
+  --nx-signal: #050505;
+  --nx-signal-dim: #b8b8b8;
+  --nx-signal-ink: #ffffff;
+  --nx-easy: #1f8f5f;
+  --nx-med: #b47912;
+  --nx-hard: #cc3b33;
+  --nx-input-bg: #ffffff;
+  --nx-scrim: rgba(0, 0, 0, 0.4);
+  /* code blocks stay dark in both themes so syntax highlighting reads well */
+}
+
 .nexalgo-shell * {
   box-sizing: border-box;
 }
 
 .nexalgo-shell ::selection {
   background: var(--nx-signal);
-  color: #fff;
+  color: var(--nx-signal-ink);
 }
 
 /* ---- topbar ---- */
@@ -80,6 +108,7 @@
   text-decoration: none;
   padding: 0.45rem 0.8rem;
   border: 1px solid var(--nx-line);
+  border-radius: var(--nx-radius-pill);
   font-size: 0.82rem;
   font-weight: 500;
   transition: 0.15s;
@@ -115,6 +144,7 @@
   gap: 0.5rem;
   padding: 0.5rem 0.9rem;
   border: 1px solid var(--nx-line);
+  border-radius: var(--nx-radius-pill);
   color: var(--nx-ink-dim);
   text-decoration: none;
   transition: 0.15s;
@@ -163,6 +193,7 @@
   width: 40px;
   height: 32px;
   border: 1px solid var(--nx-line);
+  border-radius: var(--nx-radius-sm);
   background: transparent;
   display: inline-flex;
   flex-direction: column;
@@ -175,7 +206,7 @@
 
 .nexalgo-hamburger:hover {
   border-color: var(--nx-signal-dim);
-  background: rgba(101, 86, 255, 0.08);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .nexalgo-hamburger span {
@@ -231,6 +262,7 @@
   flex: 0 0 auto;
   background: transparent;
   border: 1px solid var(--nx-line);
+  border-radius: var(--nx-radius-pill);
   color: var(--nx-ink-faint);
   font-family: var(--nx-mono);
   font-size: 12px;
@@ -276,6 +308,7 @@
   gap: 10px;
   background: transparent;
   border: none;
+  border-radius: var(--nx-radius-sm);
   color: var(--nx-ink-dim);
   font-family: var(--nx-sans);
   font-size: 0.85rem;
@@ -303,6 +336,7 @@
   text-transform: uppercase;
   color: var(--nx-ink-faint);
   border: 1px solid var(--nx-line);
+  border-radius: var(--nx-radius-sm);
   padding: 2px 4px;
   flex: 0 0 auto;
 }
@@ -311,9 +345,9 @@
   margin-left: auto;
   font-family: var(--nx-mono);
   font-size: 9px;
-  color: #fff;
+  color: var(--nx-signal-ink);
   background: var(--nx-signal);
-  border-radius: 999px;
+  border-radius: var(--nx-radius-pill);
   padding: 1px 6px;
   flex: 0 0 auto;
 }
@@ -371,7 +405,7 @@
 }
 
 .nexalgo-reset-filters-btn:hover {
-  color: #fff;
+  color: var(--nx-ink);
 }
 
 .nexalgo-sidebar-filter-checkbox {
@@ -395,6 +429,7 @@
   height: 14px;
   flex: 0 0 auto;
   accent-color: var(--nx-signal);
+  border-radius: 4px;
   cursor: pointer;
 }
 
@@ -478,6 +513,7 @@
 .nexalgo-pane-toggle {
   background: transparent;
   border: 1px solid var(--nx-line);
+  border-radius: var(--nx-radius-pill);
   color: var(--nx-ink-dim);
   font-family: var(--nx-mono);
   font-size: 10.5px;
@@ -519,6 +555,7 @@
   border: none;
   border-left: 2px solid transparent;
   border-bottom: 1px solid var(--nx-line-soft);
+  border-radius: var(--nx-radius-sm);
   padding: 8px 18px;
   cursor: pointer;
   transition: 0.12s;
@@ -628,6 +665,7 @@
   width: fit-content;
   margin: 9px 0 0;
   border: 1px solid currentColor;
+  border-radius: var(--nx-radius-pill);
   background: color-mix(in srgb, currentColor 13%, transparent);
   padding: 4px 10px;
   font-family: var(--nx-mono);
@@ -675,7 +713,7 @@
 }
 
 .nexalgo-section p {
-  color: #b0b9c2;
+  color: var(--nx-ink-dim);
   font-size: 15.5px;
   line-height: 1.75;
   margin: 0;
@@ -694,7 +732,7 @@
 .nexalgo-section ul li {
   position: relative;
   padding-left: 22px;
-  color: #b0b9c2;
+  color: var(--nx-ink-dim);
   font-size: 14.5px;
   line-height: 1.65;
 }
@@ -721,8 +759,43 @@
   font-size: 10px;
   color: var(--nx-ink-dim);
   border: 1px solid var(--nx-line);
+  border-radius: var(--nx-radius-pill);
   padding: 3px 8px;
   letter-spacing: 0.03em;
+}
+
+/* ---- solution approach toggle ---- */
+.nexalgo-approach-toggle {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 14px;
+  border: 1px solid var(--nx-line);
+  border-radius: var(--nx-radius-pill);
+  background: var(--nx-panel-2);
+}
+
+.nexalgo-approach-btn {
+  background: transparent;
+  border: none;
+  border-radius: var(--nx-radius-pill);
+  color: var(--nx-ink-dim);
+  font-family: var(--nx-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 7px 16px;
+  cursor: pointer;
+  transition: 0.15s;
+}
+
+.nexalgo-approach-btn:hover {
+  color: var(--nx-ink);
+}
+
+.nexalgo-approach-btn.active {
+  background: var(--nx-signal);
+  color: var(--nx-signal-ink);
 }
 
 /* ---- code blocks ---- */
@@ -735,6 +808,7 @@
 .nexalgo-code-tabs button {
   background: transparent;
   border: 1px solid var(--nx-line);
+  border-radius: var(--nx-radius-pill);
   color: var(--nx-ink-dim);
   font-family: var(--nx-mono);
   font-size: 10.5px;
@@ -753,12 +827,13 @@
 .nexalgo-code-tabs button.active {
   background: var(--nx-signal);
   border-color: var(--nx-signal);
-  color: #fff;
+  color: var(--nx-signal-ink);
 }
 
 .nexalgo-code-block {
   background: var(--nx-code-bg);
   border: 1px solid var(--nx-line);
+  border-radius: var(--nx-radius-md);
   overflow: hidden;
 }
 
@@ -778,6 +853,7 @@
 .nexalgo-code-copy-btn {
   background: transparent;
   border: 1px solid var(--nx-line);
+  border-radius: var(--nx-radius-pill);
   color: var(--nx-ink-dim);
   font-family: var(--nx-mono);
   font-size: 10px;
@@ -869,6 +945,7 @@
   padding: 16px 18px;
   border: 1px solid var(--nx-line);
   border-left: 2px solid var(--nx-signal);
+  border-radius: var(--nx-radius-md);
   background: var(--nx-panel);
 }
 
@@ -907,6 +984,7 @@
   background: var(--nx-panel);
   border: 1px solid var(--nx-line);
   border-left: 2px solid var(--nx-signal);
+  border-radius: var(--nx-radius-md);
   padding: 16px 18px;
   font-size: 14px;
   line-height: 1.62;
@@ -928,6 +1006,7 @@
   cursor: pointer;
   transition: 0.15s;
   border: 1px solid var(--nx-line);
+  border-radius: var(--nx-radius-pill);
   background: transparent;
   color: var(--nx-ink-dim);
 }
@@ -941,6 +1020,7 @@
 
 .nexalgo-link-btn {
   border: none;
+  border-radius: 0;
   text-decoration: underline;
   text-underline-offset: 3px;
   padding: 8px 4px;
@@ -952,25 +1032,27 @@
 }
 
 .nexalgo-danger-btn:hover {
-  background: var(--nx-signal-dim);
-  color: #fff;
+  background: var(--nx-hard);
+  border-color: var(--nx-hard);
+  color: var(--nx-signal-ink);
 }
 
 .nexalgo-save-btn {
   background: var(--nx-signal);
   border-color: var(--nx-signal);
-  color: #fff;
+  color: var(--nx-signal-ink);
 }
 
 .nexalgo-save-btn:hover {
-  background: #5142e0;
-  border-color: #5142e0;
+  background: var(--nx-ink-dim);
+  border-color: var(--nx-ink-dim);
 }
 
 .nexalgo-markdone {
   margin-top: 0;
   background: transparent;
   border: 1px solid var(--nx-line);
+  border-radius: var(--nx-radius-pill);
   color: var(--nx-ink-dim);
   padding: 8px 14px;
   font-family: var(--nx-mono);
@@ -992,7 +1074,7 @@
 .nexalgo-markdone.is-done {
   background: var(--nx-signal);
   border-color: var(--nx-signal);
-  color: #fff;
+  color: var(--nx-signal-ink);
 }
 
 /* ---- status pill ---- */
@@ -1005,6 +1087,7 @@
   text-transform: uppercase;
   padding: 4px 9px;
   border: 1px solid var(--nx-line);
+  border-radius: var(--nx-radius-pill);
   color: var(--nx-ink-dim);
 }
 
@@ -1056,6 +1139,7 @@
 .nexalgo-auth-card {
   background: var(--nx-panel);
   border: 1px solid var(--nx-line);
+  border-radius: var(--nx-radius-lg);
   padding: 30px;
   max-width: 760px;
   width: 100%;
@@ -1082,8 +1166,9 @@
 }
 
 .nexalgo-auth-form input {
-  background: var(--nx-code-bg);
+  background: var(--nx-input-bg);
   border: 1px solid var(--nx-line);
+  border-radius: var(--nx-radius-sm);
   color: var(--nx-ink);
   padding: 10px 12px;
   font-family: var(--nx-sans);
@@ -1098,13 +1183,20 @@
 .nexalgo-auth-form button[type='submit'] {
   background: var(--nx-signal);
   border: 1px solid var(--nx-signal);
-  color: #fff;
+  border-radius: var(--nx-radius-pill);
+  color: var(--nx-signal-ink);
   padding: 10px;
   font-family: var(--nx-mono);
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   cursor: pointer;
+  transition: 0.15s;
+}
+
+.nexalgo-auth-form button[type='submit']:hover {
+  background: var(--nx-ink-dim);
+  border-color: var(--nx-ink-dim);
 }
 
 .nexalgo-auth-switch {
@@ -1131,7 +1223,7 @@
   position: fixed;
   inset: 0;
   z-index: 60;
-  background: rgba(8, 9, 11, 0.72);
+  background: var(--nx-scrim);
   border: none;
 }
 
@@ -1177,6 +1269,7 @@
   width: 32px;
   height: 32px;
   border: 1px solid var(--nx-line);
+  border-radius: var(--nx-radius-pill);
   background: transparent;
   color: var(--nx-ink-dim);
   cursor: pointer;
@@ -1207,9 +1300,44 @@
   gap: 6px;
 }
 
+/* ---- theme switcher ---- */
+.nexalgo-theme-options {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--nx-line);
+  border-radius: var(--nx-radius-pill);
+  background: var(--nx-panel-2);
+}
+
+.nexalgo-theme-btn {
+  flex: 1 1 auto;
+  background: transparent;
+  border: none;
+  border-radius: var(--nx-radius-pill);
+  color: var(--nx-ink-dim);
+  font-family: var(--nx-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: 0.15s;
+}
+
+.nexalgo-theme-btn:hover {
+  color: var(--nx-ink);
+}
+
+.nexalgo-theme-btn.active {
+  background: var(--nx-signal);
+  color: var(--nx-signal-ink);
+}
+
 .nexalgo-modal-card {
   background: var(--nx-panel);
   border: 1px solid var(--nx-line);
+  border-radius: var(--nx-radius-lg);
   padding: 24px;
   max-width: 520px;
   width: 100%;
@@ -1258,8 +1386,9 @@
 
 .nexalgo-field input,
 .nexalgo-field textarea {
-  background: var(--nx-code-bg);
+  background: var(--nx-input-bg);
   border: 1px solid var(--nx-line);
+  border-radius: var(--nx-radius-sm);
   color: var(--nx-ink);
   padding: 8px 10px;
   font-family: var(--nx-sans);
@@ -1306,6 +1435,7 @@
 
 .nexalgo-queue-card {
   border: 1px solid var(--nx-line);
+  border-radius: var(--nx-radius-md);
   background: var(--nx-code-bg);
   padding: 12px;
 }
