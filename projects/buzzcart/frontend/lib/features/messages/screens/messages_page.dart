@@ -374,49 +374,39 @@ class _ConversationList extends StatelessWidget {
                     ? AppColors.electricBlue.withValues(alpha: 0.08)
                     : Colors.transparent,
                 child: ListTile(
-                  leading: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () =>
-                        context.push('/profile/${conversation.participant.id}'),
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        _UserAvatar(
-                          name: conversation.participant.name,
-                          avatar: conversation.participant.avatar,
-                        ),
-                        if (provider.isParticipantActive(
-                          conversation.participant.id,
-                        ))
-                          Positioned(
-                            right: -1,
-                            bottom: -1,
-                            child: Container(
-                              width: 14,
-                              height: 14,
-                              decoration: BoxDecoration(
-                                color: AppColors.successGreen,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color:
-                                      Theme.of(context).scaffoldBackgroundColor,
-                                  width: 2,
-                                ),
+                  leading: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      _UserAvatar(
+                        name: conversation.participant.name,
+                        avatar: conversation.participant.avatar,
+                      ),
+                      if (provider.isParticipantActive(
+                        conversation.participant.id,
+                      ))
+                        Positioned(
+                          right: -1,
+                          bottom: -1,
+                          child: Container(
+                            width: 14,
+                            height: 14,
+                            decoration: BoxDecoration(
+                              color: AppColors.successGreen,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color:
+                                    Theme.of(context).scaffoldBackgroundColor,
+                                width: 2,
                               ),
                             ),
                           ),
-                      ],
-                    ),
+                        ),
+                    ],
                   ),
-                  title: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () =>
-                        context.push('/profile/${conversation.participant.id}'),
-                    child: Text(
-                      conversation.participant.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                  title: Text(
+                    conversation.participant.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   subtitle: Text(
                     _conversationPreview(lastMessage),
@@ -521,24 +511,32 @@ class _ChatThread extends StatelessWidget {
           ),
           child: Row(
             children: [
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => context.push('/profile/${participant.id}'),
-                child: _UserAvatar(
-                  name: participant.name,
-                  avatar: participant.avatar,
+              ClipOval(
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => context.push('/profile/${participant.id}'),
+                    child: _UserAvatar(
+                      name: participant.name,
+                      avatar: participant.avatar,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
-              Expanded(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => context.push('/profile/${participant.id}'),
-                  child: Text(
-                    participant.name,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
+              Flexible(
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(4),
+                    onTap: () => context.push('/profile/${participant.id}'),
+                    child: Text(
+                      participant.name,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ),
