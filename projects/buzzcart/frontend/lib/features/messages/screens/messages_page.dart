@@ -26,14 +26,28 @@ class MessagesPage extends StatefulWidget {
 }
 
 class _MessagesPageState extends State<MessagesPage>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   final TextEditingController _messageController = TextEditingController();
   Timer? _typingTimer;
   String? _initializedForUserId;
+  late final AnimationController _threadSlideController;
+  late final Animation<Offset> _threadSlide;
 
   @override
   void initState() {
     super.initState();
+    _threadSlideController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 280),
+    );
+    _threadSlide = Tween<Offset>(
+      begin: const Offset(1, 0),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _threadSlideController,
+      curve: Curves.easeOut,
+      reverseCurve: Curves.easeIn,
+    ));
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
@@ -85,6 +99,7 @@ class _MessagesPageState extends State<MessagesPage>
 
   @override
   void dispose() {
+    _threadSlideController.dispose();
     _typingTimer?.cancel();
     final provider = context.read<MessagesProvider>();
     provider.setTyping(false);
@@ -197,10 +212,38 @@ class _MessagesPageState extends State<MessagesPage>
   Widget build(BuildContext context) {
     final provider = context.watch<MessagesProvider>();
     final isWide = MediaQuery.of(context).size.width >= 900;
-    final showPageAppBar = MediaQuery.of(context).size.width >= 1024;
-    final title = provider.hasSelectedConversation && !isWide
+    // On desktop the sidebar handles navigation, so no route back button.
+    final hasSidebar = MediaQuery.of(context).size.width >= 1024;
+    final hasChatOpen = provider.hasSelectedConversation && !isWide;
+    final title = hasChatOpen
         ? (provider.selectedParticipant?.name ?? 'Messages')
         : 'Messages';
+
+    void backToList() {
+      _typingTimer?.cancel();
+      provider.setTyping(false);
+      _messageController.clear();
+      // Slide the thread back out to the right, then drop the selection so the
+      // thread keeps its content for the whole animation.
+      _threadSlideController.reverse().whenComplete(() {
+        if (mounted) {
+          context.read<MessagesProvider>().clearSelection();
+        }
+      });
+    }
+
+    // Slide the thread in from the right the first frame a chat opens (narrow
+    // layout only; the wide layout shows both panes side by side).
+    if (hasChatOpen &&
+        _threadSlideController.status == AnimationStatus.dismissed) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted &&
+            context.read<MessagesProvider>().hasSelectedConversation &&
+            _threadSlideController.status == AnimationStatus.dismissed) {
+          _threadSlideController.forward();
+        }
+      });
+    }
 
     Widget content = isWide
         ? Row(
@@ -226,80 +269,92 @@ class _MessagesPageState extends State<MessagesPage>
               ),
             ],
           )
-        : provider.hasSelectedConversation
-            ? _ChatThread(
-                controller: _messageController,
-                onChanged: (value) => _handleTyping(provider, value),
-                onSend: () => _sendMessage(provider),
-              )
-            : _ConversationList(
+        : Stack(
+            children: [
+              _ConversationList(
                 onStartChat: () => _showConnectionsSheet(provider),
-              );
-
-    return Scaffold(
-      appBar: showPageAppBar
-          ? AppBar(
-              title: Text(title),
-              leading: provider.hasSelectedConversation && !isWide
-                  ? IconButton(
-                      icon: const Icon(Icons.arrow_back),
-                      onPressed: () {
-                        _typingTimer?.cancel();
-                        provider.setTyping(false);
-                        provider.clearSelection();
-                        _messageController.clear();
-                      },
-                    )
-                  : null,
-              actions: [
-                IconButton(
-                  tooltip: 'New chat',
-                  onPressed: () => _showConnectionsSheet(provider),
-                  icon: const Icon(Icons.edit_outlined),
-                ),
-              ],
-            )
-          : null,
-      body: Column(
-        children: [
-          if (!showPageAppBar)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
-              child: Row(
-                children: [
-                  if (provider.hasSelectedConversation && !isWide)
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back),
-                      onPressed: () {
-                        _typingTimer?.cancel();
-                        provider.setTyping(false);
-                        provider.clearSelection();
-                        _messageController.clear();
-                      },
-                    )
-                  else
-                    const SizedBox(width: 48),
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w700,
+              ),
+              if (provider.hasSelectedConversation)
+                Positioned.fill(
+                  child: SlideTransition(
+                    position: _threadSlide,
+                    child: Material(
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                      child: Stack(
+                        children: [
+                          _ChatThread(
+                            controller: _messageController,
+                            onChanged: (value) =>
+                                _handleTyping(provider, value),
+                            onSend: () => _sendMessage(provider),
                           ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
+                          // Edge-swipe-to-go-back, matching the back gesture
+                          // used by every other pushed page in the app.
+                          Positioned(
+                            left: 0,
+                            top: 0,
+                            bottom: 0,
+                            width: 24,
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.translucent,
+                              onHorizontalDragUpdate: (details) {
+                                final width = MediaQuery.of(context).size.width;
+                                if (width <= 0) return;
+                                _threadSlideController.value =
+                                    (_threadSlideController.value -
+                                            details.delta.dx / width)
+                                        .clamp(0.0, 1.0);
+                              },
+                              onHorizontalDragEnd: (details) {
+                                final velocity =
+                                    details.velocity.pixelsPerSecond.dx;
+                                if (_threadSlideController.value < 0.5 ||
+                                    velocity > 700) {
+                                  backToList();
+                                } else {
+                                  _threadSlideController.forward();
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  IconButton(
-                    tooltip: 'New chat',
-                    onPressed: () => _showConnectionsSheet(provider),
-                    icon: const Icon(Icons.edit_outlined),
-                  ),
-                ],
-              ),
+                ),
+            ],
+          );
+
+    return PopScope(
+      canPop: !hasChatOpen,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          backToList();
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(title),
+          automaticallyImplyLeading: !hasSidebar,
+          leading: hasChatOpen
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: backToList,
+                )
+              : null,
+          actions: [
+            IconButton(
+              tooltip: 'New chat',
+              onPressed: () => _showConnectionsSheet(provider),
+              icon: const Icon(Icons.edit_outlined),
             ),
-          Expanded(child: content),
-        ],
+          ],
+        ),
+        body: Column(
+          children: [
+            Expanded(child: content),
+          ],
+        ),
       ),
     );
   }
@@ -742,7 +797,7 @@ class _ProductShareCard extends StatelessWidget {
       final route = isOwnProduct
           ? '/shop/${product.id}?own_preview=1'
           : '/shop/${product.id}';
-      context.push(route);
+      context.go(route);
     }
 
     return Material(

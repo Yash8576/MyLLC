@@ -1345,7 +1345,7 @@ class _HomePageState extends State<HomePage> {
     return _buildMediaCard(
       maxWidth: _mediaCardMaxWidth,
       viewportWidth: viewportWidth,
-      onTap: () => context.push('/reels?id=${reel.id}'),
+      onTap: () => context.push('/reel/${reel.id}'),
       onHeaderTap: () => context.push('/profile/${reel.creatorId}'),
       media: _InlineReelMedia(
         videoUrl: reel.url,

@@ -1466,6 +1466,9 @@ class _ProfilePageState extends State<ProfilePage>
       avatarImageProvider = CachedNetworkImageProvider(avatarDisplayUrl);
     }
     final isDesktop = MediaQuery.sizeOf(context).width >= 1024;
+    // When this profile was drilled into (e.g. from search), it is a
+    // standalone full-screen route and should show a back button.
+    final canPop = Navigator.of(context).canPop();
     final postsCount = _photos.length + _videos.length + _reels.length;
     final isFollowing = displayUser?['is_following'] == true;
     final isConnection = displayUser?['is_connection'] == true;
@@ -1484,9 +1487,10 @@ class _ProfilePageState extends State<ProfilePage>
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-            if (isDesktop)
+            if (isDesktop || canPop)
               SliverAppBar(
                 pinned: true,
+                automaticallyImplyLeading: canPop,
                 backgroundColor: Theme.of(context).scaffoldBackgroundColor,
                 foregroundColor: Theme.of(context).colorScheme.onSurface,
                 title: Text(
@@ -2058,7 +2062,7 @@ class _ProfilePageState extends State<ProfilePage>
             return InkWell(
               onTap: _isDeleting(deletingKey)
                   ? null
-                  : () => context.go('/reels?id=${reel.contentId ?? reel.id}'),
+                  : () => context.push('/reel/${reel.contentId ?? reel.id}'),
               child: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -2147,7 +2151,7 @@ class _ProfilePageState extends State<ProfilePage>
               const Text('Your warehouse is empty'),
               const SizedBox(height: 12),
               ElevatedButton.icon(
-                onPressed: () => context.go('/add-product'),
+                onPressed: () => context.push('/add-product'),
                 icon: const Icon(Icons.add),
                 label: const Text('Add Product'),
               ),
@@ -2446,7 +2450,7 @@ class _ProfilePageState extends State<ProfilePage>
             child: Align(
               alignment: Alignment.centerRight,
               child: OutlinedButton.icon(
-                onPressed: () => context.go('/add-product'),
+                onPressed: () => context.push('/add-product'),
                 icon: const Icon(Icons.add),
                 label: const Text('Add Product'),
               ),

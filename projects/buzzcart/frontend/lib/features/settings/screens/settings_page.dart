@@ -238,6 +238,8 @@ class _SettingsPageState extends State<SettingsPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
+        // On desktop the sidebar handles navigation, so no back button.
+        automaticallyImplyLeading: MediaQuery.of(context).size.width < 1024,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),

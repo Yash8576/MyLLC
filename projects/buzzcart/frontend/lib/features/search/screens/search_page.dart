@@ -355,7 +355,7 @@ class _SearchPageState extends State<SearchPage> {
               itemBuilder: (context, index) {
                 final reel = _results['reels']![index];
                 return InkWell(
-                  onTap: () => context.push('/reels'),
+                  onTap: () => context.push('/reel/${reel['id']}'),
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
@@ -461,7 +461,7 @@ class _SearchPageState extends State<SearchPage> {
         itemBuilder: (context, index) {
           final reel = _results['reels']![index];
           return InkWell(
-            onTap: () => context.push('/reels'),
+            onTap: () => context.push('/reel/${reel['id']}'),
             child: Stack(
               fit: StackFit.expand,
               children: [
@@ -502,9 +502,6 @@ class _SearchPageState extends State<SearchPage> {
 
   @override
   Widget build(BuildContext context) {
-    final showPageAppBar = MediaQuery.of(context).size.width >= 1024;
-    const contentTopPadding = 0.0;
-
     Widget buildSearchField({EdgeInsetsGeometry padding = EdgeInsets.zero}) {
       return Padding(
         padding: padding,
@@ -530,30 +527,21 @@ class _SearchPageState extends State<SearchPage> {
     }
 
     return Scaffold(
-      appBar: showPageAppBar
-          ? AppBar(
-              title: const Text('Search'),
-              bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(60),
-                child: buildSearchField(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                ),
-              ),
-            )
-          : null,
+      appBar: AppBar(
+        title: const Text('Search'),
+        // On desktop the sidebar handles navigation, so no back button.
+        automaticallyImplyLeading: MediaQuery.of(context).size.width < 1024,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(60),
+          child: buildSearchField(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          ),
+        ),
+      ),
       body: _loading
-          ? Column(
+          ? const Column(
               children: [
-                if (!showPageAppBar)
-                  buildSearchField(
-                    padding: const EdgeInsets.fromLTRB(
-                      16,
-                      contentTopPadding,
-                      16,
-                      12,
-                    ),
-                  ),
-                const Expanded(
+                Expanded(
                   child: Align(
                     alignment: Alignment.topCenter,
                     child: Padding(
@@ -566,15 +554,6 @@ class _SearchPageState extends State<SearchPage> {
             )
           : Column(
               children: [
-                if (!showPageAppBar)
-                  buildSearchField(
-                    padding: const EdgeInsets.fromLTRB(
-                      16,
-                      contentTopPadding,
-                      16,
-                      12,
-                    ),
-                  ),
                 if (!_searched)
                   const Expanded(
                     child: Align(
@@ -700,7 +679,7 @@ class _SearchPageState extends State<SearchPage> {
               itemBuilder: (context, index) {
                 final reel = _results['reels']![index];
                 return InkWell(
-                  onTap: () => context.push('/reels'),
+                  onTap: () => context.push('/reel/${reel['id']}'),
                   child: Stack(
                     fit: StackFit.expand,
                     children: [

@@ -225,8 +225,7 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
     if (!mounted || _reels.isEmpty || _currentIndex >= _reels.length) {
       return;
     }
-    final canPlayActiveReel =
-        _isAppActive && (_lastReelsBranchActive ?? false);
+    final canPlayActiveReel = _isAppActive && (_lastReelsBranchActive ?? false);
     final activeReelId = canPlayActiveReel ? _reels[_currentIndex].id : null;
     final preparedReelIds = <String>{};
     if (_lastReelsBranchActive ?? false) {
@@ -317,8 +316,13 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
     _syncRequestedReel();
     final activeScope = ActiveBranchScope.maybeOf(context);
     final currentPath = activeScope?.currentPath ?? '';
-    final isReelsBranchActive = (activeScope?.currentIndex ?? 0) == 2 &&
-        (currentPath == '/reels' || currentPath.startsWith('/reels/'));
+    // When opened as a standalone drill-in route there is no shell scope, so
+    // the page is always the active surface and should play.
+    final isStandalone = activeScope == null;
+    final canPop = Navigator.of(context).canPop();
+    final isReelsBranchActive = isStandalone ||
+        (activeScope.currentIndex == 2 &&
+            (currentPath == '/reels' || currentPath.startsWith('/reels/')));
     final showDesktopNavArrows =
         kIsWeb || defaultTargetPlatform == TargetPlatform.windows;
     if (_lastReelsBranchActive != isReelsBranchActive) {
@@ -376,55 +380,75 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
 
     return Scaffold(
       backgroundColor: Colors.black,
-      body: RefreshIndicator(
-        onRefresh: _fetchReels,
-        child: NotificationListener<ScrollEndNotification>(
-          onNotification: (_) {
-            _syncVisiblePage();
-            return false;
-          },
-          child: PageView.builder(
-            controller: _pageController,
-            scrollDirection: Axis.vertical,
-            physics: const AlwaysScrollableScrollPhysics(
-              parent: PageScrollPhysics(),
-            ),
-            itemCount: _reels.length,
-            onPageChanged: _setCurrentIndex,
-            itemBuilder: (context, index) {
-              final reel = _reels[index];
-              final key = _reelKeys.putIfAbsent(
-                reel.id,
-                () => GlobalKey<_ReelViewportState>(),
-              );
-              return _ReelViewport(
-                key: key,
-                reel: reel,
-                isActive: index == _currentIndex &&
-                    isReelsBranchActive &&
-                    _isAppActive,
-                isMuted: _areReelsMuted,
-                onMuteChanged: _handleMuteChanged,
-                showNavigationArrows: showDesktopNavArrows,
-                canGoPrevious: index > 0,
-                canGoNext: index < _reels.length - 1,
-                onPrevious: index > 0 ? () => _goToReel(index - 1) : null,
-                onNext: index < _reels.length - 1
-                    ? () => _goToReel(index + 1)
-                    : null,
-                onLikeChanged: (isLiked, likes) {
-                  if (!mounted || index >= _reels.length) return;
-                  setState(() {
-                    _reels[index] = _reels[index].copyWith(
-                      isLiked: isLiked,
-                      likes: likes,
-                    );
-                  });
+      body: Stack(
+        children: [
+          RefreshIndicator(
+            onRefresh: _fetchReels,
+            child: NotificationListener<ScrollEndNotification>(
+              onNotification: (_) {
+                _syncVisiblePage();
+                return false;
+              },
+              child: PageView.builder(
+                controller: _pageController,
+                scrollDirection: Axis.vertical,
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: PageScrollPhysics(),
+                ),
+                itemCount: _reels.length,
+                onPageChanged: _setCurrentIndex,
+                itemBuilder: (context, index) {
+                  final reel = _reels[index];
+                  final key = _reelKeys.putIfAbsent(
+                    reel.id,
+                    () => GlobalKey<_ReelViewportState>(),
+                  );
+                  return _ReelViewport(
+                    key: key,
+                    reel: reel,
+                    isActive: index == _currentIndex &&
+                        isReelsBranchActive &&
+                        _isAppActive,
+                    isMuted: _areReelsMuted,
+                    onMuteChanged: _handleMuteChanged,
+                    showNavigationArrows: showDesktopNavArrows,
+                    canGoPrevious: index > 0,
+                    canGoNext: index < _reels.length - 1,
+                    onPrevious: index > 0 ? () => _goToReel(index - 1) : null,
+                    onNext: index < _reels.length - 1
+                        ? () => _goToReel(index + 1)
+                        : null,
+                    onLikeChanged: (isLiked, likes) {
+                      if (!mounted || index >= _reels.length) return;
+                      setState(() {
+                        _reels[index] = _reels[index].copyWith(
+                          isLiked: isLiked,
+                          likes: likes,
+                        );
+                      });
+                    },
+                  );
                 },
-              );
-            },
+              ),
+            ),
           ),
-        ),
+          // Back button when opened as a standalone drill-in route.
+          if (canPop)
+            Positioned(
+              top: 12,
+              left: 12,
+              child: SafeArea(
+                child: Material(
+                  color: Colors.black38,
+                  shape: const CircleBorder(),
+                  child: IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    onPressed: () => Navigator.of(context).maybePop(),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

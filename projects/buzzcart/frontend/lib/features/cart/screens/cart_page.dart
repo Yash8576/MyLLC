@@ -29,12 +29,16 @@ class _CartPageState extends State<CartPage> {
   Widget build(BuildContext context) {
     final cartProvider = context.watch<CartProvider>();
     final cart = cartProvider.cart;
-    final showPageAppBar = MediaQuery.of(context).size.width >= 1024;
     const contentTopPadding = 0.0;
+    // On desktop the sidebar handles navigation, so no back button.
+    final showBack = MediaQuery.of(context).size.width < 1024;
 
     if (cartProvider.isLoading) {
       return Scaffold(
-        appBar: showPageAppBar ? AppBar(title: const Text('Your Cart')) : null,
+        appBar: AppBar(
+          title: const Text('Your Cart'),
+          automaticallyImplyLeading: showBack,
+        ),
         body: const Center(
           child: CircularProgressIndicator(),
         ),
@@ -43,7 +47,10 @@ class _CartPageState extends State<CartPage> {
 
     if (cart.items.isEmpty) {
       return Scaffold(
-        appBar: showPageAppBar ? AppBar(title: const Text('Your Cart')) : null,
+        appBar: AppBar(
+          title: const Text('Your Cart'),
+          automaticallyImplyLeading: showBack,
+        ),
         body: SafeArea(
           top: false,
           child: Center(
@@ -93,11 +100,10 @@ class _CartPageState extends State<CartPage> {
     }
 
     return Scaffold(
-      appBar: showPageAppBar
-          ? AppBar(
-              title: Text('Your Cart (${cart.itemCount} items)'),
-            )
-          : null,
+      appBar: AppBar(
+        title: Text('Your Cart (${cart.itemCount} items)'),
+        automaticallyImplyLeading: showBack,
+      ),
       body: Column(
         children: [
           Expanded(
@@ -182,7 +188,7 @@ class _CartPageState extends State<CartPage> {
                   width: double.infinity,
                   height: 48,
                   child: ElevatedButton.icon(
-                    onPressed: () => context.go('/checkout'),
+                    onPressed: () => context.push('/checkout'),
                     icon: const Icon(Icons.credit_card),
                     label: Text(
                       'Proceed to Checkout - \$${cart.total.toStringAsFixed(2)}',

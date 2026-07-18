@@ -16,7 +16,8 @@ class AppConfig {
 
   static String get _baseHost => PlatformConfig.baseHost;
 
-  static String get _defaultApiOrigin => 'http://$_baseHost:$_port';
+  static const String _defaultApiOrigin =
+      'https://buzzcart-backend-kmuuu3eiga-uk.a.run.app';
 
   static String get _defaultWebSocketOrigin {
     final scheme = isProduction ? 'wss' : 'ws';

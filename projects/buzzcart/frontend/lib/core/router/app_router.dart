@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoPage;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -10,6 +11,7 @@ import '../../features/auth/screens/splash_page.dart';
 import '../../features/auth/screens/login_page.dart';
 import '../../features/auth/presentation/screens/signup_screen.dart';
 import '../../features/layout/main_layout.dart';
+import '../../features/layout/secondary_page_shell.dart';
 import '../../features/home/screens/home_page.dart';
 import '../../features/shop/screens/shop_page.dart';
 import '../../features/videos/screens/videos_page.dart';
@@ -36,6 +38,25 @@ final GlobalKey<NavigatorState> _shopBranchNavigatorKey =
     GlobalKey<NavigatorState>(debugLabel: 'shopBranchNavigator');
 final GlobalKey<NavigatorState> _profileBranchNavigatorKey =
     GlobalKey<NavigatorState>(debugLabel: 'profileBranchNavigator');
+
+/// Page transition for the sidebar destinations (search/messages/cart/
+/// settings). On wide (sidebar) layouts they cross-fade so the persistent
+/// sidebar stays put and only the content changes — like switching tabs. On
+/// narrow layouts (bottom nav) they slide in from the right like a normal
+/// pushed page, so the back button reads as "go back".
+Page<void> _sidebarDestinationPage(BuildContext context, Widget child) {
+  final isWide = MediaQuery.of(context).size.width >= 1024;
+  if (isWide) {
+    return CustomTransitionPage<void>(
+      child: child,
+      transitionDuration: const Duration(milliseconds: 140),
+      reverseTransitionDuration: const Duration(milliseconds: 140),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+          FadeTransition(opacity: animation, child: child),
+    );
+  }
+  return CupertinoPage<void>(child: child);
+}
 
 // Create a router that refreshes when AuthProvider changes
 GoRouter createAppRouter(AuthProvider authProvider) {
@@ -108,131 +129,6 @@ GoRouter createAppRouter(AuthProvider authProvider) {
               GoRoute(
                 path: '/',
                 builder: (context, state) => const HomePage(),
-                routes: [
-                  GoRoute(
-                    path: 'cart',
-                    builder: (context, state) => const CartPage(),
-                  ),
-                  GoRoute(
-                    path: 'checkout',
-                    builder: (context, state) => const CheckoutPage(),
-                  ),
-                  GoRoute(
-                    path: 'messages',
-                    builder: (context, state) => MessagesPage(
-                      intent: state.extra is MessagesRouteIntent
-                          ? state.extra as MessagesRouteIntent
-                          : null,
-                    ),
-                  ),
-                  GoRoute(
-                    path: 'search',
-                    builder: (context, state) => const SearchPage(),
-                  ),
-                  GoRoute(
-                    path: 'settings',
-                    builder: (context, state) => const SettingsPage(),
-                  ),
-                  GoRoute(
-                    path: 'orders/manage',
-                    builder: (context, state) {
-                      final product = state.extra is ProductModel
-                          ? state.extra as ProductModel
-                          : null;
-                      if (product == null) {
-                        return const Scaffold(
-                          body: Center(
-                            child: Text('No order selected'),
-                          ),
-                        );
-                      }
-                      return ManageOrderPage(product: product);
-                    },
-                  ),
-                  GoRoute(
-                    path: 'add-product',
-                    builder: (context, state) {
-                      final editingProduct = state.extra is ProductModel
-                          ? state.extra as ProductModel
-                          : null;
-                      return AddProductScreen(
-                        editingProduct: editingProduct,
-                      );
-                    },
-                    onExit: (context) async {
-                      final provider = context.read<AddProductProvider>();
-                      if (!provider.hasUnsavedWork) {
-                        return true;
-                      }
-
-                      final shouldLeave = await showDialog<bool>(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text('Discard Product?'),
-                          content: const Text(
-                            'You have unsaved changes. Are you sure you want to discard this product?',
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context, false),
-                              child: const Text('Continue Editing'),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                provider.clearAll();
-                                Navigator.pop(context, true);
-                              },
-                              style: TextButton.styleFrom(
-                                foregroundColor: Colors.red,
-                              ),
-                              child: const Text('Discard'),
-                            ),
-                          ],
-                        ),
-                      );
-
-                      return shouldLeave ?? false;
-                    },
-                  ),
-                  GoRoute(
-                    path: 'upload-content',
-                    builder: (context, state) => const UploadContentScreen(),
-                    onExit: (context) async {
-                      final provider = context.read<UploadContentProvider>();
-                      if (!provider.hasUnsavedWork) {
-                        return true;
-                      }
-
-                      final shouldLeave = await showDialog<bool>(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text('Discard Content?'),
-                          content: const Text(
-                            'You have unsaved changes. Are you sure you want to discard this content?',
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context, false),
-                              child: const Text('Continue Editing'),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                provider.clearAll();
-                                Navigator.pop(context, true);
-                              },
-                              style: TextButton.styleFrom(
-                                foregroundColor: Colors.red,
-                              ),
-                              child: const Text('Discard'),
-                            ),
-                          ],
-                        ),
-                      );
-
-                      return shouldLeave ?? false;
-                    },
-                  ),
-                ],
               ),
             ],
           ),
@@ -242,15 +138,6 @@ GoRouter createAppRouter(AuthProvider authProvider) {
               GoRoute(
                 path: '/videos',
                 builder: (context, state) => const VideosPage(),
-                routes: [
-                  GoRoute(
-                    path: ':videoId',
-                    builder: (context, state) {
-                      final videoId = state.pathParameters['videoId']!;
-                      return VideosPage(videoId: videoId);
-                    },
-                  ),
-                ],
               ),
             ],
           ),
@@ -271,20 +158,6 @@ GoRouter createAppRouter(AuthProvider authProvider) {
               GoRoute(
                 path: '/shop',
                 builder: (context, state) => const ShopPage(),
-                routes: [
-                  GoRoute(
-                    path: ':productId',
-                    builder: (context, state) {
-                      final productId = state.pathParameters['productId']!;
-                      final ownPreview =
-                          state.uri.queryParameters['own_preview'] == '1';
-                      return ShopPage(
-                        productId: productId,
-                        allowOwnProductPreview: ownPreview,
-                      );
-                    },
-                  ),
-                ],
               ),
             ],
           ),
@@ -294,19 +167,197 @@ GoRouter createAppRouter(AuthProvider authProvider) {
               GoRoute(
                 path: '/profile',
                 builder: (context, state) => const ProfilePage(),
-                routes: [
-                  GoRoute(
-                    path: ':userId',
-                    builder: (context, state) {
-                      final userId = state.pathParameters['userId']!;
-                      return ProfilePage(userId: userId);
-                    },
-                  ),
-                ],
               ),
             ],
           ),
         ],
+      ),
+
+      // Drill-in detail pages are full-screen routes on the root navigator,
+      // each with its own back button — not tabs in the shell.
+      GoRoute(
+        path: '/profile/:userId',
+        builder: (context, state) {
+          final userId = state.pathParameters['userId']!;
+          return ProfilePage(userId: userId);
+        },
+      ),
+      GoRoute(
+        path: '/shop/:productId',
+        builder: (context, state) {
+          final productId = state.pathParameters['productId']!;
+          final ownPreview = state.uri.queryParameters['own_preview'] == '1';
+          return ShopPage(
+            productId: productId,
+            allowOwnProductPreview: ownPreview,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/videos/:videoId',
+        builder: (context, state) {
+          final videoId = state.pathParameters['videoId']!;
+          return VideosPage(videoId: videoId);
+        },
+      ),
+      GoRoute(
+        path: '/reel/:reelId',
+        builder: (context, state) {
+          final reelId = state.pathParameters['reelId']!;
+          return ReelsPage(initialReelId: reelId);
+        },
+      ),
+
+      // Standalone full-screen routes (pushed on the root navigator).
+      // These render over the shell with their own back button and no
+      // bottom navigation / sidebar, so they behave as separate pages on
+      // every platform.
+      // Sidebar destinations: cross-fade on wide (sidebar) layouts, slide on
+      // narrow (bottom-nav) layouts. See [_sidebarDestinationPage].
+      GoRoute(
+        path: '/cart',
+        pageBuilder: (context, state) => _sidebarDestinationPage(
+          context,
+          const SecondaryPageShell(
+            currentPath: '/cart',
+            child: CartPage(),
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/checkout',
+        builder: (context, state) => const CheckoutPage(),
+      ),
+      GoRoute(
+        path: '/messages',
+        pageBuilder: (context, state) => _sidebarDestinationPage(
+          context,
+          SecondaryPageShell(
+            currentPath: '/messages',
+            child: MessagesPage(
+              intent: state.extra is MessagesRouteIntent
+                  ? state.extra as MessagesRouteIntent
+                  : null,
+            ),
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/search',
+        pageBuilder: (context, state) => _sidebarDestinationPage(
+          context,
+          const SecondaryPageShell(
+            currentPath: '/search',
+            child: SearchPage(),
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/settings',
+        pageBuilder: (context, state) => _sidebarDestinationPage(
+          context,
+          const SecondaryPageShell(
+            currentPath: '/settings',
+            child: SettingsPage(),
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/orders/manage',
+        builder: (context, state) {
+          final product =
+              state.extra is ProductModel ? state.extra as ProductModel : null;
+          if (product == null) {
+            return const Scaffold(
+              body: Center(
+                child: Text('No order selected'),
+              ),
+            );
+          }
+          return ManageOrderPage(product: product);
+        },
+      ),
+      GoRoute(
+        path: '/add-product',
+        builder: (context, state) {
+          final editingProduct =
+              state.extra is ProductModel ? state.extra as ProductModel : null;
+          return AddProductScreen(
+            editingProduct: editingProduct,
+          );
+        },
+        onExit: (context) async {
+          final provider = context.read<AddProductProvider>();
+          if (!provider.hasUnsavedWork) {
+            return true;
+          }
+
+          final shouldLeave = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Discard Product?'),
+              content: const Text(
+                'You have unsaved changes. Are you sure you want to discard this product?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Continue Editing'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    provider.clearAll();
+                    Navigator.pop(context, true);
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.red,
+                  ),
+                  child: const Text('Discard'),
+                ),
+              ],
+            ),
+          );
+
+          return shouldLeave ?? false;
+        },
+      ),
+      GoRoute(
+        path: '/upload-content',
+        builder: (context, state) => const UploadContentScreen(),
+        onExit: (context) async {
+          final provider = context.read<UploadContentProvider>();
+          if (!provider.hasUnsavedWork) {
+            return true;
+          }
+
+          final shouldLeave = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Discard Content?'),
+              content: const Text(
+                'You have unsaved changes. Are you sure you want to discard this content?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Continue Editing'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    provider.clearAll();
+                    Navigator.pop(context, true);
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.red,
+                  ),
+                  child: const Text('Discard'),
+                ),
+              ],
+            ),
+          );
+
+          return shouldLeave ?? false;
+        },
       ),
     ],
   );
