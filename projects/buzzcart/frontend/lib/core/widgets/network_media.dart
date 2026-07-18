@@ -19,7 +19,11 @@ class AppMediaCacheManager {
 class AppImageProviders {
   AppImageProviders._();
 
-  static ImageProvider? network(String? imageUrl) {
+  static ImageProvider? network(
+    String? imageUrl, {
+    int? maxWidth,
+    int? maxHeight,
+  }) {
     final resolvedUrl = UrlHelper.getPlatformUrl(imageUrl);
     if (resolvedUrl.isEmpty) {
       return null;
@@ -28,6 +32,8 @@ class AppImageProviders {
     return CachedNetworkImageProvider(
       resolvedUrl,
       cacheManager: AppMediaCacheManager.instance,
+      maxWidth: maxWidth,
+      maxHeight: maxHeight,
     );
   }
 }
@@ -125,7 +131,14 @@ class AppAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provider = AppImageProviders.network(avatarUrl);
+    // Cap the decoded resolution to roughly the avatar's on-screen size (at
+    // up to 3x pixel density) instead of decoding the full source image.
+    final cacheDiameter = (radius * 2 * 3).round();
+    final provider = AppImageProviders.network(
+      avatarUrl,
+      maxWidth: cacheDiameter,
+      maxHeight: cacheDiameter,
+    );
     final initial = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
 
     return CircleAvatar(

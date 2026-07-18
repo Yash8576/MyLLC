@@ -21,6 +21,13 @@ import '../../products/widgets/product_card_social_preview.dart';
 
 final Map<String, int> _homeVideoDurationCache = <String, int>{};
 
+class _RailScrollState {
+  const _RailScrollState({this.canLeft = false, this.canRight = false});
+
+  final bool canLeft;
+  final bool canRight;
+}
+
 bool get _allowDesktopWebBackgroundPlayback =>
     kIsWeb &&
     (defaultTargetPlatform == TargetPlatform.windows ||
@@ -49,8 +56,10 @@ class _HomePageState extends State<HomePage> {
   final ScrollController _feedScrollController = ScrollController();
   final GlobalKey _feedViewportKey = GlobalKey();
   final Map<int, GlobalKey> _inlineReelSectionKeys = {};
-  final Set<int> _canScrollRailLeft = {};
-  final Set<int> _canScrollRailRight = {};
+  // Rail arrow enabled/disabled state, scoped per rail via ValueNotifier so
+  // updating it only rebuilds that rail's two arrow buttons instead of the
+  // whole page (see _buildProductRail).
+  final Map<int, ValueNotifier<_RailScrollState>> _railScrollNotifiers = {};
   final Map<String, int> _pendingCartQuantities = {};
   final Set<String> _updatingCartProductIds = {};
   AppRefreshProvider? _appRefreshProvider;
@@ -89,6 +98,9 @@ class _HomePageState extends State<HomePage> {
       ..dispose();
     for (final controller in _productRailControllers.values) {
       controller.dispose();
+    }
+    for (final notifier in _railScrollNotifiers.values) {
+      notifier.dispose();
     }
     super.dispose();
   }
@@ -141,6 +153,13 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  ValueNotifier<_RailScrollState> _getRailScrollNotifier(int sectionIndex) {
+    return _railScrollNotifiers.putIfAbsent(
+      sectionIndex,
+      () => ValueNotifier(const _RailScrollState()),
+    );
+  }
+
   void _updateRailScrollState(int sectionIndex) {
     final controller = _productRailControllers[sectionIndex];
     if (controller == null || !controller.hasClients || !mounted) {
@@ -150,26 +169,16 @@ class _HomePageState extends State<HomePage> {
     final canLeft = controller.offset > 2;
     final canRight =
         controller.offset < controller.position.maxScrollExtent - 2;
-    final wasLeft = _canScrollRailLeft.contains(sectionIndex);
-    final wasRight = _canScrollRailRight.contains(sectionIndex);
-
-    if (canLeft == wasLeft && canRight == wasRight) {
+    final notifier = _railScrollNotifiers[sectionIndex];
+    if (notifier == null ||
+        (notifier.value.canLeft == canLeft &&
+            notifier.value.canRight == canRight)) {
       return;
     }
 
-    setState(() {
-      if (canLeft) {
-        _canScrollRailLeft.add(sectionIndex);
-      } else {
-        _canScrollRailLeft.remove(sectionIndex);
-      }
-
-      if (canRight) {
-        _canScrollRailRight.add(sectionIndex);
-      } else {
-        _canScrollRailRight.remove(sectionIndex);
-      }
-    });
+    // Only rebuilds the ValueListenableBuilder around this rail's arrow
+    // buttons (see _buildProductRail) — not the whole page.
+    notifier.value = _RailScrollState(canLeft: canLeft, canRight: canRight);
   }
 
   Future<void> _scrollProductRail(int sectionIndex, bool forward) async {
@@ -207,8 +216,7 @@ class _HomePageState extends State<HomePage> {
 
     for (final index in staleIndexes) {
       _productRailControllers.remove(index)?.dispose();
-      _canScrollRailLeft.remove(index);
-      _canScrollRailRight.remove(index);
+      _railScrollNotifiers.remove(index)?.dispose();
     }
   }
 
@@ -1043,8 +1051,7 @@ class _HomePageState extends State<HomePage> {
       math.min(viewportWidth, _pageMaxWidth),
     );
     final controller = _getProductRailController(sectionIndex);
-    final canScrollLeft = _canScrollRailLeft.contains(sectionIndex);
-    final canScrollRight = _canScrollRailRight.contains(sectionIndex);
+    final scrollNotifier = _getRailScrollNotifier(sectionIndex);
 
     return _buildSectionShell(
       maxWidth: viewportWidth,
@@ -1068,16 +1075,29 @@ class _HomePageState extends State<HomePage> {
                                 ),
                       ),
                     ),
-                    _buildRailArrowButton(
-                      icon: Icons.chevron_left_rounded,
-                      isEnabled: canScrollLeft,
-                      onPressed: () => _scrollProductRail(sectionIndex, false),
-                    ),
-                    const SizedBox(width: 6),
-                    _buildRailArrowButton(
-                      icon: Icons.chevron_right_rounded,
-                      isEnabled: canScrollRight,
-                      onPressed: () => _scrollProductRail(sectionIndex, true),
+                    // Scoped to just these two buttons: scroll updates only
+                    // rebuild this small subtree, not the whole rail/page.
+                    ValueListenableBuilder<_RailScrollState>(
+                      valueListenable: scrollNotifier,
+                      builder: (context, scrollState, _) {
+                        return Row(
+                          children: [
+                            _buildRailArrowButton(
+                              icon: Icons.chevron_left_rounded,
+                              isEnabled: scrollState.canLeft,
+                              onPressed: () =>
+                                  _scrollProductRail(sectionIndex, false),
+                            ),
+                            const SizedBox(width: 6),
+                            _buildRailArrowButton(
+                              icon: Icons.chevron_right_rounded,
+                              isEnabled: scrollState.canRight,
+                              onPressed: () =>
+                                  _scrollProductRail(sectionIndex, true),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -1158,6 +1178,8 @@ class _HomePageState extends State<HomePage> {
                           ? _buildCachedImage(
                               product.images.first,
                               fit: BoxFit.cover,
+                              memCacheWidth:
+                                  (_productRailCardWidth * 3).round(),
                               errorWidget: const Icon(Icons.shopping_bag),
                             )
                           : const Icon(Icons.shopping_bag),
@@ -1405,6 +1427,7 @@ class _HomePageState extends State<HomePage> {
           _buildCachedImage(
             imageUrl,
             fit: BoxFit.cover,
+            memCacheWidth: (_mediaCardMaxWidth * 2).round(),
             errorWidget: Container(
               color: Colors.grey[200],
               child: const Icon(Icons.broken_image_outlined, size: 40),
@@ -1615,6 +1638,8 @@ class _HomePageState extends State<HomePage> {
     String imageUrl, {
     BoxFit fit = BoxFit.cover,
     Widget? errorWidget,
+    int? memCacheWidth,
+    int? memCacheHeight,
   }) {
     final resolvedUrl = UrlHelper.getPlatformUrl(imageUrl);
 
@@ -1627,6 +1652,8 @@ class _HomePageState extends State<HomePage> {
       fadeOutDuration: Duration.zero,
       placeholderFadeInDuration: Duration.zero,
       useOldImageOnUrlChange: true,
+      memCacheWidth: memCacheWidth,
+      memCacheHeight: memCacheHeight,
       errorWidget: (_, __, ___) => errorWidget ?? const SizedBox.shrink(),
     );
   }

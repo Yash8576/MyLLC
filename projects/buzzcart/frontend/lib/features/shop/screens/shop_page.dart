@@ -687,6 +687,8 @@ class _ShopPageState extends State<ShopPage> {
     String imageUrl, {
     BoxFit fit = BoxFit.cover,
     Widget? errorWidget,
+    int? memCacheWidth,
+    int? memCacheHeight,
   }) {
     final resolvedUrl = UrlHelper.getPlatformUrl(imageUrl);
     return CachedNetworkImage(
@@ -698,6 +700,8 @@ class _ShopPageState extends State<ShopPage> {
       fadeOutDuration: Duration.zero,
       placeholderFadeInDuration: Duration.zero,
       useOldImageOnUrlChange: true,
+      memCacheWidth: memCacheWidth,
+      memCacheHeight: memCacheHeight,
       errorWidget: (_, __, ___) => errorWidget ?? const SizedBox.shrink(),
     );
   }
@@ -950,6 +954,7 @@ class _ShopPageState extends State<ShopPage> {
                                         return _buildCachedImage(
                                           mediaUrl,
                                           fit: BoxFit.cover,
+                                          memCacheWidth: 1080,
                                           errorWidget: Container(
                                             color: Colors.grey[300],
                                             child: const Icon(Icons.image,
@@ -1476,12 +1481,6 @@ class _ShopPageState extends State<ShopPage> {
                           itemCount: _products.length,
                           itemBuilder: (context, index) {
                             final product = _products[index];
-                            final cartItems =
-                                context.watch<CartProvider>().cart.items;
-                            final inCartQuantity =
-                                _effectiveCartQuantity(product, cartItems);
-                            final remainingStock = _remainingStockForProduct(
-                                product, inCartQuantity);
 
                             return Card(
                               clipBehavior: Clip.antiAlias,
@@ -1500,6 +1499,12 @@ class _ShopPageState extends State<ShopPage> {
                                                 ? product.images.first
                                                 : '',
                                             fit: BoxFit.cover,
+                                            // Grid tiles are small; cap the
+                                            // decode size instead of
+                                            // decoding full-resolution
+                                            // source images per tile.
+                                            memCacheWidth:
+                                                (_maxTileWidth * 3).round(),
                                             errorWidget: Container(
                                               color: Colors.grey[300],
                                               child: const Icon(Icons.image),
@@ -1508,10 +1513,30 @@ class _ShopPageState extends State<ShopPage> {
                                           Positioned(
                                             right: 10,
                                             bottom: 10,
-                                            child: _buildGridCartAction(
-                                              product,
-                                              inCartQuantity,
-                                              remainingStock,
+                                            // Scoped to only this tile: only
+                                            // rebuilds when THIS product's
+                                            // cart quantity changes, instead
+                                            // of every visible tile rebuilding
+                                            // on any cart mutation.
+                                            child: Selector<CartProvider, int>(
+                                              selector: (_, cartProvider) =>
+                                                  _effectiveCartQuantity(
+                                                product,
+                                                cartProvider.cart.items,
+                                              ),
+                                              builder:
+                                                  (context, inCartQuantity, _) {
+                                                final remainingStock =
+                                                    _remainingStockForProduct(
+                                                  product,
+                                                  inCartQuantity,
+                                                );
+                                                return _buildGridCartAction(
+                                                  product,
+                                                  inCartQuantity,
+                                                  remainingStock,
+                                                );
+                                              },
                                             ),
                                           ),
                                         ],

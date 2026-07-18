@@ -719,6 +719,9 @@ class _ReelViewportState extends State<_ReelViewport> {
     if (controller == null) {
       return;
     }
+    // No widget in build() reads controller.value.isPlaying — the
+    // VideoPlayer widget already reflects play/pause via its own listener
+    // on the controller, so no setState/rebuild is needed here.
     if (controller.value.isPlaying) {
       _shouldPlay = false;
       _playbackGeneration++;
@@ -730,9 +733,6 @@ class _ReelViewportState extends State<_ReelViewport> {
       final generation = ++_playbackGeneration;
       await controller.play();
       _schedulePlaybackRetry(generation);
-    }
-    if (mounted) {
-      setState(() {});
     }
   }
 

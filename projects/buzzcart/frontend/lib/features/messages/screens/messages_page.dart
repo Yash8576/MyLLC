@@ -211,9 +211,10 @@ class _MessagesPageState extends State<MessagesPage>
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<MessagesProvider>();
-    final isWide = MediaQuery.of(context).size.width >= 900;
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isWide = screenWidth >= 900;
     // On desktop the sidebar handles navigation, so no route back button.
-    final hasSidebar = MediaQuery.of(context).size.width >= 1024;
+    final hasSidebar = screenWidth >= 1024;
     final hasChatOpen = provider.hasSelectedConversation && !isWide;
     final title = hasChatOpen
         ? (provider.selectedParticipant?.name ?? 'Messages')
@@ -298,11 +299,10 @@ class _MessagesPageState extends State<MessagesPage>
                             child: GestureDetector(
                               behavior: HitTestBehavior.translucent,
                               onHorizontalDragUpdate: (details) {
-                                final width = MediaQuery.of(context).size.width;
-                                if (width <= 0) return;
+                                if (screenWidth <= 0) return;
                                 _threadSlideController.value =
                                     (_threadSlideController.value -
-                                            details.delta.dx / width)
+                                            details.delta.dx / screenWidth)
                                         .clamp(0.0, 1.0);
                               },
                               onHorizontalDragEnd: (details) {
