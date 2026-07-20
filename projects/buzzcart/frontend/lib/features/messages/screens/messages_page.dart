@@ -334,7 +334,25 @@ class _MessagesPageState extends State<MessagesPage>
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text(title),
+          title: hasChatOpen
+              ? InkWell(
+                  onTap: () => context
+                      .push('/profile/${provider.selectedParticipant!.id}'),
+                  child: Row(
+                    children: [
+                      _UserAvatar(
+                        name: provider.selectedParticipant!.name,
+                        avatar: provider.selectedParticipant!.avatar,
+                        radius: 16,
+                      ),
+                      const SizedBox(width: 10),
+                      Flexible(
+                        child: Text(title, overflow: TextOverflow.ellipsis),
+                      ),
+                    ],
+                  ),
+                )
+              : Text(title),
           automaticallyImplyLeading: !hasSidebar,
           leading: hasChatOpen
               ? IconButton(
@@ -414,10 +432,9 @@ class _ConversationList extends StatelessWidget {
 
         return RefreshIndicator(
           onRefresh: provider.refreshConversations,
-          child: ListView.separated(
+          child: ListView.builder(
             padding: EdgeInsets.zero,
             itemCount: provider.conversations.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
             itemBuilder: (context, index) {
               final conversation = provider.conversations[index];
               final isSelected =
@@ -557,48 +574,6 @@ class _ChatThread extends StatelessWidget {
 
     return Column(
       children: [
-        Container(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(color: Theme.of(context).dividerColor),
-            ),
-          ),
-          child: Row(
-            children: [
-              ClipOval(
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () => context.push('/profile/${participant.id}'),
-                    child: _UserAvatar(
-                      name: participant.name,
-                      avatar: participant.avatar,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Flexible(
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(4),
-                    onTap: () => context.push('/profile/${participant.id}'),
-                    child: Text(
-                      participant.name,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
         Expanded(
           child: messages.isEmpty && !showTypingIndicator
               ? const _EmptyMessageTimeline()
