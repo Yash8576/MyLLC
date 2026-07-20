@@ -25,6 +25,7 @@ import '../../features/settings/screens/settings_page.dart';
 import '../../features/upload/presentation/screens/add_product_screen.dart';
 import '../../features/upload/presentation/screens/upload_content_screen.dart';
 import '../../features/orders/screens/manage_order_page.dart';
+import 'shell_obscured_notifier.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey =
     GlobalKey<NavigatorState>(debugLabel: 'rootNavigator');
@@ -65,6 +66,7 @@ GoRouter createAppRouter(AuthProvider authProvider) {
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
+    observers: [shellRouteObserver],
     initialLocation: useInitialRouteOverride ? initialRouteOverride : '/splash',
     overridePlatformDefaultLocation: useInitialRouteOverride,
     refreshListenable: authProvider,

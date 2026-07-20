@@ -10,6 +10,7 @@ import '../../core/providers/auth_provider.dart';
 import '../../core/providers/cart_provider.dart';
 import '../../core/utils/app_visibility_listener.dart';
 import '../../features/messages/providers/messages_provider.dart';
+import '../../core/router/shell_obscured_notifier.dart';
 import 'app_sidebar.dart';
 
 const double _kGlossyNavHeight = 64;
@@ -44,10 +45,12 @@ class MainLayout extends StatefulWidget {
   State<MainLayout> createState() => _MainLayoutState();
 }
 
-class _MainLayoutState extends State<MainLayout> with WidgetsBindingObserver {
+class _MainLayoutState extends State<MainLayout>
+    with WidgetsBindingObserver, RouteAware {
   static const FlutterSecureStorage _storage = FlutterSecureStorage();
   bool _hasInitializedCart = false;
   late final AppVisibilityListener _appVisibilityListener;
+  ModalRoute<dynamic>? _subscribedRoute;
 
   @override
   void initState() {
@@ -63,6 +66,31 @@ class _MainLayoutState extends State<MainLayout> with WidgetsBindingObserver {
     _initializeCart();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route != _subscribedRoute) {
+      if (_subscribedRoute != null) {
+        shellRouteObserver.unsubscribe(this);
+      }
+      _subscribedRoute = route;
+      if (route != null) {
+        shellRouteObserver.subscribe(this, route);
+      }
+    }
+  }
+
+  @override
+  void didPushNext() {
+    shellObscuredNotifier.value = true;
+  }
+
+  @override
+  void didPopNext() {
+    shellObscuredNotifier.value = false;
+  }
+
   void _initializeCart() {
     if (!_hasInitializedCart) {
       _hasInitializedCart = true;
@@ -76,6 +104,7 @@ class _MainLayoutState extends State<MainLayout> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    shellRouteObserver.unsubscribe(this);
     _appVisibilityListener.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -158,9 +187,16 @@ class _MainLayoutState extends State<MainLayout> with WidgetsBindingObserver {
         final isDesktop = constraints.maxWidth >= 1024;
         final isReelsPage = widget.currentPath.startsWith('/reels');
 
-        return ActiveBranchScope(
-          currentIndex: widget.navigationShell.currentIndex,
-          currentPath: widget.currentPath,
+        return ValueListenableBuilder<bool>(
+          valueListenable: shellObscuredNotifier,
+          builder: (context, obscured, child) {
+            return ActiveBranchScope(
+              currentIndex: widget.navigationShell.currentIndex,
+              currentPath: widget.currentPath,
+              obscured: obscured,
+              child: child!,
+            );
+          },
           child: Scaffold(
             extendBody: !isDesktop && _isNativeIOS,
             body: Row(
@@ -604,11 +640,19 @@ class ActiveBranchScope extends InheritedWidget {
     super.key,
     required this.currentIndex,
     required this.currentPath,
+    required this.obscured,
     required super.child,
   });
 
   final int currentIndex;
   final String currentPath;
+
+  /// True while a route (Cart, Messages, Search, Settings, ...) is pushed on
+  /// top of the shell on the root navigator, covering it. Widgets that only
+  /// key playback off `currentIndex`/`currentPath` (the active branch) also
+  /// need to check this, since the shell keeps reporting the same branch as
+  /// active even though it's no longer visible on screen.
+  final bool obscured;
 
   static ActiveBranchScope? maybeOf(BuildContext context) {
     return context.dependOnInheritedWidgetOfExactType<ActiveBranchScope>();
@@ -628,6 +672,7 @@ class ActiveBranchScope extends InheritedWidget {
   @override
   bool updateShouldNotify(ActiveBranchScope oldWidget) {
     return oldWidget.currentIndex != currentIndex ||
-        oldWidget.currentPath != currentPath;
+        oldWidget.currentPath != currentPath ||
+        oldWidget.obscured != obscured;
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:provider/provider.dart';
@@ -22,6 +23,14 @@ void main() async {
   if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
     MediaKit.ensureInitialized();
     VideoPlayerMediaKit.ensureInitialized(windows: true);
+  }
+  // Portrait-only everywhere; the video fullscreen view opts into landscape
+  // itself while it's open and locks back to portrait on close.
+  if (!kIsWeb) {
+    await SystemChrome.setPreferredOrientations(const [
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
   }
 
   runApp(

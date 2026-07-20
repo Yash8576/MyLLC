@@ -862,7 +862,8 @@ class _HomePageState extends State<HomePage> {
         final pagePadding = isCompact ? 12.0 : 20.0;
         final activeScope = ActiveBranchScope.maybeOf(context);
         final isHomeTabActive = (activeScope?.currentIndex ?? 0) == 0 &&
-            (activeScope?.currentPath ?? '/') == '/';
+            (activeScope?.currentPath ?? '/') == '/' &&
+            !(activeScope?.obscured ?? false);
         final cacheExtent = defaultTargetPlatform == TargetPlatform.android
             ? _mobileListCacheExtent
             : _desktopListCacheExtent;

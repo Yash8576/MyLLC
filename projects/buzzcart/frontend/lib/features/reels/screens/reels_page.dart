@@ -324,7 +324,8 @@ class _ReelsPageState extends State<ReelsPage> with WidgetsBindingObserver {
     final canPop = Navigator.of(context).canPop();
     final isReelsBranchActive = isStandalone ||
         (activeScope.currentIndex == 2 &&
-            (currentPath == '/reels' || currentPath.startsWith('/reels/')));
+            (currentPath == '/reels' || currentPath.startsWith('/reels/')) &&
+            !activeScope.obscured);
     final showDesktopNavArrows =
         kIsWeb || defaultTargetPlatform == TargetPlatform.windows;
     if (_lastReelsBranchActive != isReelsBranchActive) {

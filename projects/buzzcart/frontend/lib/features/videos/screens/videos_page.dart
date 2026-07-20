@@ -446,7 +446,7 @@ class _VideoDetailViewState extends State<_VideoDetailView> {
     _inlineControlsHideTimer?.cancel();
     _controller?.removeListener(_syncPlaybackState);
     _controller?.dispose();
-    unawaited(_restoreSystemChrome());
+    unawaited(_lockPortrait());
     super.dispose();
   }
 
@@ -622,19 +622,6 @@ class _VideoDetailViewState extends State<_VideoDetailView> {
     await SystemChrome.setPreferredOrientations(const [
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
-    ]);
-    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-  }
-
-  Future<void> _restoreSystemChrome() async {
-    if (kIsWeb) {
-      return;
-    }
-    await SystemChrome.setPreferredOrientations(const [
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
     ]);
     await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   }
