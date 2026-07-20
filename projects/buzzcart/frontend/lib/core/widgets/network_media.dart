@@ -134,27 +134,42 @@ class AppAvatar extends StatelessWidget {
     // Cap the decoded resolution to roughly the avatar's on-screen size (at
     // up to 3x pixel density) instead of decoding the full source image.
     final cacheDiameter = (radius * 2 * 3).round();
-    final provider = AppImageProviders.network(
-      avatarUrl,
-      maxWidth: cacheDiameter,
-      maxHeight: cacheDiameter,
-    );
+    final resolvedUrl = UrlHelper.getPlatformUrl(avatarUrl);
     final initial = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
 
-    return CircleAvatar(
+    final fallback = CircleAvatar(
       radius: radius,
       backgroundColor: backgroundColor ?? AppColorsFallback.avatarBackground,
-      backgroundImage: provider,
-      child: provider == null
-          ? Text(
-              initial,
-              style: textStyle ??
-                  const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
-            )
-          : null,
+      child: Text(
+        initial,
+        style: textStyle ??
+            const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
+      ),
+    );
+
+    if (resolvedUrl.isEmpty) {
+      return fallback;
+    }
+
+    return ClipOval(
+      child: SizedBox(
+        width: radius * 2,
+        height: radius * 2,
+        child: CachedNetworkImage(
+          imageUrl: resolvedUrl,
+          cacheManager: AppMediaCacheManager.instance,
+          fit: BoxFit.cover,
+          memCacheWidth: cacheDiameter,
+          memCacheHeight: cacheDiameter,
+          fadeInDuration: const Duration(milliseconds: 120),
+          fadeOutDuration: Duration.zero,
+          placeholder: (_, __) => fallback,
+          errorWidget: (_, __, ___) => fallback,
+        ),
+      ),
     );
   }
 }

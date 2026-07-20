@@ -1,14 +1,34 @@
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:async';
+import 'dart:ui' show ImageFilter;
 import '../../core/theme/app_colors.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/providers/cart_provider.dart';
 import '../../core/utils/app_visibility_listener.dart';
 import '../../features/messages/providers/messages_provider.dart';
 import 'app_sidebar.dart';
+
+const double _kGlossyNavHeight = 64;
+const double _kGlossyNavMargin = 8;
+
+/// Extra bottom clearance needed by full-bleed pages (e.g. Reels) so their
+/// own bottom-anchored overlays don't sit underneath the floating glass nav
+/// bar, which — unlike the legacy flush bar — no longer reserves layout
+/// space (`Scaffold.extendBody` is true on that path). Zero on platforms
+/// still using the legacy opaque bar, since that one already reserves space.
+double glossyBottomNavClearance(BuildContext context) {
+  final isNativeIOS = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+  if (!isNativeIOS) return 0;
+  // Mirrors _buildGlossyBottomNav's own bottom padding exactly (a flat
+  // margin, not the device's safe-area inset — the nav bar doesn't reserve
+  // extra space for that), so this clearance lines up with its real top edge.
+  final bottomInset = MediaQuery.of(context).padding.bottom;
+  return _kGlossyNavHeight + (bottomInset > 0 ? _kGlossyNavMargin : 12);
+}
 
 class MainLayout extends StatefulWidget {
   final StatefulNavigationShell navigationShell;
@@ -91,6 +111,9 @@ class _MainLayoutState extends State<MainLayout> with WidgetsBindingObserver {
     );
   }
 
+  bool get _isNativeIOS =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+
   bool _isOnPath(String path) {
     final currentPath = widget.currentPath;
     return currentPath == path ||
@@ -133,11 +156,13 @@ class _MainLayoutState extends State<MainLayout> with WidgetsBindingObserver {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isDesktop = constraints.maxWidth >= 1024;
+        final isReelsPage = widget.currentPath.startsWith('/reels');
 
         return ActiveBranchScope(
           currentIndex: widget.navigationShell.currentIndex,
           currentPath: widget.currentPath,
           child: Scaffold(
+            extendBody: !isDesktop && _isNativeIOS,
             body: Row(
               children: [
                 // Desktop sidebar
@@ -152,7 +177,7 @@ class _MainLayoutState extends State<MainLayout> with WidgetsBindingObserver {
                   child: Column(
                     children: [
                       // Mobile header
-                      if (!isDesktop) _buildMobileHeader(),
+                      if (!isDesktop && !isReelsPage) _buildMobileHeader(),
 
                       // Page content
                       Expanded(child: widget.navigationShell),
@@ -177,73 +202,113 @@ class _MainLayoutState extends State<MainLayout> with WidgetsBindingObserver {
     final isHomePage = currentPath == '/';
     final isProfilePage = currentPath.startsWith('/profile');
 
-    return SafeArea(
-      bottom: false,
-      child: Container(
-        height: 56,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.darkCard : AppColors.lightCard,
-          border: Border(
-            bottom: BorderSide(
-              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+    // On notch/Dynamic-Island devices the OS-reported top inset carries a
+    // generous built-in margin beyond what's needed to clear the island, so
+    // hugging it exactly leaves a visibly oversized gap. Trim a bit of that
+    // slack on those devices while leaving plain status bars untouched.
+    final rawTopInset = MediaQuery.of(context).padding.top;
+    final topInset = rawTopInset > 40 ? rawTopInset - 14 : rawTopInset;
+
+    return MediaQuery.removePadding(
+      context: context,
+      removeTop: true,
+      child: Padding(
+        padding: EdgeInsets.only(top: topInset),
+        child: Container(
+          height: 52,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkCard : AppColors.lightCard,
+            border: Border(
+              bottom: BorderSide(
+                color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+              ),
             ),
           ),
-        ),
-        child: Row(
-          children: [
-            isHomePage
-                ? PopupMenuButton<String>(
-                    offset: const Offset(0, 40),
-                    onSelected: (value) {
-                      if (value == 'content') {
-                        _navigateTo('/upload-content');
-                      } else if (value == 'product') {
-                        _navigateTo('/add-product');
-                      }
-                    },
-                    itemBuilder: (context) {
-                      final user = context.read<AuthProvider>().user;
-                      final isSeller = user?.isSeller ?? false;
-                      if (isSeller) {
-                        return [
-                          const PopupMenuItem(
-                            value: 'content',
-                            child: Row(
-                              children: [
-                                Icon(Icons.add_photo_alternate, size: 18),
-                                SizedBox(width: 8),
-                                Text('Add Content'),
-                              ],
+          child: Row(
+            children: [
+              isHomePage
+                  ? PopupMenuButton<String>(
+                      offset: const Offset(0, 40),
+                      onSelected: (value) {
+                        if (value == 'content') {
+                          _navigateTo('/upload-content');
+                        } else if (value == 'product') {
+                          _navigateTo('/add-product');
+                        }
+                      },
+                      itemBuilder: (context) {
+                        final user = context.read<AuthProvider>().user;
+                        final isSeller = user?.isSeller ?? false;
+                        if (isSeller) {
+                          return [
+                            const PopupMenuItem(
+                              value: 'content',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.add_photo_alternate, size: 18),
+                                  SizedBox(width: 8),
+                                  Text('Add Content'),
+                                ],
+                              ),
                             ),
-                          ),
-                          const PopupMenuItem(
-                            value: 'product',
-                            child: Row(
-                              children: [
-                                Icon(Icons.inventory_2, size: 18),
-                                SizedBox(width: 8),
-                                Text('Add Product'),
-                              ],
+                            const PopupMenuItem(
+                              value: 'product',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.inventory_2, size: 18),
+                                  SizedBox(width: 8),
+                                  Text('Add Product'),
+                                ],
+                              ),
                             ),
-                          ),
-                        ];
-                      } else {
-                        return [
-                          const PopupMenuItem(
-                            value: 'content',
-                            child: Row(
-                              children: [
-                                Icon(Icons.add_photo_alternate, size: 18),
-                                SizedBox(width: 8),
-                                Text('Add Content'),
-                              ],
+                          ];
+                        } else {
+                          return [
+                            const PopupMenuItem(
+                              value: 'content',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.add_photo_alternate, size: 18),
+                                  SizedBox(width: 8),
+                                  Text('Add Content'),
+                                ],
+                              ),
                             ),
-                          ),
-                        ];
-                      }
-                    },
-                    child: Padding(
+                          ];
+                        }
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        child: Row(
+                          children: [
+                            Text(
+                              'Buzz',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .headlineSmall
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                            ),
+                            Text(
+                              'Cart',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .headlineSmall
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.electricBlue,
+                                  ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(Icons.keyboard_arrow_down, size: 18),
+                          ],
+                        ),
+                      ),
+                    )
+                  : Padding(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 4),
                       child: Row(
@@ -267,125 +332,100 @@ class _MainLayoutState extends State<MainLayout> with WidgetsBindingObserver {
                                   color: AppColors.electricBlue,
                                 ),
                           ),
-                          const SizedBox(width: 4),
-                          const Icon(Icons.keyboard_arrow_down, size: 18),
                         ],
                       ),
                     ),
-                  )
-                : Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    child: Row(
-                      children: [
-                        Text(
-                          'Buzz',
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                        ),
-                        Text(
-                          'Cart',
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.electricBlue,
-                              ),
-                        ),
-                      ],
-                    ),
-                  ),
-            const Spacer(),
-            if (isProfilePage)
+              const Spacer(),
+              if (isProfilePage)
+                IconButton(
+                  icon: const Icon(Icons.settings),
+                  onPressed: () => _navigateTo('/settings'),
+                ),
               IconButton(
-                icon: const Icon(Icons.settings),
-                onPressed: () => _navigateTo('/settings'),
+                icon: const Icon(Icons.search),
+                onPressed: () => _navigateTo('/search'),
               ),
-            IconButton(
-              icon: const Icon(Icons.search),
-              onPressed: () => _navigateTo('/search'),
-            ),
-            Stack(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.shopping_cart),
-                  onPressed: () => _navigateTo('/cart'),
-                ),
-                if (cart.itemCount > 0)
-                  Positioned(
-                    right: 8,
-                    top: 8,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        color: AppColors.electricBlue,
-                        shape: BoxShape.circle,
-                      ),
-                      constraints: const BoxConstraints(
-                        minWidth: 16,
-                        minHeight: 16,
-                      ),
-                      child: Text(
-                        '${cart.itemCount}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
+              Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.shopping_cart),
+                    onPressed: () => _navigateTo('/cart'),
+                  ),
+                  if (cart.itemCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: AppColors.electricBlue,
+                          shape: BoxShape.circle,
                         ),
-                        textAlign: TextAlign.center,
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Text(
+                          '${cart.itemCount}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                     ),
+                ],
+              ),
+              Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.message_outlined),
+                    onPressed: () => _navigateTo('/messages'),
                   ),
-              ],
-            ),
-            Stack(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.message_outlined),
-                  onPressed: () => _navigateTo('/messages'),
-                ),
-                if (unreadMessages > 0)
-                  Positioned(
-                    right: 8,
-                    top: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 4,
-                        vertical: 2,
-                      ),
-                      decoration: const BoxDecoration(
-                        color: AppColors.electricBlue,
-                        borderRadius: BorderRadius.all(Radius.circular(10)),
-                      ),
-                      constraints: const BoxConstraints(
-                        minWidth: 16,
-                        minHeight: 16,
-                      ),
-                      child: Text(
-                        unreadMessages > 99 ? '99+' : '$unreadMessages',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w700,
+                  if (unreadMessages > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 2,
                         ),
-                        textAlign: TextAlign.center,
+                        decoration: const BoxDecoration(
+                          color: AppColors.electricBlue,
+                          borderRadius: BorderRadius.all(Radius.circular(10)),
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Text(
+                          unreadMessages > 99 ? '99+' : '$unreadMessages',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                     ),
-                  ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildBottomNav() {
+    return _isNativeIOS ? _buildGlossyBottomNav() : _buildLegacyBottomNav();
+  }
+
+  Widget _buildLegacyBottomNav() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final currentIndex = widget.navigationShell.currentIndex;
 
@@ -416,6 +456,143 @@ class _MainLayoutState extends State<MainLayout> with WidgetsBindingObserver {
                     label: item.label,
                   ))
               .toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGlossyBottomNav() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final currentIndex = widget.navigationShell.currentIndex;
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+
+    // Liquid Glass: a floating, refractive capsule detached from the
+    // screen edges, matching Apple's OS-level glass material (blurred,
+    // faintly tinted, with a specular highlight along the top rim).
+    final tint = isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : Colors.white.withValues(alpha: 0.35);
+    final rimHighlight = Colors.white.withValues(alpha: isDark ? 0.35 : 0.85);
+    final rimShadow = Colors.black.withValues(alpha: isDark ? 0.5 : 0.12);
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        16,
+        0,
+        16,
+        bottomInset > 0 ? _kGlossyNavMargin : 12,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(32),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 36, sigmaY: 36),
+          child: Container(
+            height: _kGlossyNavHeight,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(32),
+              color: (isDark ? AppColors.darkCard : AppColors.lightCard)
+                  .withValues(alpha: isDark ? 0.45 : 0.55),
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [tint, Colors.transparent],
+                stops: const [0.0, 0.7],
+              ),
+              border: Border.all(color: rimHighlight, width: 1),
+              boxShadow: [
+                BoxShadow(
+                  color: rimShadow,
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Row(
+              children: kPrimaryNavItems.asMap().entries.map((entry) {
+                final item = entry.value;
+                final isActive = entry.key == currentIndex;
+                return Expanded(
+                  child: _BottomNavButton(
+                    item: item,
+                    isActive: isActive,
+                    isDark: isDark,
+                    onTap: () => _navigateTo(item.path),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BottomNavButton extends StatelessWidget {
+  final NavDestination item;
+  final bool isActive;
+  final bool isDark;
+  final VoidCallback onTap;
+
+  const _BottomNavButton({
+    required this.item,
+    required this.isActive,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final activeColor = isDark ? Colors.white : Colors.black;
+    final inactiveColor =
+        isDark ? AppColors.darkMutedForeground : AppColors.lightMutedForeground;
+    final pillColor = isDark
+        ? Colors.white.withValues(alpha: 0.16)
+        : Colors.white.withValues(alpha: 0.55);
+    final pillBorder = isDark
+        ? Colors.white.withValues(alpha: 0.22)
+        : Colors.white.withValues(alpha: 0.9);
+
+    return Semantics(
+      label: item.label,
+      button: true,
+      selected: isActive,
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const StadiumBorder(),
+        child: SizedBox.expand(
+          child: Center(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOut,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+              decoration: BoxDecoration(
+                color: isActive ? pillColor : Colors.transparent,
+                borderRadius: BorderRadius.circular(20),
+                border:
+                    isActive ? Border.all(color: pillBorder, width: 0.8) : null,
+                boxShadow: isActive
+                    ? [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.06),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: AnimatedScale(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+                scale: isActive ? 1.08 : 1.0,
+                child: Icon(
+                  item.iconFor(isActive),
+                  size: 26,
+                  color: isActive ? activeColor : inactiveColor,
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );

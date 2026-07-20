@@ -68,6 +68,17 @@ class _ProfilePageState extends State<ProfilePage>
     super.dispose();
   }
 
+  // Shrinks the label to fit its equal-width tab slot instead of clipping,
+  // so all 4 tabs stay legible regardless of device width.
+  Tab _fitTab(String label) {
+    return Tab(
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(label, maxLines: 1, softWrap: false),
+      ),
+    );
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -1722,11 +1733,12 @@ class _ProfilePageState extends State<ProfilePage>
               delegate: _TabBarDelegate(
                 TabBar(
                   controller: _tabController,
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 4),
                   tabs: [
-                    const Tab(text: 'Photos'),
-                    const Tab(text: 'Videos'),
-                    const Tab(text: 'Reels'),
-                    Tab(text: productsTabLabel),
+                    _fitTab('Photos'),
+                    _fitTab('Videos'),
+                    _fitTab('Reels'),
+                    _fitTab(productsTabLabel),
                   ],
                 ),
               ),

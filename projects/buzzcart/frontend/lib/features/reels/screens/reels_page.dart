@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart' show TapGestureRecognizer;
 import 'package:flutter/material.dart';
 import 'package:buzz_social_cart/core/utils/app_snack_bar.dart';
 import 'package:go_router/go_router.dart';
@@ -535,6 +537,8 @@ class _ReelViewportState extends State<_ReelViewport> {
   bool _liking = false;
   int _likeCount = 0;
   int _commentCount = 0;
+  bool _showFullCaption = false;
+  TapGestureRecognizer? _seeMoreRecognizer;
 
   @override
   void initState() {
@@ -572,6 +576,7 @@ class _ReelViewportState extends State<_ReelViewport> {
   void dispose() {
     _playbackRetryTimer?.cancel();
     _releaseController(cacheForReuse: true);
+    _seeMoreRecognizer?.dispose();
     super.dispose();
   }
 
@@ -843,41 +848,7 @@ class _ReelViewportState extends State<_ReelViewport> {
           onTap: _togglePlayback,
           child: Container(
             color: Colors.black,
-            child: isReady
-                ? LayoutBuilder(
-                    builder: (context, constraints) {
-                      final videoSize = controller.value.size;
-                      final aspectRatio = videoSize.height > 0
-                          ? videoSize.width / videoSize.height
-                          : 9 / 16;
-
-                      return Center(
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            maxWidth: constraints.maxHeight * aspectRatio,
-                            maxHeight: constraints.maxHeight,
-                          ),
-                          child: RepaintBoundary(
-                            child: AspectRatio(
-                              aspectRatio: aspectRatio,
-                              child: VideoPlayer(controller),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  )
-                : AppCachedImage(
-                    imageUrl: widget.reel.thumbnail,
-                    fit: BoxFit.contain,
-                    errorWidget: const Center(
-                      child: Icon(
-                        Icons.play_circle_outline,
-                        color: Colors.white70,
-                        size: 80,
-                      ),
-                    ),
-                  ),
+            child: _buildMedia(controller, isReady),
           ),
         ),
         IgnorePointer(
@@ -902,7 +873,7 @@ class _ReelViewportState extends State<_ReelViewport> {
           ),
         Positioned(
           right: 14,
-          bottom: 104,
+          bottom: 16 + glossyBottomNavClearance(context),
           child: Column(
             children: [
               if (widget.showNavigationArrows) ...[
@@ -928,18 +899,18 @@ class _ReelViewportState extends State<_ReelViewport> {
                 onTap: _openComments,
               ),
               const SizedBox(height: 18),
-              _ReelActionButton(
-                icon: Icons.sell_outlined,
-                color: products.isEmpty ? Colors.white38 : Colors.white,
-                count: products.length,
-                onTap: products.isEmpty
-                    ? null
-                    : () => content_sheets.showTaggedProductsSheet(
-                          context: context,
-                          products: widget.reel.products,
-                        ),
-              ),
-              const SizedBox(height: 18),
+              if (products.isNotEmpty) ...[
+                _ReelActionButton(
+                  icon: Icons.sell_outlined,
+                  color: Colors.white,
+                  count: products.length,
+                  onTap: () => content_sheets.showTaggedProductsSheet(
+                    context: context,
+                    products: widget.reel.products,
+                  ),
+                ),
+                const SizedBox(height: 18),
+              ],
               _ReelActionButton(
                 icon: widget.isMuted ? Icons.volume_off : Icons.volume_up,
                 color: Colors.white,
@@ -956,80 +927,217 @@ class _ReelViewportState extends State<_ReelViewport> {
             ],
           ),
         ),
-        Positioned(
-          left: 16,
-          right: 84,
-          bottom: 24,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              InkWell(
-                onTap: () => context.push('/profile/${widget.reel.creatorId}'),
-                borderRadius: BorderRadius.circular(16),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 2,
-                    vertical: 2,
+        if (!_showFullCaption)
+          Positioned(
+            left: 16,
+            width: MediaQuery.of(context).size.width * 0.75,
+            bottom: 16 + glossyBottomNavClearance(context),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildAvatarRow(),
+                if (widget.reel.caption.trim().isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _buildCaptionText(
+                    MediaQuery.of(context).size.width * 0.75,
                   ),
-                  child: Row(
-                    children: [
-                      AppAvatar(
-                        name: widget.reel.creatorName,
-                        avatarUrl: widget.reel.creatorAvatar,
-                        radius: 22,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          widget.reel.creatorName,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                          ),
+                ],
+              ],
+            ),
+          ),
+        if (_showFullCaption) ...[
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => setState(() => _showFullCaption = false),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+                child: Container(color: Colors.black.withValues(alpha: 0.55)),
+              ),
+            ),
+          ),
+          Positioned(
+            top: MediaQuery.of(context).size.height * 0.4,
+            left: 16,
+            right: 16,
+            bottom: 24 + glossyBottomNavClearance(context),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildAvatarRow(),
+                const SizedBox(height: 14),
+                Expanded(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {},
+                    child: SingleChildScrollView(
+                      child: Text(
+                        widget.reel.caption,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          height: 1.5,
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              ),
-              if (widget.reel.caption.trim().isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Text(
-                  widget.reel.caption,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    height: 1.35,
+                    ),
                   ),
                 ),
               ],
-              if (products.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                TextButton.icon(
-                  onPressed: () => content_sheets.showTaggedProductsSheet(
-                    context: context,
-                    products: widget.reel.products,
-                  ),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    backgroundColor: Colors.white.withValues(alpha: 0.14),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-                  icon: const Icon(Icons.shopping_bag_outlined, size: 18),
-                  label: Text('View tagged products (${products.length})'),
-                ),
-              ],
-            ],
+            ),
           ),
-        ),
+        ],
       ],
+    );
+  }
+
+  // Phone form factor (native iOS/Android on a phone-sized screen):
+  // edge-to-edge cover-fill like Instagram/TikTok, cropping the overflow so
+  // the video plays under the status bar / Dynamic Island too.
+  // Everything else — web, native desktop, and iPad — always gets a fixed
+  // 9:16 player fit with `contain` (never cropped/zoomed), regardless of
+  // window width or whether that layout happens to show the bottom nav.
+  bool get _isPhoneFormFactor {
+    if (kIsWeb) return false;
+    final platform = defaultTargetPlatform;
+    final isMobilePlatform =
+        platform == TargetPlatform.iOS || platform == TargetPlatform.android;
+    if (!isMobilePlatform) return false;
+    return MediaQuery.of(context).size.shortestSide < 600;
+  }
+
+  Widget _buildMedia(VideoPlayerController? controller, bool isReady) {
+    final isPhone = _isPhoneFormFactor;
+    final fit = isPhone ? BoxFit.cover : BoxFit.contain;
+
+    final media = isReady
+        ? FittedBox(
+            fit: fit,
+            clipBehavior: Clip.hardEdge,
+            child: SizedBox(
+              width: controller!.value.size.width,
+              height: controller.value.size.height,
+              child: RepaintBoundary(child: VideoPlayer(controller)),
+            ),
+          )
+        : AppCachedImage(
+            imageUrl: widget.reel.thumbnail,
+            fit: fit,
+            errorWidget: const Center(
+              child: Icon(
+                Icons.play_circle_outline,
+                color: Colors.white70,
+                size: 80,
+              ),
+            ),
+          );
+
+    if (!isPhone) {
+      return Center(
+        child: AspectRatio(aspectRatio: 9 / 16, child: media),
+      );
+    }
+    return SizedBox.expand(child: media);
+  }
+
+  Widget _buildAvatarRow() {
+    return InkWell(
+      onTap: () => context.push('/profile/${widget.reel.creatorId}'),
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppAvatar(
+              name: widget.reel.creatorName,
+              avatarUrl: widget.reel.creatorAvatar,
+              radius: 22,
+            ),
+            const SizedBox(width: 10),
+            Flexible(
+              child: Text(
+                widget.reel.creatorName,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Clamps the caption to 2 lines within [maxWidth], appending a
+  // differently-colored "See more" affordance when it doesn't fit — tapping
+  // it (or anywhere in the truncated text) expands the full caption.
+  Widget _buildCaptionText(double maxWidth) {
+    final caption = widget.reel.caption.trim();
+    const style = TextStyle(color: Colors.white, fontSize: 14, height: 1.35);
+    const seeMoreStyle = TextStyle(
+      color: AppColors.electricBlue,
+      fontSize: 14,
+      height: 1.35,
+      fontWeight: FontWeight.w700,
+    );
+    const seeMoreLabel = 'See more';
+
+    final fullPainter = TextPainter(
+      text: TextSpan(text: caption, style: style),
+      maxLines: 2,
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: maxWidth);
+
+    if (!fullPainter.didExceedMaxLines) {
+      return Text(caption, style: style);
+    }
+
+    const ellipsis = '… ';
+    var low = 0;
+    var high = caption.length;
+    while (low < high) {
+      final mid = (low + high + 1) ~/ 2;
+      final probe = TextPainter(
+        text: TextSpan(
+          style: style,
+          children: [
+            TextSpan(text: '${caption.substring(0, mid).trimRight()}$ellipsis'),
+            const TextSpan(text: seeMoreLabel),
+          ],
+        ),
+        maxLines: 2,
+        textDirection: TextDirection.ltr,
+      )..layout(maxWidth: maxWidth);
+      if (!probe.didExceedMaxLines) {
+        low = mid;
+      } else {
+        high = mid - 1;
+      }
+    }
+    final truncated = caption.substring(0, low).trimRight();
+
+    _seeMoreRecognizer?.dispose();
+    _seeMoreRecognizer = TapGestureRecognizer()
+      ..onTap = () => setState(() => _showFullCaption = true);
+
+    return RichText(
+      maxLines: 2,
+      overflow: TextOverflow.clip,
+      text: TextSpan(
+        style: style,
+        children: [
+          TextSpan(text: '$truncated$ellipsis'),
+          TextSpan(
+            text: seeMoreLabel,
+            style: seeMoreStyle,
+            recognizer: _seeMoreRecognizer,
+          ),
+        ],
+      ),
     );
   }
 }

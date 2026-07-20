@@ -220,168 +220,172 @@ class _CartItemCard extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            // Product image
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: AppColors.lightMuted,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: item.product.images.isNotEmpty
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: CachedNetworkImage(
-                        imageUrl:
-                            UrlHelper.getPlatformUrl(item.product.images[0]),
-                        fit: BoxFit.cover,
-                        errorWidget: (context, url, error) =>
-                            const Icon(Icons.shopping_bag),
-                      ),
-                    )
-                  : const Icon(Icons.shopping_bag),
-            ),
-            const SizedBox(width: 12),
-            // Product info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.product.title,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w500,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => context.push('/shop/${item.product.id}'),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              // Product image
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: AppColors.lightMuted,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: item.product.images.isNotEmpty
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: CachedNetworkImage(
+                          imageUrl:
+                              UrlHelper.getPlatformUrl(item.product.images[0]),
+                          fit: BoxFit.cover,
+                          errorWidget: (context, url, error) =>
+                              const Icon(Icons.shopping_bag),
                         ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    item.product.sellerName,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  if (item.product.stockQuantity > 0 &&
-                      item.product.stockQuantity < 10) ...[
-                    const SizedBox(height: 6),
+                      )
+                    : const Icon(Icons.shopping_bag),
+              ),
+              const SizedBox(width: 12),
+              // Product info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      'Low stock',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.orange.shade700,
-                            fontWeight: FontWeight.w600,
+                      item.product.title,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w500,
                           ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      item.product.sellerName,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    if (item.product.stockQuantity > 0 &&
+                        item.product.stockQuantity < 10) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        'Low stock',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Colors.orange.shade700,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    Text(
+                      '\$${item.product.price.toStringAsFixed(2)}',
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.electricBlue,
+                          ),
+                    ),
+                    if (item.product.compareAtPrice != null &&
+                        item.product.compareAtPrice! > item.product.price)
+                      Text(
+                        '\$${item.product.compareAtPrice!.toStringAsFixed(2)}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              decoration: TextDecoration.lineThrough,
+                              color: AppColors.lightMutedForeground,
+                            ),
+                      ),
+                    const SizedBox(height: 6),
+                    ProductCardSocialPreview(
+                      productId: item.product.id,
+                      maxAvatars: 2,
                     ),
                   ],
-                  const SizedBox(height: 8),
-                  Text(
-                    '\$${item.product.price.toStringAsFixed(2)}',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.electricBlue,
-                        ),
-                  ),
-                  if (item.product.compareAtPrice != null &&
-                      item.product.compareAtPrice! > item.product.price)
-                    Text(
-                      '\$${item.product.compareAtPrice!.toStringAsFixed(2)}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            decoration: TextDecoration.lineThrough,
-                            color: AppColors.lightMutedForeground,
+                ),
+              ),
+              // Quantity controls
+              Column(
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.remove_circle_outline),
+                        onPressed: item.quantity > 1
+                            ? () => cartProvider.updateQuantity(
+                                  item.product.id,
+                                  item.quantity - 1,
+                                  maxQuantity: maxQuantity,
+                                )
+                            : null,
+                      ),
+                      Text(
+                        '${item.quantity}',
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.add_circle_outline),
+                        onPressed: !isAtMax
+                            ? () => cartProvider.updateQuantity(
+                                  item.product.id,
+                                  item.quantity + 1,
+                                  maxQuantity: maxQuantity,
+                                )
+                            : null,
+                      ),
+                      if (isAtMax)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 4),
+                          child: Text(
+                            'Max',
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.grey[700],
+                                    ),
                           ),
-                    ),
-                  const SizedBox(height: 6),
-                  ProductCardSocialPreview(
-                    productId: item.product.id,
-                    maxAvatars: 2,
+                        ),
+                    ],
+                  ),
+                  IconButton(
+                    onPressed: () async {
+                      final shouldRemove = await showDialog<bool>(
+                        context: context,
+                        builder: (dialogContext) {
+                          return AlertDialog(
+                            title: const Text('Remove item?'),
+                            content: Text(
+                              'Remove ${item.product.title} from your cart?',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () =>
+                                    Navigator.of(dialogContext).pop(false),
+                                child: const Text('Cancel'),
+                              ),
+                              TextButton(
+                                onPressed: () =>
+                                    Navigator.of(dialogContext).pop(true),
+                                child: const Text('Remove'),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+
+                      if (shouldRemove == true) {
+                        await cartProvider.removeFromCart(item.product.id);
+                      }
+                    },
+                    icon: const Icon(Icons.delete_outline),
+                    color: AppColors.destructive,
+                    tooltip: 'Remove from cart',
                   ),
                 ],
               ),
-            ),
-            // Quantity controls
-            Column(
-              children: [
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.remove_circle_outline),
-                      onPressed: item.quantity > 1
-                          ? () => cartProvider.updateQuantity(
-                                item.product.id,
-                                item.quantity - 1,
-                                maxQuantity: maxQuantity,
-                              )
-                          : null,
-                    ),
-                    Text(
-                      '${item.quantity}',
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.add_circle_outline),
-                      onPressed: !isAtMax
-                          ? () => cartProvider.updateQuantity(
-                                item.product.id,
-                                item.quantity + 1,
-                                maxQuantity: maxQuantity,
-                              )
-                          : null,
-                    ),
-                    if (isAtMax)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 4),
-                        child: Text(
-                          'Max',
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.grey[700],
-                                  ),
-                        ),
-                      ),
-                  ],
-                ),
-                IconButton(
-                  onPressed: () async {
-                    final shouldRemove = await showDialog<bool>(
-                      context: context,
-                      builder: (dialogContext) {
-                        return AlertDialog(
-                          title: const Text('Remove item?'),
-                          content: Text(
-                            'Remove ${item.product.title} from your cart?',
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () =>
-                                  Navigator.of(dialogContext).pop(false),
-                              child: const Text('Cancel'),
-                            ),
-                            TextButton(
-                              onPressed: () =>
-                                  Navigator.of(dialogContext).pop(true),
-                              child: const Text('Remove'),
-                            ),
-                          ],
-                        );
-                      },
-                    );
-
-                    if (shouldRemove == true) {
-                      await cartProvider.removeFromCart(item.product.id);
-                    }
-                  },
-                  icon: const Icon(Icons.delete_outline),
-                  color: AppColors.destructive,
-                  tooltip: 'Remove from cart',
-                ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

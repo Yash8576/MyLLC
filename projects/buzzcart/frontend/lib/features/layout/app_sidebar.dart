@@ -10,23 +10,52 @@ import '../../features/messages/providers/messages_provider.dart';
 class NavDestination {
   final String path;
   final IconData icon;
+  final IconData? activeIcon;
   final String label;
 
   const NavDestination({
     required this.path,
     required this.icon,
+    this.activeIcon,
     required this.label,
   });
+
+  IconData iconFor(bool isActive) => isActive ? (activeIcon ?? icon) : icon;
 }
 
 /// Primary destinations that also appear in the mobile bottom navigation.
 /// These map 1:1 to the branches of the [StatefulShellRoute].
 const List<NavDestination> kPrimaryNavItems = [
-  NavDestination(path: '/', icon: Icons.home, label: 'Home'),
-  NavDestination(path: '/videos', icon: Icons.play_circle, label: 'Videos'),
-  NavDestination(path: '/reels', icon: Icons.movie, label: 'Reels'),
-  NavDestination(path: '/shop', icon: Icons.shopping_bag, label: 'Shop'),
-  NavDestination(path: '/profile', icon: Icons.person, label: 'Profile'),
+  NavDestination(
+    path: '/',
+    icon: Icons.home_outlined,
+    activeIcon: Icons.home_rounded,
+    label: 'Home',
+  ),
+  NavDestination(
+    path: '/videos',
+    icon: Icons.play_circle_outline,
+    activeIcon: Icons.play_circle,
+    label: 'Videos',
+  ),
+  NavDestination(
+    path: '/reels',
+    icon: Icons.movie_outlined,
+    activeIcon: Icons.movie,
+    label: 'Reels',
+  ),
+  NavDestination(
+    path: '/shop',
+    icon: Icons.shopping_bag_outlined,
+    activeIcon: Icons.shopping_bag,
+    label: 'Shop',
+  ),
+  NavDestination(
+    path: '/profile',
+    icon: Icons.person_outline,
+    activeIcon: Icons.person,
+    label: 'Profile',
+  ),
 ];
 
 /// Secondary destinations that only appear in the desktop sidebar.
@@ -306,7 +335,7 @@ class AppSidebar extends StatelessWidget {
                       clipBehavior: Clip.none,
                       children: [
                         Icon(
-                          item.icon,
+                          item.iconFor(isActive),
                           size: 20,
                           color: isActive
                               ? (isDark
