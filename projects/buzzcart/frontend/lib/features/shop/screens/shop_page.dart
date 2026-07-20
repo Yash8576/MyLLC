@@ -777,7 +777,7 @@ class _ShopPageState extends State<ShopPage> {
         appBar: showPageAppBar
             ? AppBar(
                 leading: IconButton(
-                  icon: const Icon(Icons.arrow_back),
+                  icon: const BackButtonIcon(),
                   onPressed: _handleBackNavigation,
                 ),
               )
@@ -797,7 +797,7 @@ class _ShopPageState extends State<ShopPage> {
       appBar: showPageAppBar
           ? AppBar(
               leading: IconButton(
-                icon: const Icon(Icons.arrow_back),
+                icon: const BackButtonIcon(),
                 onPressed: _handleBackNavigation,
               ),
               actions: [
@@ -818,19 +818,17 @@ class _ShopPageState extends State<ShopPage> {
       body: Column(
         children: [
           Expanded(
-            child: MediaQuery.removePadding(
-              context: context,
-              removeTop: true,
-              child: ListView(
-                padding: EdgeInsets.zero,
-                children: [
-                  if (!showPageAppBar)
-                    Padding(
+            child: Column(
+              children: [
+                if (!showPageAppBar)
+                  SafeArea(
+                    bottom: false,
+                    child: Padding(
                       padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
                       child: Row(
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.arrow_back),
+                            icon: const BackButtonIcon(),
                             onPressed: _handleBackNavigation,
                             visualDensity: VisualDensity.compact,
                           ),
@@ -850,486 +848,529 @@ class _ShopPageState extends State<ShopPage> {
                         ],
                       ),
                     ),
-                  if (mediaQueue.isNotEmpty)
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final availableWidth = constraints.maxWidth;
-                        final squareSize = availableWidth.clamp(
-                          _detailImageMinSize,
-                          _detailImageMaxSize,
-                        );
-                        final activeMediaIndex =
-                            _currentImageIndex % mediaQueue.length;
+                  ),
+                Expanded(
+                  child: MediaQuery.removePadding(
+                    context: context,
+                    removeTop: true,
+                    child: ListView(
+                      padding: EdgeInsets.zero,
+                      children: [
+                        if (mediaQueue.isNotEmpty)
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              final availableWidth = constraints.maxWidth;
+                              final squareSize = availableWidth.clamp(
+                                _detailImageMinSize,
+                                _detailImageMaxSize,
+                              );
+                              final activeMediaIndex =
+                                  _currentImageIndex % mediaQueue.length;
 
-                        return Center(
-                          child: SizedBox(
-                            width: squareSize,
-                            child: AspectRatio(
-                              aspectRatio: 1,
-                              child: Stack(
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(16),
-                                    child: PageView.builder(
-                                      controller: _mediaPageController,
-                                      onPageChanged: (index) => setState(
-                                          () => _currentImageIndex = index),
-                                      itemBuilder: (context, index) {
-                                        final media = mediaQueue[
-                                            index % mediaQueue.length];
-                                        final mediaType =
-                                            (media['type'] as String?) ??
-                                                'image';
-                                        final mediaUrl =
-                                            (media['url'] as String?) ?? '';
-                                        if (mediaType == 'video') {
-                                          return Container(
-                                            color: Colors.black,
-                                            child: Stack(
-                                              fit: StackFit.expand,
-                                              children: [
-                                                Container(
-                                                  decoration:
-                                                      const BoxDecoration(
-                                                    gradient: LinearGradient(
-                                                      begin: Alignment.topLeft,
-                                                      end:
-                                                          Alignment.bottomRight,
-                                                      colors: [
-                                                        Colors.black87,
-                                                        Colors.black54
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
-                                                Center(
-                                                  child: Column(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .center,
+                              return Center(
+                                child: SizedBox(
+                                  width: squareSize,
+                                  child: AspectRatio(
+                                    aspectRatio: 1,
+                                    child: Stack(
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(16),
+                                          child: PageView.builder(
+                                            controller: _mediaPageController,
+                                            onPageChanged: (index) => setState(
+                                                () =>
+                                                    _currentImageIndex = index),
+                                            itemBuilder: (context, index) {
+                                              final media = mediaQueue[
+                                                  index % mediaQueue.length];
+                                              final mediaType =
+                                                  (media['type'] as String?) ??
+                                                      'image';
+                                              final mediaUrl =
+                                                  (media['url'] as String?) ??
+                                                      '';
+                                              if (mediaType == 'video') {
+                                                return Container(
+                                                  color: Colors.black,
+                                                  child: Stack(
+                                                    fit: StackFit.expand,
                                                     children: [
-                                                      const Icon(
-                                                        Icons.play_circle_fill,
-                                                        size: 76,
-                                                        color: Colors.white,
-                                                      ),
-                                                      const SizedBox(
-                                                          height: 12),
-                                                      Text(
-                                                        media['name']
-                                                                as String? ??
-                                                            'Product video',
-                                                        textAlign:
-                                                            TextAlign.center,
-                                                        style: const TextStyle(
-                                                          color: Colors.white,
-                                                          fontWeight:
-                                                              FontWeight.w600,
-                                                        ),
-                                                        maxLines: 2,
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                      ),
-                                                      if (mediaUrl
-                                                          .isNotEmpty) ...[
-                                                        const SizedBox(
-                                                            height: 8),
-                                                        const Text(
-                                                          'Swipe or use arrows to continue',
-                                                          style: TextStyle(
-                                                            color:
-                                                                Colors.white70,
-                                                            fontSize: 12,
+                                                      Container(
+                                                        decoration:
+                                                            const BoxDecoration(
+                                                          gradient:
+                                                              LinearGradient(
+                                                            begin: Alignment
+                                                                .topLeft,
+                                                            end: Alignment
+                                                                .bottomRight,
+                                                            colors: [
+                                                              Colors.black87,
+                                                              Colors.black54
+                                                            ],
                                                           ),
                                                         ),
-                                                      ],
+                                                      ),
+                                                      Center(
+                                                        child: Column(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .center,
+                                                          children: [
+                                                            const Icon(
+                                                              Icons
+                                                                  .play_circle_fill,
+                                                              size: 76,
+                                                              color:
+                                                                  Colors.white,
+                                                            ),
+                                                            const SizedBox(
+                                                                height: 12),
+                                                            Text(
+                                                              media['name']
+                                                                      as String? ??
+                                                                  'Product video',
+                                                              textAlign:
+                                                                  TextAlign
+                                                                      .center,
+                                                              style:
+                                                                  const TextStyle(
+                                                                color: Colors
+                                                                    .white,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w600,
+                                                              ),
+                                                              maxLines: 2,
+                                                              overflow:
+                                                                  TextOverflow
+                                                                      .ellipsis,
+                                                            ),
+                                                            if (mediaUrl
+                                                                .isNotEmpty) ...[
+                                                              const SizedBox(
+                                                                  height: 8),
+                                                              const Text(
+                                                                'Swipe or use arrows to continue',
+                                                                style:
+                                                                    TextStyle(
+                                                                  color: Colors
+                                                                      .white70,
+                                                                  fontSize: 12,
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ],
+                                                        ),
+                                                      ),
                                                     ],
                                                   ),
-                                                ),
-                                              ],
-                                            ),
-                                          );
-                                        }
+                                                );
+                                              }
 
-                                        return _buildCachedImage(
-                                          mediaUrl,
-                                          fit: BoxFit.cover,
-                                          memCacheWidth: 1080,
-                                          errorWidget: Container(
-                                            color: Colors.grey[300],
-                                            child: const Icon(Icons.image,
-                                                size: 64),
+                                              return _buildCachedImage(
+                                                mediaUrl,
+                                                fit: BoxFit.cover,
+                                                memCacheWidth: 1080,
+                                                errorWidget: Container(
+                                                  color: Colors.grey[300],
+                                                  child: const Icon(Icons.image,
+                                                      size: 64),
+                                                ),
+                                              );
+                                            },
                                           ),
-                                        );
-                                      },
+                                        ),
+                                        if (mediaQueue.length > 1)
+                                          Positioned(
+                                            bottom: 16,
+                                            left: 0,
+                                            right: 0,
+                                            child: Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: List.generate(
+                                                mediaQueue.length,
+                                                (index) => Container(
+                                                  margin: const EdgeInsets
+                                                      .symmetric(horizontal: 4),
+                                                  width: 8,
+                                                  height: 8,
+                                                  decoration: BoxDecoration(
+                                                    shape: BoxShape.circle,
+                                                    color: activeMediaIndex ==
+                                                            index
+                                                        ? Colors.white
+                                                        : Colors.white54,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        if (mediaQueue.length > 1)
+                                          Positioned(
+                                            left: 8,
+                                            top: 0,
+                                            bottom: 0,
+                                            child: Center(
+                                              child: _CarouselArrowButton(
+                                                icon: Icons.chevron_left,
+                                                onPressed: () =>
+                                                    _mediaPageController
+                                                        .previousPage(
+                                                  duration: const Duration(
+                                                      milliseconds: 250),
+                                                  curve: Curves.easeOut,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        if (mediaQueue.length > 1)
+                                          Positioned(
+                                            right: 8,
+                                            top: 0,
+                                            bottom: 0,
+                                            child: Center(
+                                              child: _CarouselArrowButton(
+                                                icon: Icons.chevron_right,
+                                                onPressed: () =>
+                                                    _mediaPageController
+                                                        .nextPage(
+                                                  duration: const Duration(
+                                                      milliseconds: 250),
+                                                  curve: Curves.easeOut,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                      ],
                                     ),
                                   ),
-                                  if (mediaQueue.length > 1)
-                                    Positioned(
-                                      bottom: 16,
-                                      left: 0,
-                                      right: 0,
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: List.generate(
-                                          mediaQueue.length,
-                                          (index) => Container(
-                                            margin: const EdgeInsets.symmetric(
-                                                horizontal: 4),
-                                            width: 8,
-                                            height: 8,
-                                            decoration: BoxDecoration(
-                                              shape: BoxShape.circle,
-                                              color: activeMediaIndex == index
-                                                  ? Colors.white
-                                                  : Colors.white54,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  if (mediaQueue.length > 1)
-                                    Positioned(
-                                      left: 8,
-                                      top: 0,
-                                      bottom: 0,
-                                      child: Center(
-                                        child: _CarouselArrowButton(
-                                          icon: Icons.chevron_left,
-                                          onPressed: () =>
-                                              _mediaPageController.previousPage(
-                                            duration: const Duration(
-                                                milliseconds: 250),
-                                            curve: Curves.easeOut,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  if (mediaQueue.length > 1)
-                                    Positioned(
-                                      right: 8,
-                                      top: 0,
-                                      bottom: 0,
-                                      child: Center(
-                                        child: _CarouselArrowButton(
-                                          icon: Icons.chevron_right,
-                                          onPressed: () =>
-                                              _mediaPageController.nextPage(
-                                            duration: const Duration(
-                                                milliseconds: 250),
-                                            curve: Curves.easeOut,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
+                                ),
+                              );
+                            },
                           ),
-                        );
-                      },
-                    ),
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          product.title,
-                          style: const TextStyle(
-                              fontSize: 24, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 8),
-                        if (!_hasDiscount(product))
-                          Text(
-                            '\$${product.price.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.electricBlue,
-                            ),
-                          )
-                        else
-                          Column(
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                children: [
-                                  Text(
-                                    '\$${product.price.toStringAsFixed(2)}',
-                                    style: const TextStyle(
-                                      fontSize: 28,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.electricBlue,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 3,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          AppColors.successGreen.withAlpha(24),
-                                      borderRadius: BorderRadius.circular(999),
-                                    ),
-                                    child: Text(
-                                      '${_percentOff(product)}% OFF',
-                                      style: const TextStyle(
-                                        color: AppColors.successGreen,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 2),
                               Text(
-                                '\$${product.compareAtPrice!.toStringAsFixed(2)}',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  decoration: TextDecoration.lineThrough,
-                                  color: Colors.grey[600],
-                                ),
+                                product.title,
+                                style: const TextStyle(
+                                    fontSize: 24, fontWeight: FontWeight.bold),
                               ),
-                            ],
-                          ),
-                        const SizedBox(height: 10),
-                        if (product.specificationPdfUrl != null) ...[
-                          SizedBox(
-                            width: double.infinity,
-                            child: FilledButton.icon(
-                              onPressed: () => _openDocumentAssistant(product),
-                              icon: const Icon(Icons.chat_bubble_outline),
-                              label:
-                                  const Text('Product Assistant (Coming soon)'),
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                        ],
-                        Wrap(
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          spacing: 14,
-                          runSpacing: 10,
-                          children: [
-                            InkWell(
-                              onTap: () => _openReviewsSheet(product),
-                              borderRadius: BorderRadius.circular(999),
-                              child: Ink(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .surfaceContainerHighest
-                                      .withValues(alpha: 0.5),
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
+                              const SizedBox(height: 8),
+                              if (!_hasDiscount(product))
+                                Text(
+                                  '\$${product.price.toStringAsFixed(2)}',
+                                  style: const TextStyle(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.electricBlue,
+                                  ),
+                                )
+                              else
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Icon(
-                                      Icons.star_rounded,
-                                      size: 18,
-                                      color: Colors.amber,
+                                    Row(
+                                      children: [
+                                        Text(
+                                          '\$${product.price.toStringAsFixed(2)}',
+                                          style: const TextStyle(
+                                            fontSize: 28,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.electricBlue,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 3,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.successGreen
+                                                .withAlpha(24),
+                                            borderRadius:
+                                                BorderRadius.circular(999),
+                                          ),
+                                          child: Text(
+                                            '${_percentOff(product)}% OFF',
+                                            style: const TextStyle(
+                                              color: AppColors.successGreen,
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(width: 4),
+                                    const SizedBox(height: 2),
                                     Text(
-                                      product.reviewsCount > 0
-                                          ? '${product.rating.toStringAsFixed(1)} (${product.reviewsCount} ratings)'
-                                          : 'No ratings yet',
+                                      '\$${product.compareAtPrice!.toStringAsFixed(2)}',
                                       style: TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.grey[700],
+                                        fontSize: 14,
+                                        decoration: TextDecoration.lineThrough,
+                                        color: Colors.grey[600],
                                       ),
                                     ),
                                   ],
                                 ),
-                              ),
-                            ),
-                            InkWell(
-                              onTap: () => _openReviewsSheet(product),
-                              borderRadius: BorderRadius.circular(999),
-                              child: Ink(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
+                              const SizedBox(height: 10),
+                              if (product.specificationPdfUrl != null) ...[
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: FilledButton.icon(
+                                    onPressed: () =>
+                                        _openDocumentAssistant(product),
+                                    icon: const Icon(Icons.chat_bubble_outline),
+                                    label: const Text(
+                                        'Product Assistant (Coming soon)'),
+                                  ),
                                 ),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .surfaceContainerHighest
-                                      .withValues(alpha: 0.5),
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                                child: _ReviewsPreviewButton(
-                                  reviews: _productReviewsPreview,
-                                  reviewCount: _productReviewsCount,
-                                  isLoading: _reviewsPreviewLoading,
-                                ),
-                              ),
-                            ),
-                            InkWell(
-                              onTap: () => _openBuyersSheet(product),
-                              borderRadius: BorderRadius.circular(999),
-                              child: Ink(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .surfaceContainerHighest
-                                      .withValues(alpha: 0.5),
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                                child: _BuyerPreviewButton(
-                                  buyers: _productBuyers,
-                                  isLoading: _buyersLoading,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        if ((product.brandName ?? '').isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            product.brandName!,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[700],
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            if (product.category.isNotEmpty)
-                              Chip(label: Text(product.category)),
-                            if (product.condition.isNotEmpty)
-                              Chip(
-                                  label: Text(product.condition.toUpperCase())),
-                            if (product.stockQuantity <= 0)
-                              const Chip(label: Text('Out of stock'))
-                            else if (_isLowStock(product))
-                              const Chip(label: Text('Low stock')),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          product.description,
-                          style: const TextStyle(fontSize: 16, height: 1.5),
-                        ),
-                        if (product.bulletPoints.isNotEmpty) ...[
-                          const SizedBox(height: 24),
-                          const Text(
-                            'Key features',
-                            style: TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 8),
-                          ...product.bulletPoints.map(
-                            (point) => Padding(
-                              padding: const EdgeInsets.only(bottom: 6),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                                const SizedBox(height: 14),
+                              ],
+                              Wrap(
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                spacing: 14,
+                                runSpacing: 10,
                                 children: [
-                                  const Text('• '),
-                                  Expanded(child: Text(point)),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                        if (product.highlightedSpecifications.isNotEmpty) ...[
-                          const SizedBox(height: 24),
-                          const Text(
-                            'Specifications',
-                            style: TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 8),
-                          ...product.highlightedSpecifications.entries.map(
-                            (entry) => Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  SizedBox(
-                                    width: 140,
-                                    child: Text(
-                                      entry.key,
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.w600),
+                                  InkWell(
+                                    onTap: () => _openReviewsSheet(product),
+                                    borderRadius: BorderRadius.circular(999),
+                                    child: Ink(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .surfaceContainerHighest
+                                            .withValues(alpha: 0.5),
+                                        borderRadius:
+                                            BorderRadius.circular(999),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(
+                                            Icons.star_rounded,
+                                            size: 18,
+                                            color: Colors.amber,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            product.reviewsCount > 0
+                                                ? '${product.rating.toStringAsFixed(1)} (${product.reviewsCount} ratings)'
+                                                : 'No ratings yet',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.grey[700],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
-                                  Expanded(child: Text(entry.value)),
+                                  InkWell(
+                                    onTap: () => _openReviewsSheet(product),
+                                    borderRadius: BorderRadius.circular(999),
+                                    child: Ink(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .surfaceContainerHighest
+                                            .withValues(alpha: 0.5),
+                                        borderRadius:
+                                            BorderRadius.circular(999),
+                                      ),
+                                      child: _ReviewsPreviewButton(
+                                        reviews: _productReviewsPreview,
+                                        reviewCount: _productReviewsCount,
+                                        isLoading: _reviewsPreviewLoading,
+                                      ),
+                                    ),
+                                  ),
+                                  InkWell(
+                                    onTap: () => _openBuyersSheet(product),
+                                    borderRadius: BorderRadius.circular(999),
+                                    child: Ink(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .surfaceContainerHighest
+                                            .withValues(alpha: 0.5),
+                                        borderRadius:
+                                            BorderRadius.circular(999),
+                                      ),
+                                      child: _BuyerPreviewButton(
+                                        buyers: _productBuyers,
+                                        isLoading: _buyersLoading,
+                                      ),
+                                    ),
+                                  ),
                                 ],
                               ),
-                            ),
-                          ),
-                        ],
-                        if (product.specificationPdfUrl != null ||
-                            product.mediaVideos.isNotEmpty) ...[
-                          const SizedBox(height: 24),
-                          const Text(
-                            'Supporting Media',
-                            style: TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 8),
-                          if (product.specificationPdfUrl != null)
-                            ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              leading: const Icon(Icons.picture_as_pdf,
-                                  color: Colors.red),
-                              title: const Text('Open specification PDF'),
-                              onTap: () => _openExternalUrl(
-                                product.specificationPdfUrl!,
+                              if ((product.brandName ?? '').isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  product.brandName!,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey[700],
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  if (product.category.isNotEmpty)
+                                    Chip(label: Text(product.category)),
+                                  if (product.condition.isNotEmpty)
+                                    Chip(
+                                        label: Text(
+                                            product.condition.toUpperCase())),
+                                  if (product.stockQuantity <= 0)
+                                    const Chip(label: Text('Out of stock'))
+                                  else if (_isLowStock(product))
+                                    const Chip(label: Text('Low stock')),
+                                ],
                               ),
-                            ),
-                          ...product.mediaVideos.map(
-                            (videoUrl) => ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              leading: const Icon(Icons.play_circle_outline),
-                              title: const Text('Open product video'),
-                              onTap: () => _openExternalUrl(videoUrl),
-                            ),
+                              const SizedBox(height: 16),
+                              Text(
+                                product.description,
+                                style:
+                                    const TextStyle(fontSize: 16, height: 1.5),
+                              ),
+                              if (product.bulletPoints.isNotEmpty) ...[
+                                const SizedBox(height: 24),
+                                const Text(
+                                  'Key features',
+                                  style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 8),
+                                ...product.bulletPoints.map(
+                                  (point) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 6),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text('• '),
+                                        Expanded(child: Text(point)),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                              if (product
+                                  .highlightedSpecifications.isNotEmpty) ...[
+                                const SizedBox(height: 24),
+                                const Text(
+                                  'Specifications',
+                                  style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 8),
+                                ...product.highlightedSpecifications.entries
+                                    .map(
+                                  (entry) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 8),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        SizedBox(
+                                          width: 140,
+                                          child: Text(
+                                            entry.key,
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.w600),
+                                          ),
+                                        ),
+                                        Expanded(child: Text(entry.value)),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                              if (product.specificationPdfUrl != null ||
+                                  product.mediaVideos.isNotEmpty) ...[
+                                const SizedBox(height: 24),
+                                const Text(
+                                  'Supporting Media',
+                                  style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 8),
+                                if (product.specificationPdfUrl != null)
+                                  ListTile(
+                                    contentPadding: EdgeInsets.zero,
+                                    leading: const Icon(Icons.picture_as_pdf,
+                                        color: Colors.red),
+                                    title: const Text('Open specification PDF'),
+                                    onTap: () => _openExternalUrl(
+                                      product.specificationPdfUrl!,
+                                    ),
+                                  ),
+                                ...product.mediaVideos.map(
+                                  (videoUrl) => ListTile(
+                                    contentPadding: EdgeInsets.zero,
+                                    leading:
+                                        const Icon(Icons.play_circle_outline),
+                                    title: const Text('Open product video'),
+                                    onTap: () => _openExternalUrl(videoUrl),
+                                  ),
+                                ),
+                              ],
+                              const SizedBox(height: 24),
+                              if (isOwnPreviewMode)
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .surfaceContainerHighest
+                                        .withValues(alpha: 0.55),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Text(
+                                    'Preview mode: cart actions are disabled for your own listing.',
+                                    style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                            ],
                           ),
-                        ],
-                        const SizedBox(height: 24),
-                        if (isOwnPreviewMode)
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .surfaceContainerHighest
-                                  .withValues(alpha: 0.55),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Text(
-                              'Preview mode: cart actions are disabled for your own listing.',
-                              style: TextStyle(
-                                  fontSize: 13, fontWeight: FontWeight.w600),
-                            ),
-                          ),
+                        ),
                       ],
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
           if (!isOwnPreviewMode)

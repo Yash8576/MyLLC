@@ -357,7 +357,7 @@ class _ManageOrderPageState extends State<ManageOrderPage> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const BackButtonIcon(),
           onPressed: () => Navigator.of(context).pop(_didChangeRating),
         ),
         title: const Text('Manage Order'),

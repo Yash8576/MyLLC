@@ -221,7 +221,7 @@ class _ReviewsPageState extends State<ReviewsPage> {
       appBar: AppBar(
         title: Text('Reviews for ${widget.productTitle}'),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const BackButtonIcon(),
           onPressed: () => context.pop(),
         ),
       ),

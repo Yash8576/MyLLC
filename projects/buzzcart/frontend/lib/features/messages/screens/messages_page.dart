@@ -338,7 +338,7 @@ class _MessagesPageState extends State<MessagesPage>
           automaticallyImplyLeading: !hasSidebar,
           leading: hasChatOpen
               ? IconButton(
-                  icon: const Icon(Icons.arrow_back),
+                  icon: const BackButtonIcon(),
                   onPressed: backToList,
                 )
               : null,
