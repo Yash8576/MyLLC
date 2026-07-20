@@ -334,11 +334,13 @@ class _MessagesPageState extends State<MessagesPage>
       },
       child: Scaffold(
         appBar: AppBar(
+          centerTitle: true,
           title: hasChatOpen
               ? InkWell(
                   onTap: () => context
                       .push('/profile/${provider.selectedParticipant!.id}'),
                   child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       _UserAvatar(
                         name: provider.selectedParticipant!.name,
