@@ -22,8 +22,10 @@ const double _kGlossyNavMargin = 8;
 /// space (`Scaffold.extendBody` is true on that path). Zero on platforms
 /// still using the legacy opaque bar, since that one already reserves space.
 double glossyBottomNavClearance(BuildContext context) {
-  final isNativeIOS = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
-  if (!isNativeIOS) return 0;
+  final usesGlossyNav = !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.android);
+  if (!usesGlossyNav) return 0;
   // Mirrors _buildGlossyBottomNav's own bottom padding exactly (a flat
   // margin, not the device's safe-area inset — the nav bar doesn't reserve
   // extra space for that), so this clearance lines up with its real top edge.
@@ -140,8 +142,10 @@ class _MainLayoutState extends State<MainLayout>
     );
   }
 
-  bool get _isNativeIOS =>
-      !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+  bool get _usesGlossyNav =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.android);
 
   bool _isOnPath(String path) {
     final currentPath = widget.currentPath;
@@ -198,7 +202,7 @@ class _MainLayoutState extends State<MainLayout>
             );
           },
           child: Scaffold(
-            extendBody: !isDesktop && _isNativeIOS,
+            extendBody: !isDesktop && _usesGlossyNav,
             body: Row(
               children: [
                 // Desktop sidebar
@@ -232,8 +236,6 @@ class _MainLayoutState extends State<MainLayout>
 
   Widget _buildMobileHeader() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cart = context.watch<CartProvider>().cart;
-    final unreadMessages = context.watch<MessagesProvider>().totalUnreadCount;
     final currentPath = widget.currentPath;
     final isHomePage = currentPath == '/';
     final isProfilePage = currentPath.startsWith('/profile');
@@ -387,31 +389,42 @@ class _MainLayoutState extends State<MainLayout>
                     icon: const Icon(Icons.shopping_cart),
                     onPressed: () => _navigateTo('/cart'),
                   ),
-                  if (cart.itemCount > 0)
-                    Positioned(
-                      right: 8,
-                      top: 8,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: AppColors.electricBlue,
-                          shape: BoxShape.circle,
-                        ),
-                        constraints: const BoxConstraints(
-                          minWidth: 16,
-                          minHeight: 16,
-                        ),
-                        child: Text(
-                          '${cart.itemCount}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
+                  // Scoped so cart updates only rebuild this badge, not the
+                  // whole shell (header + nav + body).
+                  Selector<CartProvider, int>(
+                    selector: (_, provider) => provider.cart.itemCount,
+                    builder: (context, itemCount, _) {
+                      if (itemCount <= 0) {
+                        return const SizedBox.shrink();
+                      }
+                      return Positioned(
+                        right: 8,
+                        top: 8,
+                        child: IgnorePointer(
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: AppColors.electricBlue,
+                              shape: BoxShape.circle,
+                            ),
+                            constraints: const BoxConstraints(
+                              minWidth: 16,
+                              minHeight: 16,
+                            ),
+                            child: Text(
+                              '$itemCount',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
                           ),
-                          textAlign: TextAlign.center,
                         ),
-                      ),
-                    ),
+                      );
+                    },
+                  ),
                 ],
               ),
               Stack(
@@ -420,34 +433,46 @@ class _MainLayoutState extends State<MainLayout>
                     icon: const Icon(Icons.message_outlined),
                     onPressed: () => _navigateTo('/messages'),
                   ),
-                  if (unreadMessages > 0)
-                    Positioned(
-                      right: 8,
-                      top: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 4,
-                          vertical: 2,
-                        ),
-                        decoration: const BoxDecoration(
-                          color: AppColors.electricBlue,
-                          borderRadius: BorderRadius.all(Radius.circular(10)),
-                        ),
-                        constraints: const BoxConstraints(
-                          minWidth: 16,
-                          minHeight: 16,
-                        ),
-                        child: Text(
-                          unreadMessages > 99 ? '99+' : '$unreadMessages',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 9,
-                            fontWeight: FontWeight.w700,
+                  // Scoped so unread-count changes (sockets, presence) only
+                  // rebuild this badge, not the whole shell.
+                  Selector<MessagesProvider, int>(
+                    selector: (_, provider) => provider.totalUnreadCount,
+                    builder: (context, unreadMessages, _) {
+                      if (unreadMessages <= 0) {
+                        return const SizedBox.shrink();
+                      }
+                      return Positioned(
+                        right: 8,
+                        top: 8,
+                        child: IgnorePointer(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 2,
+                            ),
+                            decoration: const BoxDecoration(
+                              color: AppColors.electricBlue,
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(10)),
+                            ),
+                            constraints: const BoxConstraints(
+                              minWidth: 16,
+                              minHeight: 16,
+                            ),
+                            child: Text(
+                              unreadMessages > 99 ? '99+' : '$unreadMessages',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w700,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
                           ),
-                          textAlign: TextAlign.center,
                         ),
-                      ),
-                    ),
+                      );
+                    },
+                  ),
                 ],
               ),
             ],
@@ -458,7 +483,7 @@ class _MainLayoutState extends State<MainLayout>
   }
 
   Widget _buildBottomNav() {
-    return _isNativeIOS ? _buildGlossyBottomNav() : _buildLegacyBottomNav();
+    return _usesGlossyNav ? _buildGlossyBottomNav() : _buildLegacyBottomNav();
   }
 
   Widget _buildLegacyBottomNav() {

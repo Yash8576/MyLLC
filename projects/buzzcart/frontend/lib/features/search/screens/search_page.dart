@@ -40,6 +40,9 @@ class _SearchPageState extends State<SearchPage> {
   bool _loading = false;
   bool _searched = false;
   Timer? _debounce;
+  // Monotonic token so a slow, superseded response can never overwrite the
+  // results of a newer query (or a cleared search).
+  int _searchRequestId = 0;
 
   @override
   void initState() {
@@ -65,6 +68,7 @@ class _SearchPageState extends State<SearchPage> {
     }
 
     if (trimmedQuery.length < _minimumSearchLength) {
+      _searchRequestId++;
       setState(() {
         _results = {
           'products': [],
@@ -80,14 +84,15 @@ class _SearchPageState extends State<SearchPage> {
     _debounce = Timer(const Duration(milliseconds: 250), () {
       _performSearch();
     });
-
-    setState(() {}); // Update UI for clear button
+    // No setState here: the clear button rebuilds via the controller's
+    // ValueListenableBuilder, so typing doesn't rebuild the whole page.
   }
 
   Future<void> _performSearch() async {
     final query = _searchController.text.trim();
     if (query.length < _minimumSearchLength) return;
 
+    final requestId = ++_searchRequestId;
     setState(() {
       _loading = true;
       _searched = true;
@@ -95,6 +100,7 @@ class _SearchPageState extends State<SearchPage> {
 
     try {
       final data = await _api.search(query);
+      if (!mounted || requestId != _searchRequestId) return;
       setState(() {
         _results = {
           'products': data['products'] ?? [],
@@ -105,16 +111,17 @@ class _SearchPageState extends State<SearchPage> {
         _loading = false;
       });
     } catch (e) {
+      if (!mounted || requestId != _searchRequestId) return;
       setState(() => _loading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSingleSnackBar(
-          const SnackBar(content: Text('Search failed')),
-        );
-      }
+      ScaffoldMessenger.of(context).showSingleSnackBar(
+        const SnackBar(content: Text('Search failed')),
+      );
     }
   }
 
   void _clearSearch() {
+    _debounce?.cancel();
+    _searchRequestId++;
     _searchController.clear();
     setState(() {
       _results = {
@@ -505,23 +512,30 @@ class _SearchPageState extends State<SearchPage> {
     Widget buildSearchField({EdgeInsetsGeometry padding = EdgeInsets.zero}) {
       return Padding(
         padding: padding,
-        child: TextField(
-          controller: _searchController,
-          decoration: InputDecoration(
-            hintText: 'Search product names, videos, people...',
-            prefixIcon: const Icon(Icons.search),
-            suffixIcon: _searchController.text.isNotEmpty
-                ? IconButton(
-                    icon: const Icon(Icons.clear),
-                    onPressed: _clearSearch,
-                  )
-                : null,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          onSubmitted: (_) => _performSearch(),
-          onChanged: _onSearchChanged,
+        // Listens to the controller directly so typing only rebuilds this
+        // field (for the clear button), never the whole page.
+        child: ValueListenableBuilder<TextEditingValue>(
+          valueListenable: _searchController,
+          builder: (context, value, _) {
+            return TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search product names, videos, people...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: value.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: _clearSearch,
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onSubmitted: (_) => _performSearch(),
+              onChanged: _onSearchChanged,
+            );
+          },
         ),
       );
     }

@@ -20,6 +20,38 @@ import '../../content/presentation/widgets/content_bottom_sheets.dart'
 import '../../products/widgets/product_card_social_preview.dart';
 
 final Map<String, int> _videoDurationCache = <String, int>{};
+final Map<String, Future<int>> _videoDurationProbes = <String, Future<int>>{};
+Future<void> _videoDurationProbeQueue = Future<void>.value();
+
+/// Resolves a missing video duration by briefly initializing a throwaway
+/// player. Probes run strictly one at a time and each video is probed at most
+/// once per session (failures cache as 0), so scrolling the list can't fan
+/// out into many parallel decoders/network streams.
+Future<int> _resolveVideoDuration(String videoId, String url) {
+  final cached = _videoDurationCache[videoId];
+  if (cached != null) {
+    return Future<int>.value(cached);
+  }
+  return _videoDurationProbes.putIfAbsent(videoId, () {
+    final completer = Completer<int>();
+    _videoDurationProbeQueue = _videoDurationProbeQueue.then((_) async {
+      var duration = 0;
+      final controller = VideoPlayerController.networkUrl(Uri.parse(url));
+      try {
+        await controller.initialize();
+        duration = controller.value.duration.inSeconds;
+      } catch (_) {
+        duration = 0;
+      } finally {
+        await controller.dispose();
+      }
+      _videoDurationCache[videoId] = duration;
+      _videoDurationProbes.remove(videoId);
+      completer.complete(duration);
+    });
+    return completer.future;
+  });
+}
 
 class VideosPage extends StatefulWidget {
   const VideosPage({super.key, this.videoId});
@@ -240,40 +272,25 @@ class _VideoListCardState extends State<_VideoListCard> {
   @override
   void initState() {
     super.initState();
+    final cached = _videoDurationCache[widget.video.id];
     _resolvedDuration =
-        _videoDurationCache[widget.video.id] ?? widget.video.duration;
-    _ensureDuration();
-  }
-
-  Future<void> _ensureDuration() async {
-    if ((_resolvedDuration ?? 0) > 0) {
-      return;
-    }
-
-    final controller = VideoPlayerController.networkUrl(
-      Uri.parse(UrlHelper.getPlayableVideoUrl(widget.video.url)),
-    );
-    try {
-      await controller.initialize();
-      final duration = controller.value.duration.inSeconds;
-      if (duration > 0) {
-        _videoDurationCache[widget.video.id] = duration;
-      }
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _resolvedDuration = duration > 0 ? duration : widget.video.duration;
-      });
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _resolvedDuration = widget.video.duration;
-      });
-    } finally {
-      await controller.dispose();
+        (cached != null && cached > 0) ? cached : widget.video.duration;
+    // Only probe when the duration is unknown everywhere (cached 0 means a
+    // probe already failed this session — don't retry on every rebuild).
+    if ((_resolvedDuration ?? 0) <= 0 && cached == null) {
+      unawaited(
+        _resolveVideoDuration(
+          widget.video.id,
+          UrlHelper.getPlayableVideoUrl(widget.video.url),
+        ).then((duration) {
+          if (!mounted || duration <= 0) {
+            return;
+          }
+          setState(() {
+            _resolvedDuration = duration;
+          });
+        }),
+      );
     }
   }
 

@@ -65,7 +65,10 @@ class _HomePageState extends State<HomePage> {
   AppRefreshProvider? _appRefreshProvider;
   int _lastContentVersion = 0;
   int _lastProductVersion = 0;
-  int? _activeInlineReelSectionIndex;
+  // Which section's inline reel should play, scoped via ValueNotifier so
+  // scroll-driven changes only rebuild the affected reel cards instead of
+  // the whole feed.
+  final ValueNotifier<int?> _activeInlineReelSection = ValueNotifier<int?>(null);
   bool _areInlineReelsMuted = true;
   bool _inlineReelVisibilityCheckScheduled = false;
   Map<String, VideoModel> _videoLookupByUrl = <String, VideoModel>{};
@@ -102,6 +105,7 @@ class _HomePageState extends State<HomePage> {
     for (final notifier in _railScrollNotifiers.values) {
       notifier.dispose();
     }
+    _activeInlineReelSection.dispose();
     super.dispose();
   }
 
@@ -247,9 +251,9 @@ class _HomePageState extends State<HomePage> {
       _inlineReelSectionKeys.remove(index);
     }
 
-    if (_activeInlineReelSectionIndex != null &&
-        !activeIndexes.contains(_activeInlineReelSectionIndex)) {
-      _activeInlineReelSectionIndex = null;
+    if (_activeInlineReelSection.value != null &&
+        !activeIndexes.contains(_activeInlineReelSection.value)) {
+      _activeInlineReelSection.value = null;
     }
   }
 
@@ -311,13 +315,9 @@ class _HomePageState extends State<HomePage> {
       bestIndex = null;
     }
 
-    if (_activeInlineReelSectionIndex == bestIndex) {
-      return;
-    }
-
-    setState(() {
-      _activeInlineReelSectionIndex = bestIndex;
-    });
+    // Only the ValueListenableBuilder around each inline-reel card rebuilds
+    // when this changes — not the whole feed.
+    _activeInlineReelSection.value = bestIndex;
   }
 
   Future<void> _fetchFeed() async {
@@ -880,8 +880,16 @@ class _HomePageState extends State<HomePage> {
             itemCount: _sections.length,
             itemBuilder: (context, index) {
               final section = _sections[index];
-              final isInlineReelActive =
-                  isHomeTabActive && _activeInlineReelSectionIndex == index;
+              Widget buildInlineReelSection(
+                Widget Function(bool isActive) builder,
+              ) {
+                return ValueListenableBuilder<int?>(
+                  valueListenable: _activeInlineReelSection,
+                  builder: (context, activeIndex, _) =>
+                      builder(isHomeTabActive && activeIndex == index),
+                );
+              }
+
               late final Widget child;
               switch (section.type) {
                 case _HomeSectionType.productRail:
@@ -893,24 +901,35 @@ class _HomePageState extends State<HomePage> {
                   );
                   break;
                 case _HomeSectionType.post:
+                  final containsInlineReel = _sectionContainsInlineReel(section);
                   child = KeyedSubtree(
-                    key: _sectionContainsInlineReel(section)
+                    key: containsInlineReel
                         ? _getInlineReelSectionKey(index)
                         : null,
-                    child: _buildPostCard(
-                      section.data as PostModel,
-                      constraints.maxWidth,
-                      isInlineReelActive,
-                    ),
+                    child: containsInlineReel
+                        ? buildInlineReelSection(
+                            (isActive) => _buildPostCard(
+                              section.data as PostModel,
+                              constraints.maxWidth,
+                              isActive,
+                            ),
+                          )
+                        : _buildPostCard(
+                            section.data as PostModel,
+                            constraints.maxWidth,
+                            false,
+                          ),
                   );
                   break;
                 case _HomeSectionType.reel:
                   child = KeyedSubtree(
                     key: _getInlineReelSectionKey(index),
-                    child: _buildReelCard(
-                      section.data as ReelModel,
-                      constraints.maxWidth,
-                      isInlineReelActive,
+                    child: buildInlineReelSection(
+                      (isActive) => _buildReelCard(
+                        section.data as ReelModel,
+                        constraints.maxWidth,
+                        isActive,
+                      ),
                     ),
                   );
                   break;

@@ -34,6 +34,12 @@ class _ProfilePageState extends State<ProfilePage>
   static final Map<String, ImageProvider> _imageProviderCache =
       <String, ImageProvider>{};
 
+  // Decode caps for grid/list thumbnails (logical tile width × ~3x density).
+  // The full-screen photo viewer intentionally passes no cap.
+  static const int _kPhotoTileDecodeWidth = 480;
+  static const int _kVideoTileDecodeWidth = 720;
+  static const int _kProductThumbDecodeWidth = 300;
+
   final ApiService _api = ApiService();
   final ImagePicker _picker = ImagePicker();
   late TabController _tabController;
@@ -160,11 +166,22 @@ class _ProfilePageState extends State<ProfilePage>
     );
   }
 
-  ImageProvider _cachedNetworkImageProvider(String imageUrl) {
+  ImageProvider _cachedNetworkImageProvider(
+    String imageUrl, {
+    int? decodeWidth,
+  }) {
     final resolvedUrl = UrlHelper.getPlatformUrl(imageUrl);
     return _imageProviderCache.putIfAbsent(
-      resolvedUrl,
-      () => CachedNetworkImageProvider(resolvedUrl),
+      decodeWidth == null ? resolvedUrl : '$resolvedUrl@w$decodeWidth',
+      () {
+        final ImageProvider provider = CachedNetworkImageProvider(resolvedUrl);
+        // Grid tiles are small; cap the decode resolution instead of decoding
+        // the full-size source image for every tile.
+        if (decodeWidth == null) {
+          return provider;
+        }
+        return ResizeImage(provider, width: decodeWidth);
+      },
     );
   }
 
@@ -195,22 +212,27 @@ class _ProfilePageState extends State<ProfilePage>
       return;
     }
 
-    final urls = <String>{
+    // Warm the same capped providers the grid tiles use, so precaching
+    // populates the cache entries the tiles will actually hit.
+    final targets = <String, int>{
       for (final photo in _photos.take(18))
-        if (photo.mediaUrl.trim().isNotEmpty) photo.mediaUrl.trim(),
+        if (photo.mediaUrl.trim().isNotEmpty)
+          photo.mediaUrl.trim(): _kPhotoTileDecodeWidth,
       for (final video in _videos.take(12))
         if ((video.thumbnailUrl ?? video.mediaUrl).trim().isNotEmpty)
-          (video.thumbnailUrl ?? video.mediaUrl).trim(),
+          (video.thumbnailUrl ?? video.mediaUrl).trim():
+              _kVideoTileDecodeWidth,
       for (final reel in _reels.take(12))
         if ((_preferredReelThumbnail(reel) ?? '').trim().isNotEmpty)
-          _preferredReelThumbnail(reel)!.trim(),
+          _preferredReelThumbnail(reel)!.trim(): _kPhotoTileDecodeWidth,
       for (final product in _products.take(12))
         if (product.images.isNotEmpty && product.images.first.trim().isNotEmpty)
-          product.images.first.trim(),
+          product.images.first.trim(): _kProductThumbDecodeWidth,
     };
 
-    for (final url in urls) {
-      final provider = _cachedNetworkImageProvider(url);
+    for (final entry in targets.entries) {
+      final provider =
+          _cachedNetworkImageProvider(entry.key, decodeWidth: entry.value);
       unawaited(precacheImage(provider, context));
     }
   }
@@ -1407,8 +1429,10 @@ class _ProfilePageState extends State<ProfilePage>
     Widget? errorWidget,
     double? width,
     double? height,
+    int? decodeWidth,
   }) {
-    final provider = _cachedNetworkImageProvider(imageUrl);
+    final provider =
+        _cachedNetworkImageProvider(imageUrl, decodeWidth: decodeWidth);
     return Image(
       image: provider,
       fit: fit,
@@ -1855,7 +1879,6 @@ class _ProfilePageState extends State<ProfilePage>
         ),
       );
     }
-    debugPrint('Rendering ${_photos.length} photos');
     return LayoutBuilder(
       builder: (context, constraints) {
         final crossAxisCount = _responsiveGridCount(
@@ -1875,7 +1898,6 @@ class _ProfilePageState extends State<ProfilePage>
           itemBuilder: (context, index) {
             final photo = _photos[index];
             final deletingKey = 'media:${photo.id}';
-            debugPrint('Building photo $index: ${photo.mediaUrl}');
             return InkWell(
               onTap: _isDeleting(deletingKey)
                   ? null
@@ -1918,6 +1940,7 @@ class _ProfilePageState extends State<ProfilePage>
                     child: _buildCachedImage(
                       photo.mediaUrl,
                       fit: BoxFit.cover,
+                      decodeWidth: _kPhotoTileDecodeWidth,
                       errorWidget: Container(
                         color: Colors.grey[300],
                         child: const Column(
@@ -2003,6 +2026,7 @@ class _ProfilePageState extends State<ProfilePage>
                 child: _buildCachedImage(
                   video.thumbnailUrl ?? video.mediaUrl,
                   fit: BoxFit.cover,
+                  decodeWidth: _kVideoTileDecodeWidth,
                   errorWidget: Container(
                     color: Colors.grey[300],
                     child: const Icon(Icons.video_library, size: 48),
@@ -2084,6 +2108,7 @@ class _ProfilePageState extends State<ProfilePage>
                         ? _buildCachedImage(
                             _preferredReelThumbnail(reel)!,
                             fit: BoxFit.cover,
+                            decodeWidth: _kPhotoTileDecodeWidth,
                             errorWidget: Container(
                               color: Colors.grey[300],
                               child:
@@ -2228,6 +2253,7 @@ class _ProfilePageState extends State<ProfilePage>
                           child: _buildCachedImage(
                             product.images.isNotEmpty ? product.images[0] : '',
                             fit: BoxFit.cover,
+                            decodeWidth: _kProductThumbDecodeWidth,
                             errorWidget: Container(
                               width: 92,
                               height: 92,

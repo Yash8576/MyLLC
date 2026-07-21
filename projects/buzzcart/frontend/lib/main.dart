@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player_media_kit/video_player_media_kit.dart';
@@ -20,6 +21,10 @@ import 'features/messages/providers/messages_provider.dart';
 void main() async {
   // Ensure Flutter binding is initialized
   WidgetsFlutterBinding.ensureInitialized();
+  // Plus Jakarta Sans ships bundled in assets/fonts/, so google_fonts must
+  // never hit the network (removes the first-launch fetch stall and works
+  // fully offline). Debug builds throw if a requested variant isn't bundled.
+  GoogleFonts.config.allowRuntimeFetching = false;
   if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
     MediaKit.ensureInitialized();
     VideoPlayerMediaKit.ensureInitialized(windows: true);
