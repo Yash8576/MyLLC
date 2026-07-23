@@ -228,6 +228,7 @@ type Video struct {
 	Likes         int             `json:"likes" db:"likes"`
 	IsLiked       bool            `json:"is_liked" db:"-"`
 	CommentCount  int             `json:"comment_count" db:"comment_count"`
+	IsCommented   bool            `json:"is_commented" db:"-"`
 	CreatorID     string          `json:"creator_id" db:"creator_id"`
 	CreatorName   string          `json:"creator_name" db:"creator_name"`
 	CreatorAvatar *string         `json:"creator_avatar,omitempty" db:"creator_avatar"`
@@ -253,6 +254,7 @@ type Reel struct {
 	Likes         int             `json:"likes" db:"likes"`
 	IsLiked       bool            `json:"is_liked" db:"-"`
 	CommentCount  int             `json:"comment_count" db:"comment_count"`
+	IsCommented   bool            `json:"is_commented" db:"-"`
 	Width         int             `json:"width" db:"width"`
 	Height        int             `json:"height" db:"height"`
 	CreatorID     string          `json:"creator_id" db:"creator_id"`
@@ -543,6 +545,7 @@ type Post struct {
 	AuthorAvatar   *string `json:"author_avatar,omitempty" db:"author_avatar"`
 	AuthorVerified bool    `json:"author_verified" db:"author_verified"`
 	IsLiked        bool    `json:"is_liked" db:"-"`     // Whether current user liked this post
+	IsCommented    bool    `json:"is_commented" db:"-"` // Whether current user commented on this post
 	IsFollowing    bool    `json:"is_following" db:"-"` // Whether current user follows the author
 }
 

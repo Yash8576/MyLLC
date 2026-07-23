@@ -49,6 +49,12 @@ func videoQueryBase(whereClause string) string {
 				  AND cl.user_id = NULLIF($2, '')::uuid
 			) END AS is_liked,
 			COALESCE(ci.comment_count, 0) AS comment_count,
+			CASE WHEN NULLIF($2, '') IS NULL THEN false ELSE EXISTS(
+				SELECT 1
+				FROM content_comments cc
+				WHERE cc.content_id = ci.id
+				  AND cc.user_id = NULLIF($2, '')::uuid
+			) END AS is_commented,
 			ci.creator_id,
 			COALESCE(u.name, '') AS name,
 			u.avatar,
@@ -77,6 +83,7 @@ func decodeVideo(rows scanner) (models.Video, error) {
 		&video.Likes,
 		&video.IsLiked,
 		&video.CommentCount,
+		&video.IsCommented,
 		&video.CreatorID,
 		&video.CreatorName,
 		&video.CreatorAvatar,

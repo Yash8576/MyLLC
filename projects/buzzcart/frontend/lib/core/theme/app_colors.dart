@@ -42,6 +42,7 @@ class AppColors {
   static const Color neonPurple = Color(0xFF8B5CF6); // hsl(263 70% 58%)
   static const Color vibrantPink = Color(0xFFEC4899); // hsl(330 81% 60%)
   static const Color successGreen = Color(0xFF10B981); // hsl(160 84% 39%)
+  static const Color instagramRed = Color(0xFFED4956); // liked-heart red
 
   // Destructive
   static const Color destructive = Color(0xFFEF4444); // hsl(0 84% 60%)

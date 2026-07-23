@@ -191,6 +191,7 @@ func GetDiscoveryFeed(db *sql.DB) gin.HandlerFunc {
 		if includeInteractionColumns {
 			query += `,
 				EXISTS(SELECT 1 FROM post_likes WHERE post_id = p.id AND user_id = $1) as is_liked,
+				EXISTS(SELECT 1 FROM post_comments WHERE post_id = p.id AND user_id = $1 AND is_deleted = FALSE) as is_commented,
 				EXISTS(SELECT 1 FROM user_follows WHERE follower_id = $1 AND following_id = um.user_id) as is_following
 			`
 		}
@@ -264,7 +265,7 @@ func GetDiscoveryFeed(db *sql.DB) gin.HandlerFunc {
 			}
 
 			if includeInteractionColumns {
-				scanArgs = append(scanArgs, &post.IsLiked, &post.IsFollowing)
+				scanArgs = append(scanArgs, &post.IsLiked, &post.IsCommented, &post.IsFollowing)
 			}
 
 			err := rows.Scan(scanArgs...)

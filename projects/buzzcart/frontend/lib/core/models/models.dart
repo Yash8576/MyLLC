@@ -531,6 +531,7 @@ class VideoModel {
   final int likes;
   final bool isLiked;
   final int commentCount;
+  final bool isCommented;
   final String creatorId;
   final String creatorName;
   final String? creatorAvatar;
@@ -548,6 +549,7 @@ class VideoModel {
     this.likes = 0,
     this.isLiked = false,
     this.commentCount = 0,
+    this.isCommented = false,
     required this.creatorId,
     required this.creatorName,
     this.creatorAvatar,
@@ -567,6 +569,7 @@ class VideoModel {
       likes: json['likes'] as int? ?? 0,
       isLiked: json['is_liked'] as bool? ?? false,
       commentCount: json['comment_count'] as int? ?? 0,
+      isCommented: json['is_commented'] as bool? ?? false,
       creatorId: json['creator_id'] as String,
       creatorName: json['creator_name'] as String,
       creatorAvatar: json['creator_avatar'] as String?,
@@ -614,6 +617,7 @@ class ReelModel {
   final int likes;
   final bool isLiked;
   final int commentCount;
+  final bool isCommented;
   final int width;
   final int height;
   final String creatorId;
@@ -631,6 +635,7 @@ class ReelModel {
     this.likes = 0,
     this.isLiked = false,
     this.commentCount = 0,
+    this.isCommented = false,
     this.width = 0,
     this.height = 0,
     required this.creatorId,
@@ -650,6 +655,7 @@ class ReelModel {
       likes: json['likes'] as int? ?? 0,
       isLiked: json['is_liked'] as bool? ?? false,
       commentCount: json['comment_count'] as int? ?? 0,
+      isCommented: json['is_commented'] as bool? ?? false,
       width: json['width'] as int? ?? 0,
       height: json['height'] as int? ?? 0,
       creatorId: json['creator_id'] as String,
@@ -675,6 +681,7 @@ class ReelModel {
       likes: likes ?? this.likes,
       isLiked: isLiked ?? this.isLiked,
       commentCount: commentCount,
+      isCommented: isCommented,
       width: width,
       height: height,
       creatorId: creatorId,
@@ -965,6 +972,7 @@ class PostModel {
 
   // User interaction state
   final bool isLiked;
+  final bool isCommented;
   final bool isFollowing;
 
   PostModel({
@@ -987,6 +995,7 @@ class PostModel {
     this.authorAvatar,
     this.authorVerified = false,
     this.isLiked = false,
+    this.isCommented = false,
     this.isFollowing = false,
   });
 
@@ -1011,6 +1020,7 @@ class PostModel {
       authorAvatar: json['author_avatar'] as String?,
       authorVerified: json['author_verified'] as bool? ?? false,
       isLiked: json['is_liked'] as bool? ?? false,
+      isCommented: json['is_commented'] as bool? ?? false,
       isFollowing: json['is_following'] as bool? ?? false,
     );
   }
@@ -1044,6 +1054,7 @@ class PostModel {
       authorAvatar: authorAvatar,
       authorVerified: authorVerified,
       isLiked: isLiked ?? this.isLiked,
+      isCommented: isCommented,
       isFollowing: isFollowing ?? this.isFollowing,
     );
   }

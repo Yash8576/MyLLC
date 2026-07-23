@@ -538,6 +538,7 @@ class _ReelViewportState extends State<_ReelViewport> {
   bool _liking = false;
   int _likeCount = 0;
   int _commentCount = 0;
+  bool _hasCommented = false;
   bool _showFullCaption = false;
   TapGestureRecognizer? _seeMoreRecognizer;
 
@@ -547,6 +548,7 @@ class _ReelViewportState extends State<_ReelViewport> {
     _liked = widget.reel.isLiked;
     _likeCount = widget.reel.likes;
     _commentCount = widget.reel.commentCount;
+    _hasCommented = widget.reel.isCommented;
     _syncDesiredPlayback(
       shouldPlay: widget.isActive,
       shouldPrepare: widget.isActive,
@@ -563,6 +565,7 @@ class _ReelViewportState extends State<_ReelViewport> {
     if (oldWidget.reel.id != widget.reel.id) {
       _liked = widget.reel.isLiked;
       _likeCount = widget.reel.likes;
+      _hasCommented = widget.reel.isCommented;
     }
     if (oldWidget.reel.id != widget.reel.id) {
       _releaseController(cacheForReuse: true, cacheKey: oldWidget.reel.id);
@@ -832,6 +835,7 @@ class _ReelViewportState extends State<_ReelViewport> {
         if (!mounted) return;
         setState(() {
           _commentCount = count;
+          _hasCommented = true;
         });
       },
     );
@@ -894,15 +898,17 @@ class _ReelViewportState extends State<_ReelViewport> {
               ],
               _ReelActionButton(
                 icon: _liked ? Icons.favorite : Icons.favorite_border,
-                color: _liked ? AppColors.vibrantPink : Colors.white,
+                color: _liked ? AppColors.instagramRed : Colors.white,
                 count: _likeCount,
                 onTap: _likeReel,
                 onCountTap: _openLikes,
               ),
               const SizedBox(height: 18),
               _ReelActionButton(
-                icon: Icons.chat_bubble_outline,
-                color: Colors.white,
+                icon: _hasCommented
+                    ? Icons.chat_bubble
+                    : Icons.chat_bubble_outline,
+                color: _hasCommented ? AppColors.electricBlue : Colors.white,
                 count: _commentCount,
                 onTap: _openComments,
               ),

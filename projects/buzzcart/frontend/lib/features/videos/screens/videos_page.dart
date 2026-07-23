@@ -14,6 +14,7 @@ import '../../../core/models/models.dart';
 import '../../../core/notifications/in_app_notification_center.dart';
 import '../../../core/providers/app_refresh_provider.dart';
 import '../../../core/services/api_service.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/url_helper.dart';
 import '../../../core/widgets/network_media.dart';
 import '../../content/presentation/widgets/content_bottom_sheets.dart'
@@ -812,8 +813,8 @@ class _VideoDetailViewState extends State<_VideoDetailView> {
                         IconButton(
                           onPressed: _liking ? null : _likeVideo,
                           icon: Icon(
-                            _liked ? Icons.thumb_up : Icons.thumb_up_outlined,
-                            color: _liked ? Colors.blue : null,
+                            _liked ? Icons.favorite : Icons.favorite_border,
+                            color: _liked ? AppColors.instagramRed : null,
                           ),
                         ),
                         const SizedBox(width: 4),
@@ -1142,6 +1143,7 @@ class _InlineVideoCommentsSectionState
   bool _loading = true;
   bool _submitting = false;
   bool _connectionsOnly = false;
+  bool _hasCommented = false;
   String? _error;
 
   @override
@@ -1174,6 +1176,9 @@ class _InlineVideoCommentsSectionState
       setState(() {
         _comments = comments;
         _loading = false;
+        if (comments.any((comment) => comment.isCurrentUser)) {
+          _hasCommented = true;
+        }
       });
     } catch (error) {
       if (!mounted) {
@@ -1205,6 +1210,7 @@ class _InlineVideoCommentsSectionState
         if (!_connectionsOnly || comment.isFollowing) {
           _comments = <ContentCommentModel>[comment, ..._comments];
         }
+        _hasCommented = true;
         _commentController.clear();
       });
     } catch (error) {
@@ -1230,7 +1236,11 @@ class _InlineVideoCommentsSectionState
       children: [
         Row(
           children: [
-            const Icon(Icons.chat_bubble_outline, size: 20),
+            Icon(
+              _hasCommented ? Icons.chat_bubble : Icons.chat_bubble_outline,
+              size: 20,
+              color: _hasCommented ? AppColors.electricBlue : null,
+            ),
             const SizedBox(width: 8),
             Text(
               'Comments',

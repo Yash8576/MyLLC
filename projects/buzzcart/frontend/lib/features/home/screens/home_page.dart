@@ -1376,6 +1376,7 @@ class _HomePageState extends State<HomePage> {
     final bool initialLiked;
     final int initialLikeCount;
     final int initialCommentCount;
+    final bool initialCommented;
     String? commentKind;
     String? commentId;
     if (isVideoPost && linkedVideo != null) {
@@ -1384,6 +1385,7 @@ class _HomePageState extends State<HomePage> {
       initialLiked = linkedVideo.isLiked;
       initialLikeCount = linkedVideo.likes;
       initialCommentCount = linkedVideo.commentCount;
+      initialCommented = linkedVideo.isCommented;
       commentKind = 'video';
       commentId = linkedVideo.id;
     } else if (isReelPost && linkedReel != null) {
@@ -1392,6 +1394,7 @@ class _HomePageState extends State<HomePage> {
       initialLiked = linkedReel.isLiked;
       initialLikeCount = linkedReel.likes;
       initialCommentCount = linkedReel.commentCount;
+      initialCommented = linkedReel.isCommented;
       commentKind = 'reel';
       commentId = linkedReel.id;
     } else {
@@ -1400,6 +1403,7 @@ class _HomePageState extends State<HomePage> {
       initialLiked = post.isLiked;
       initialLikeCount = post.likeCount;
       initialCommentCount = post.commentCount;
+      initialCommented = post.isCommented;
       commentKind = 'post';
       commentId = post.id;
     }
@@ -1429,6 +1433,7 @@ class _HomePageState extends State<HomePage> {
       initialLiked: initialLiked,
       initialLikeCount: initialLikeCount,
       initialCommentCount: initialCommentCount,
+      initialCommented: initialCommented,
       commentKind: commentKind,
       commentId: commentId,
       collapsibleCaption: isReelPost,
@@ -1467,6 +1472,7 @@ class _HomePageState extends State<HomePage> {
       initialLiked: video.isLiked,
       initialLikeCount: video.likes,
       initialCommentCount: video.commentCount,
+      initialCommented: video.isCommented,
       commentKind: 'video',
       commentId: video.id,
     );
@@ -1495,6 +1501,7 @@ class _HomePageState extends State<HomePage> {
       initialLiked: reel.isLiked,
       initialLikeCount: reel.likes,
       initialCommentCount: reel.commentCount,
+      initialCommented: reel.isCommented,
       commentKind: 'reel',
       commentId: reel.id,
       collapsibleCaption: true,
@@ -1606,6 +1613,7 @@ class _HomePageState extends State<HomePage> {
     bool initialLiked = false,
     int initialLikeCount = 0,
     int initialCommentCount = 0,
+    bool initialCommented = false,
     String? commentKind,
     String? commentId,
     bool collapsibleCaption = false,
@@ -1623,6 +1631,7 @@ class _HomePageState extends State<HomePage> {
         liked: initialLiked,
         likeCount: initialLikeCount,
         commentCount: initialCommentCount,
+        commented: initialCommented,
       );
     }
 
@@ -1852,6 +1861,7 @@ class _HomePageState extends State<HomePage> {
     required bool liked,
     required int likeCount,
     required int commentCount,
+    required bool commented,
   }) {
     return _feedEngagement.putIfAbsent(
       key,
@@ -1859,6 +1869,7 @@ class _HomePageState extends State<HomePage> {
         liked: liked,
         likeCount: likeCount,
         commentCount: commentCount,
+        commented: commented,
       ),
     );
   }
@@ -1975,6 +1986,7 @@ class _HomePageState extends State<HomePage> {
         if (!mounted) return;
         setState(() {
           engagement.commentCount = count;
+          engagement.commented = true;
         });
       },
     );
@@ -2030,7 +2042,7 @@ class _HomePageState extends State<HomePage> {
           buildButton(
             icon: engagement.liked ? Icons.favorite : Icons.favorite_border,
             color: engagement.liked
-                ? AppColors.vibrantPink
+                ? AppColors.instagramRed
                 : (Colors.grey[700] ?? Colors.grey),
             label: '${engagement.likeCount}',
             onTap: () => _handleFeedLike(
@@ -2041,10 +2053,14 @@ class _HomePageState extends State<HomePage> {
           ),
           const SizedBox(width: 18),
           buildButton(
-            icon: Icons.chat_bubble_outline,
-            color: hasComments
-                ? (Colors.grey[700] ?? Colors.grey)
-                : (Colors.grey[400] ?? Colors.grey),
+            icon: engagement.commented
+                ? Icons.chat_bubble
+                : Icons.chat_bubble_outline,
+            color: !hasComments
+                ? (Colors.grey[400] ?? Colors.grey)
+                : engagement.commented
+                    ? AppColors.electricBlue
+                    : (Colors.grey[700] ?? Colors.grey),
             label: '${engagement.commentCount}',
             onTap: hasComments
                 ? () => _handleFeedComments(
@@ -2065,11 +2081,13 @@ class _FeedEngagement {
     required this.liked,
     required this.likeCount,
     required this.commentCount,
+    required this.commented,
   });
 
   bool liked;
   int likeCount;
   int commentCount;
+  bool commented;
 }
 
 // Clamps a caption to 1 line, appending a tappable "See more" affordance
