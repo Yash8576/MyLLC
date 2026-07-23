@@ -1271,6 +1271,7 @@ class ChatMessageModel {
   final Map<String, dynamic>? metadata;
   final String createdAt;
   final bool read;
+  final bool delivered;
 
   ChatMessageModel({
     required this.id,
@@ -1284,6 +1285,7 @@ class ChatMessageModel {
     this.metadata,
     required this.createdAt,
     this.read = false,
+    this.delivered = false,
   });
 
   factory ChatMessageModel.fromJson(Map<String, dynamic> json) {
@@ -1324,10 +1326,29 @@ class ChatMessageModel {
           : null,
       createdAt: json['created_at'] as String,
       read: json['read'] as bool? ?? false,
+      delivered: (json['delivered'] as bool? ?? false) ||
+          (json['read'] as bool? ?? false),
     );
   }
 
   bool get isProductShare => messageType == 'product_link' && product != null;
+
+  ChatMessageModel copyWith({bool? read, bool? delivered}) {
+    return ChatMessageModel(
+      id: id,
+      conversationId: conversationId,
+      senderId: senderId,
+      receiverId: receiverId,
+      content: content,
+      messageType: messageType,
+      productId: productId,
+      product: product,
+      metadata: metadata,
+      createdAt: createdAt,
+      read: read ?? this.read,
+      delivered: delivered ?? this.delivered,
+    );
+  }
 }
 
 class ConversationModel {

@@ -53,6 +53,25 @@ func main() {
 		log.Fatalf("Failed to initialize content likes schema: %v", err)
 	}
 
+	// Initialize message delivery receipts schema (delivered_at) at startup
+	if err := handlers.EnsureMessageReceiptsSchema(db); err != nil {
+		log.Fatalf("Failed to initialize message receipts schema: %v", err)
+	}
+
+	// Initialize device push-token registry at startup
+	if err := handlers.EnsurePushTokensSchema(db); err != nil {
+		log.Fatalf("Failed to initialize push tokens schema: %v", err)
+	}
+
+	// FCM sender for OS-level notifications (nil = push disabled when
+	// credentials/project are unavailable; in-app banners still work)
+	pushSender := handlers.NewPushSender(db, cfg.Storage.ProjectID, cfg.Storage.CredentialsFile)
+	if pushSender == nil {
+		log.Println("⚠ Push notifications disabled (no Firebase project/credentials)")
+	} else {
+		log.Println("✓ Push notification sender initialized")
+	}
+
 	// Set Gin mode
 	if os.Getenv("GIN_MODE") == "release" {
 		gin.SetMode(gin.ReleaseMode)
@@ -266,10 +285,12 @@ func main() {
 		messages := api.Group("/messages")
 		messages.Use(middleware.Auth(cfg.JWTSecret))
 		{
-			messages.POST("", handlers.SendMessage(db, messageHub))
+			messages.POST("", handlers.SendMessage(db, messageHub, pushSender))
 			messages.GET("/connections", handlers.GetConnections(db))
-			messages.GET("/conversations", handlers.GetConversations(db))
-			messages.GET("/conversations/:conversation_id", handlers.GetMessages(db))
+			messages.GET("/conversations", handlers.GetConversations(db, messageHub))
+			messages.GET("/conversations/:conversation_id", handlers.GetMessages(db, messageHub))
+			messages.POST("/push-tokens", handlers.RegisterPushToken(db))
+			messages.DELETE("/push-tokens", handlers.UnregisterPushToken(db))
 		}
 	}
 

@@ -127,6 +127,16 @@ class MessagesSocketService {
     });
   }
 
+  /// Acks that the user has seen everything in the conversation right now —
+  /// sent when a message arrives while the chat is open on screen, so the
+  /// sender's ticks turn blue immediately without any refetch.
+  void markConversationRead(String conversationId) {
+    _send({
+      'type': 'mark_read',
+      'conversation_id': conversationId,
+    });
+  }
+
   void setTyping(String conversationId, bool isTyping) {
     _send({
       'type': 'typing',

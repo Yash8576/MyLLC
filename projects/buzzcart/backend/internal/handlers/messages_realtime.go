@@ -400,6 +400,10 @@ func MessagesSocket(db *sql.DB, jwtSecret string, allowedOrigins []string, hub *
 		})
 		hub.sendInitialAppPresence(client)
 
+		// This device just came online: everything pending for it is now
+		// deliverable, so flip senders' ticks from single to double.
+		go markUndeliveredMessagesDelivered(db, hub, userID)
+
 		if client.activeConversation != "" {
 			hub.broadcastConversationPresence(client.activeConversation)
 		}
@@ -427,6 +431,15 @@ func handleSocketInbound(db *sql.DB, hub *MessageHub, client *messageSocketClien
 				return
 			}
 			hub.SetActiveConversation(client, conversationID, participants)
+			// Viewing the conversation reads anything pending in it. This
+			// also rides the presence heartbeat, so a message that slips
+			// past the explicit mark_read ack still turns blue within
+			// seconds while the viewer stays in the chat.
+			go markConversationMessagesRead(db, hub, conversationID, client.userID)
+		}
+	case "mark_read":
+		if conversationID != "" && canAccessConversation(db, client.userID, conversationID) {
+			markConversationMessagesRead(db, hub, conversationID, client.userID)
 		}
 	case "close_conversation":
 		if conversationID == "" || client.activeConversation == conversationID {

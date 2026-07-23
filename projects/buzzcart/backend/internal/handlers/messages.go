@@ -20,7 +20,7 @@ const (
 	messageTypeImage       = "image"
 )
 
-func SendMessage(db *sql.DB, hub *MessageHub) gin.HandlerFunc {
+func SendMessage(db *sql.DB, hub *MessageHub, pushSender *PushSender) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID := c.GetString("user_id")
 
@@ -68,9 +68,20 @@ func SendMessage(db *sql.DB, hub *MessageHub) gin.HandlerFunc {
 		messageID := uuid.New().String()
 		messageType := normalizeMessageType(req.MessageType)
 
+		// WhatsApp-style receipts at insert time: if the recipient has the
+		// conversation open they see it immediately (read); if they're merely
+		// online the socket push reaches their device (delivered); otherwise
+		// it stays "sent" until they come online.
+		recipientViewing := hub.IsUserViewingConversation(conversationID, req.ReceiverID)
+		recipientOnline := recipientViewing || hub.IsUserConnected(req.ReceiverID)
+		var deliveredAt *time.Time
+		if recipientOnline {
+			deliveredAt = &now
+		}
+
 		_, err = tx.Exec(
-			`INSERT INTO messages (id, conversation_id, sender_id, message_text, message_type, product_id, metadata, is_read, created_at)
-			 VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8, $9)`,
+			`INSERT INTO messages (id, conversation_id, sender_id, message_text, message_type, product_id, metadata, is_read, delivered_at, created_at)
+			 VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8, $9, $10)`,
 			messageID,
 			conversationID,
 			userID,
@@ -78,7 +89,8 @@ func SendMessage(db *sql.DB, hub *MessageHub) gin.HandlerFunc {
 			messageType,
 			req.ProductID,
 			string(metadataJSON),
-			false,
+			recipientViewing,
+			deliveredAt,
 			now,
 		)
 		if err != nil {
@@ -111,6 +123,12 @@ func SendMessage(db *sql.DB, hub *MessageHub) gin.HandlerFunc {
 
 		if hub != nil {
 			hub.PublishMessage(conversationID, []string{userID, req.ReceiverID}, message)
+		}
+
+		// OS-level push only when the recipient's app isn't foregrounded —
+		// in-app socket banners cover the foreground case.
+		if pushSender != nil && !hub.IsUserAppActive(req.ReceiverID) {
+			go sendNewMessagePush(db, pushSender, message)
 		}
 
 		c.JSON(http.StatusCreated, message)
@@ -167,9 +185,14 @@ func GetConnections(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
-func GetConversations(db *sql.DB) gin.HandlerFunc {
+func GetConversations(db *sql.DB, hub *MessageHub) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID := c.GetString("user_id")
+
+		// Fetching conversations means the payload (including any pending
+		// messages) reached this device — mark them delivered and notify
+		// senders. Covers clients syncing over REST without a live socket.
+		markUndeliveredMessagesDelivered(db, hub, userID)
 
 		rows, err := db.Query(
 			`SELECT
@@ -190,6 +213,7 @@ func GetConversations(db *sql.DB) gin.HandlerFunc {
 				last_msg.product_id,
 				last_msg.metadata,
 				last_msg.is_read,
+				(last_msg.delivered_at IS NOT NULL),
 				last_msg.created_at,
 				prod.id,
 				prod.title,
@@ -214,6 +238,7 @@ func GetConversations(db *sql.DB) gin.HandlerFunc {
 					m.product_id,
 					m.metadata,
 					m.is_read,
+					m.delivered_at,
 					m.created_at
 				FROM messages m
 				WHERE m.conversation_id = conv.id
@@ -252,7 +277,7 @@ func GetConversations(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
-func GetMessages(db *sql.DB) gin.HandlerFunc {
+func GetMessages(db *sql.DB, hub *MessageHub) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID := c.GetString("user_id")
 		conversationID := c.Param("conversation_id")
@@ -268,15 +293,9 @@ func GetMessages(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		_, _ = db.Exec(
-			`UPDATE messages
-			 SET is_read = TRUE
-			 WHERE conversation_id = $1
-				AND sender_id <> $2
-				AND is_read = FALSE`,
-			conversationID,
-			userID,
-		)
+		// Opening the thread reads everything addressed to this user; the
+		// sender is notified over the socket so their ticks turn blue live.
+		markConversationMessagesRead(db, hub, conversationID, userID)
 
 		rows, err := db.Query(
 			`SELECT
@@ -293,6 +312,7 @@ func GetMessages(db *sql.DB) gin.HandlerFunc {
 				m.metadata,
 				m.created_at,
 				m.is_read,
+				(m.delivered_at IS NOT NULL),
 				prod.id,
 				prod.title,
 				prod.price,
@@ -491,6 +511,7 @@ func fetchMessageByID(db *sql.DB, conversationID, messageID string) (models.Mess
 			m.metadata,
 			m.created_at,
 			m.is_read,
+			(m.delivered_at IS NOT NULL),
 			prod.id,
 			prod.title,
 			prod.price,
@@ -530,6 +551,7 @@ func scanConversationSummary(scanner interface {
 		metadataBytes []byte
 		createdAt     sql.NullTime
 		isRead        sql.NullBool
+		delivered     bool
 		productRowID  sql.NullString
 		productTitle  sql.NullString
 		productPrice  sql.NullFloat64
@@ -551,6 +573,7 @@ func scanConversationSummary(scanner interface {
 		&productID,
 		&metadataBytes,
 		&isRead,
+		&delivered,
 		&createdAt,
 		&productRowID,
 		&productTitle,
@@ -572,6 +595,7 @@ func scanConversationSummary(scanner interface {
 			MessageType:    normalizeMessageType(messageType.String),
 			CreatedAt:      createdAt.Time,
 			Read:           isRead.Bool,
+			Delivered:      delivered || isRead.Bool,
 			Metadata:       unmarshalMessageMetadata(metadataBytes),
 		}
 		if productID.Valid {
@@ -615,6 +639,7 @@ func scanMessage(scanner interface {
 		&metadataBytes,
 		&message.CreatedAt,
 		&message.Read,
+		&message.Delivered,
 		&productRowID,
 		&productTitle,
 		&productPrice,
@@ -624,6 +649,7 @@ func scanMessage(scanner interface {
 		return message, err
 	}
 
+	message.Delivered = message.Delivered || message.Read
 	message.ReceiverID = receiverID
 	message.Metadata = unmarshalMessageMetadata(metadataBytes)
 	if productID.Valid {

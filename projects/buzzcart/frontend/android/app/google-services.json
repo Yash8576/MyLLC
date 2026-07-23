@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1063811069935",
+    "project_id": "buzzcart-mig01",
+    "storage_bucket": "buzzcart-mig01.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1063811069935:android:2de1707801745dd2b3a81a",
+        "android_client_info": {
+          "package_name": "com.yaswanth.buzzcart"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAuo3avwicaAyDodH9s-wdhWsTie9khaNc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

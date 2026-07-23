@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
@@ -7,6 +9,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player_media_kit/video_player_media_kit.dart';
+import 'core/notifications/in_app_notification_host.dart';
+import 'core/notifications/push_notification_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/providers/auth_provider.dart';
 import 'core/providers/cart_provider.dart';
@@ -115,7 +119,12 @@ class _BuzzSocialCartAppState extends State<BuzzSocialCartApp> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _router ??= createAppRouter(context.read<AuthProvider>());
+    if (_router == null) {
+      _router = createAppRouter(context.read<AuthProvider>());
+      // OS-level push (Android/web now; iOS once there's an Apple Developer
+      // Program membership for the APNs key) — sets up tap-to-open handling.
+      unawaited(PushNotificationService.instance.initialize(_router!));
+    }
   }
 
   @override
@@ -130,6 +139,11 @@ class _BuzzSocialCartAppState extends State<BuzzSocialCartApp> {
       darkTheme: AppTheme.darkTheme(),
       themeMode: themeProvider.themeMode,
       routerConfig: _router!,
+      // Floats in-app message banners above every page.
+      builder: (context, child) => InAppNotificationHost(
+        router: _router!,
+        child: child ?? const SizedBox.shrink(),
+      ),
     );
   }
 }

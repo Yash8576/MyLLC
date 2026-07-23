@@ -361,6 +361,7 @@ type Message struct {
 	Metadata       map[string]any `json:"metadata,omitempty" db:"-"`
 	CreatedAt      time.Time      `json:"created_at" db:"created_at"`
 	Read           bool           `json:"read" db:"is_read"`
+	Delivered      bool           `json:"delivered" db:"-"`
 }
 
 type MessageCreate struct {

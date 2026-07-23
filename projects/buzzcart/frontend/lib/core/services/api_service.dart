@@ -1135,6 +1135,24 @@ class ApiService {
     }
   }
 
+  Future<void> registerPushToken({
+    required String token,
+    required String platform,
+  }) async {
+    await _dio.post('/messages/push-tokens', data: {
+      'token': token,
+      'platform': platform,
+    });
+  }
+
+  Future<void> unregisterPushToken(String token) async {
+    try {
+      await _dio.delete('/messages/push-tokens', data: {'token': token});
+    } catch (_) {
+      // Best-effort: a stale token left server-side is harmless.
+    }
+  }
+
   // Product Creation API
   Future<ProductModel> createProduct({
     String? id,

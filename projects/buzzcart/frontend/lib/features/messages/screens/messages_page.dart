@@ -387,6 +387,8 @@ class _ConversationList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final currentUserId = context.watch<AuthProvider>().user?.id;
+
     return Consumer<MessagesProvider>(
       builder: (context, provider, _) {
         if (provider.isLoadingConversations && provider.conversations.isEmpty) {
@@ -441,7 +443,6 @@ class _ConversationList extends StatelessWidget {
               final conversation = provider.conversations[index];
               final isSelected =
                   provider.selectedConversationId == conversation.id;
-              final lastMessage = conversation.lastMessage;
 
               return Material(
                 color: isSelected
@@ -482,22 +483,11 @@ class _ConversationList extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  subtitle: Text(
-                    _conversationPreview(lastMessage),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color:
-                          provider.selectedConversationId == conversation.id &&
-                                  provider.isOtherUserTyping
-                              ? AppColors.electricBlue
-                              : null,
-                      fontStyle:
-                          provider.selectedConversationId == conversation.id &&
-                                  provider.isOtherUserTyping
-                              ? FontStyle.italic
-                              : FontStyle.normal,
-                    ),
+                  subtitle: _buildPreviewSubtitle(
+                    context,
+                    provider,
+                    conversation,
+                    currentUserId,
                   ),
                   trailing: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -539,12 +529,61 @@ class _ConversationList extends StatelessWidget {
     );
   }
 
-  String _conversationPreview(ChatMessageModel? message) {
+  /// WhatsApp-style last-message preview: up to two lines with an ellipsis,
+  /// receipt ticks ahead of the text when the last message is ours, and
+  /// friendly wording for product shares.
+  Widget _buildPreviewSubtitle(
+    BuildContext context,
+    MessagesProvider provider,
+    ConversationModel conversation,
+    String? currentUserId,
+  ) {
+    final lastMessage = conversation.lastMessage;
+    final isMine =
+        lastMessage != null && lastMessage.senderId == currentUserId;
+    final isTyping = provider.selectedConversationId == conversation.id &&
+        provider.isOtherUserTyping;
+
+    final text = Text(
+      _conversationPreview(lastMessage, isMine),
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(
+        color: isTyping ? AppColors.electricBlue : null,
+        fontStyle: isTyping ? FontStyle.italic : FontStyle.normal,
+      ),
+    );
+
+    if (!isMine) {
+      return text;
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(right: 4, top: 2),
+          child: _ReceiptTicks(
+            message: lastMessage,
+            pendingColor: Theme.of(context).hintColor,
+            size: 14,
+          ),
+        ),
+        Expanded(child: text),
+      ],
+    );
+  }
+
+  String _conversationPreview(ChatMessageModel? message, bool isMine) {
     if (message == null) {
       return 'No messages yet';
     }
-    if (message.isProductShare) {
-      return 'Shared a product';
+    if (message.messageType == 'product_link') {
+      final title = message.product?.title.trim() ?? '';
+      if (isMine) {
+        return title.isEmpty ? 'Shared a product' : 'Shared $title';
+      }
+      return title.isEmpty ? 'Check this product' : 'Check this $title';
     }
     return message.content.isEmpty ? 'Attachment' : message.content;
   }
@@ -684,6 +723,31 @@ class _ChatThread extends StatelessWidget {
   }
 }
 
+/// WhatsApp-style receipt ticks for a message the current user sent:
+/// single tick = sent, double tick = delivered, blue double tick = read.
+class _ReceiptTicks extends StatelessWidget {
+  static const Color readBlue = Color(0xFF34B7F1);
+
+  final ChatMessageModel message;
+  final Color pendingColor;
+  final double size;
+
+  const _ReceiptTicks({
+    required this.message,
+    required this.pendingColor,
+    this.size = 15,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Icon(
+      message.delivered || message.read ? Icons.done_all : Icons.check,
+      size: size,
+      color: message.read ? readBlue : pendingColor,
+    );
+  }
+}
+
 class _MessageBubble extends StatelessWidget {
   final ChatMessageModel message;
   final bool isMe;
@@ -734,14 +798,26 @@ class _MessageBubble extends StatelessWidget {
                     ),
                   ),
                 const SizedBox(height: 6),
-                Text(
-                  _formatMessageTime(message.createdAt),
-                  style: TextStyle(
-                    color: isMe
-                        ? Colors.white.withValues(alpha: 0.8)
-                        : Theme.of(context).hintColor,
-                    fontSize: 11,
-                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _formatMessageTime(message.createdAt),
+                      style: TextStyle(
+                        color: isMe
+                            ? Colors.white.withValues(alpha: 0.8)
+                            : Theme.of(context).hintColor,
+                        fontSize: 11,
+                      ),
+                    ),
+                    if (isMe) ...[
+                      const SizedBox(width: 4),
+                      _ReceiptTicks(
+                        message: message,
+                        pendingColor: Colors.white.withValues(alpha: 0.85),
+                      ),
+                    ],
+                  ],
                 ),
               ],
             ),

@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../../../core/models/models.dart';
+import '../../../core/notifications/in_app_notification_center.dart';
+import '../../../core/notifications/push_notification_service.dart';
 import '../../../core/services/api_service.dart';
 import '../services/messages_socket_service.dart';
 
@@ -150,6 +152,8 @@ class MessagesProvider extends ChangeNotifier {
       _selectedConversationId = null;
       _selectedParticipant = null;
       _draft = null;
+      InAppNotificationCenter.instance.clear();
+      unawaited(PushNotificationService.instance.unregisterForUser(_apiService));
       _disconnectSocket();
       notifyListeners();
       return;
@@ -157,6 +161,7 @@ class MessagesProvider extends ChangeNotifier {
 
     if (authChanged) {
       _connectSocket();
+      unawaited(PushNotificationService.instance.registerForUser(_apiService));
       return;
     }
 
@@ -452,7 +457,33 @@ class MessagesProvider extends ChangeNotifier {
         );
         _appendMessage(message);
         _touchConversationFromMessage(message);
+        // The message just landed in a chat the user is looking at right
+        // now: ack it as read so the sender's ticks turn blue instantly,
+        // without waiting for a thread refetch or presence heartbeat.
+        if (message.senderId != _currentUser?.id &&
+            !message.read &&
+            _selectedConversationId == message.conversationId &&
+            _isMessagesScreenVisible &&
+            _isAppVisible) {
+          _socketService.markConversationRead(message.conversationId);
+        }
+        _maybeShowMessageBanner(message);
         notifyListeners();
+        break;
+      case 'messages_delivered':
+        final conversationId = event['conversation_id'] as String?;
+        if (conversationId == null) {
+          return;
+        }
+        _markOwnMessagesReceipt(conversationId, markRead: false);
+        break;
+      case 'messages_read':
+        final conversationId = event['conversation_id'] as String?;
+        final readerId = event['reader_id'] as String?;
+        if (conversationId == null || readerId == _currentUser?.id) {
+          return;
+        }
+        _markOwnMessagesReceipt(conversationId, markRead: true);
         break;
       case 'typing':
         final conversationId = event['conversation_id'] as String?;
@@ -551,6 +582,122 @@ class MessagesProvider extends ChangeNotifier {
       );
     } catch (_) {
       // Best-effort recovery after reconnect.
+    }
+  }
+
+  /// Queues an Instagram-style in-app banner for an incoming message, unless
+  /// the user is already looking at that conversation (or the app is
+  /// backgrounded — OS-level push covers that case instead).
+  void _maybeShowMessageBanner(ChatMessageModel message) {
+    if (message.senderId == _currentUser?.id || !_isAppVisible) {
+      return;
+    }
+    final isViewingThatChat =
+        _selectedConversationId == message.conversationId &&
+            _isMessagesScreenVisible;
+    if (isViewingThatChat) {
+      return;
+    }
+
+    final participant = _participantForSender(
+      message.conversationId,
+      message.senderId,
+    );
+
+    InAppNotificationCenter.instance.show(
+      InAppMessageBanner(
+        conversationId: message.conversationId,
+        senderId: message.senderId,
+        senderName: participant?.name ?? 'New message',
+        senderAvatar: participant?.avatar,
+        preview: _bannerPreview(message),
+      ),
+    );
+  }
+
+  MessageParticipantModel? _participantForSender(
+    String conversationId,
+    String senderId,
+  ) {
+    for (final conversation in _conversations) {
+      if (conversation.id == conversationId ||
+          conversation.participant.id == senderId) {
+        return conversation.participant;
+      }
+    }
+    for (final connection in _connections) {
+      if (connection.id == senderId) {
+        return MessageParticipantModel(
+          id: connection.id,
+          name: connection.name,
+          avatar: connection.avatar,
+        );
+      }
+    }
+    return null;
+  }
+
+  String _bannerPreview(ChatMessageModel message) {
+    if (message.messageType == 'product_link') {
+      final title = message.product?.title.trim() ?? '';
+      return title.isEmpty ? 'Check this product' : 'Check this $title';
+    }
+    return message.content.isEmpty ? 'Sent an attachment' : message.content;
+  }
+
+  /// Flips receipt state on every message the current user sent in the
+  /// conversation: delivered (double tick) or read (blue double tick).
+  void _markOwnMessagesReceipt(
+    String conversationId, {
+    required bool markRead,
+  }) {
+    final currentUserId = _currentUser?.id;
+    if (currentUserId == null) {
+      return;
+    }
+
+    var changed = false;
+
+    final messages = _messagesByConversation[conversationId];
+    if (messages != null) {
+      for (var i = 0; i < messages.length; i++) {
+        final message = messages[i];
+        if (message.senderId != currentUserId) {
+          continue;
+        }
+        if (markRead ? message.read : message.delivered) {
+          continue;
+        }
+        messages[i] = message.copyWith(
+          delivered: true,
+          read: markRead ? true : message.read,
+        );
+        changed = true;
+      }
+    }
+
+    final conversationIndex =
+        _conversations.indexWhere((item) => item.id == conversationId);
+    if (conversationIndex != -1) {
+      final conversation = _conversations[conversationIndex];
+      final lastMessage = conversation.lastMessage;
+      if (lastMessage != null &&
+          lastMessage.senderId == currentUserId &&
+          !(markRead ? lastMessage.read : lastMessage.delivered)) {
+        _replaceConversationPreservingOrder(
+          conversation.copyWith(
+            lastMessage: lastMessage.copyWith(
+              delivered: true,
+              read: markRead ? true : lastMessage.read,
+            ),
+          ),
+        );
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      notifyListeners();
     }
   }
 

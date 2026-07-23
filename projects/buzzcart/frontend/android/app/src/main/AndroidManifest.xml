@@ -1,7 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Internet permission for API calls -->
     <uses-permission android:name="android.permission.INTERNET" />
-    
+    <!-- Required to show notifications on Android 13+ (API 33+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
         android:label="frontend"
         android:name="${applicationName}"
@@ -38,6 +40,13 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- Default channel for FCM notifications shown while the app is
+             backgrounded/terminated; matches the "channel_id" the backend
+             sends in each message push (see push_notifications.go). -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="messages" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
