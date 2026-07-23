@@ -347,6 +347,42 @@ class ApiService {
     }
   }
 
+  Future<List<ContentCommentModel>> getPostComments(
+    String postId, {
+    bool connectionsOnly = false,
+  }) async {
+    try {
+      final response = await _dio.get(
+        '/posts/$postId/comments',
+        queryParameters: {
+          if (connectionsOnly) 'connections_only': true,
+        },
+      );
+      return (response.data as List? ?? [])
+          .map((item) =>
+              ContentCommentModel.fromJson(item as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<ContentCommentModel> createPostComment({
+    required String postId,
+    required String commentText,
+  }) async {
+    try {
+      final response = await _dio.post('/posts/$postId/comments', data: {
+        'comment_text': commentText,
+      });
+      return ContentCommentModel.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   /// Upload photo with option to create post automatically
   Future<Map<String, dynamic>> uploadPhoto({
     required XFile imageFile,

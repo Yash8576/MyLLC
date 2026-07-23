@@ -1400,6 +1400,8 @@ class _HomePageState extends State<HomePage> {
       initialLiked = post.isLiked;
       initialLikeCount = post.likeCount;
       initialCommentCount = post.commentCount;
+      commentKind = 'post';
+      commentId = post.id;
     }
 
     return _buildMediaCard(
@@ -1923,6 +1925,9 @@ class _HomePageState extends State<HomePage> {
         if (kind == 'video') {
           return api.getVideoComments(id, connectionsOnly: connectionsOnly);
         }
+        if (kind == 'post') {
+          return api.getPostComments(id, connectionsOnly: connectionsOnly);
+        }
         final comments =
             await api.getReelComments(id, connectionsOnly: connectionsOnly);
         return comments
@@ -1945,6 +1950,9 @@ class _HomePageState extends State<HomePage> {
       submitComment: (commentText) async {
         if (kind == 'video') {
           return api.createVideoComment(videoId: id, commentText: commentText);
+        }
+        if (kind == 'post') {
+          return api.createPostComment(postId: id, commentText: commentText);
         }
         final comment = await api.createReelComment(
           reelId: id,

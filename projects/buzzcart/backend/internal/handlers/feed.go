@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -604,6 +605,183 @@ func UnlikePost(db *sql.DB) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, gin.H{"success": true, "message": "Post unliked"})
+	}
+}
+
+// GetPostComments lists comments on a post, oldest resolution matching
+// LikePost/UnlikePost (accepts either a posts.id or a user_media.id).
+func GetPostComments(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		postID, err := resolvePostID(db, c.Param("post_id"))
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Post not found"})
+			return
+		}
+
+		userID := strings.TrimSpace(c.GetString("user_id"))
+		connectionsOnly := strings.EqualFold(c.Query("connections_only"), "true")
+
+		rows, err := db.Query(
+			`SELECT
+				pc.id,
+				pc.post_id,
+				pc.user_id,
+				pc.comment_text,
+				pc.created_at,
+				pc.updated_at,
+				COALESCE(u.name, ''),
+				u.avatar,
+				CASE WHEN NULLIF($2, '') IS NULL THEN false ELSE (
+					EXISTS(
+						SELECT 1 FROM user_follows
+						WHERE follower_id = NULLIF($2, '')::uuid
+						  AND following_id = pc.user_id
+					)
+					AND EXISTS(
+						SELECT 1 FROM user_follows
+						WHERE follower_id = pc.user_id
+						  AND following_id = NULLIF($2, '')::uuid
+					)
+				) END AS is_connection
+			FROM post_comments pc
+			JOIN users u ON u.id = pc.user_id
+			WHERE pc.post_id = $1
+			  AND pc.is_deleted = FALSE
+			  AND (
+				$3 = false
+				OR (
+					NULLIF($2, '') IS NOT NULL
+					AND EXISTS(
+						SELECT 1 FROM user_follows
+						WHERE follower_id = NULLIF($2, '')::uuid
+						  AND following_id = pc.user_id
+					)
+					AND EXISTS(
+						SELECT 1 FROM user_follows
+						WHERE follower_id = pc.user_id
+						  AND following_id = NULLIF($2, '')::uuid
+					)
+				)
+			  )
+			ORDER BY pc.created_at DESC`,
+			postID, userID, connectionsOnly,
+		)
+		if err != nil {
+			log.Printf("[GetPostComments] Query failed for post %s viewer %q: %v", postID, userID, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch post comments"})
+			return
+		}
+		defer rows.Close()
+
+		comments := []models.ContentComment{}
+		for rows.Next() {
+			var comment models.ContentComment
+			if err := rows.Scan(
+				&comment.ID,
+				&comment.ContentID,
+				&comment.UserID,
+				&comment.CommentText,
+				&comment.CreatedAt,
+				&comment.UpdatedAt,
+				&comment.Username,
+				&comment.UserAvatar,
+				&comment.IsFollowing,
+			); err != nil {
+				log.Printf("[GetPostComments] Scan failed for post %s viewer %q: %v", postID, userID, err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode post comments"})
+				return
+			}
+			comment.IsCurrentUser = userID != "" && comment.UserID == userID
+			comment.UserAvatar = readableMediaURLPtr(comment.UserAvatar)
+			comments = append(comments, comment)
+		}
+		if err := rows.Err(); err != nil {
+			log.Printf("[GetPostComments] Rows iteration failed for post %s viewer %q: %v", postID, userID, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch post comments"})
+			return
+		}
+
+		c.JSON(http.StatusOK, comments)
+	}
+}
+
+// CreatePostComment adds a comment to a post.
+func CreatePostComment(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		postID, err := resolvePostID(db, c.Param("post_id"))
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Post not found"})
+			return
+		}
+
+		userID := c.GetString("user_id")
+		viewerUUID := normalizedUUIDString(userID)
+		if viewerUUID == nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
+			return
+		}
+
+		var req models.ContentCommentCreate
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		commentText := strings.TrimSpace(req.CommentText)
+		if commentText == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Comment text is required"})
+			return
+		}
+
+		commentID := uuid.New().String()
+		createdAt := time.Now()
+		if _, err := db.Exec(
+			`INSERT INTO post_comments (id, post_id, user_id, comment_text, created_at, updated_at)
+			 VALUES ($1, $2, $3, $4, $5, $6)`,
+			commentID, postID, *viewerUUID, commentText, createdAt, createdAt,
+		); err != nil {
+			log.Printf(
+				"[CreatePostComment] Failed to create comment %s for post %s by user %s: %v",
+				commentID, postID, *viewerUUID, err,
+			)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create comment"})
+			return
+		}
+
+		var comment models.ContentComment
+		err = db.QueryRow(
+			`SELECT
+				pc.id,
+				pc.post_id,
+				pc.user_id,
+				pc.comment_text,
+				pc.created_at,
+				pc.updated_at,
+				COALESCE(u.name, ''),
+				u.avatar
+			FROM post_comments pc
+			JOIN users u ON u.id = pc.user_id
+			WHERE pc.id = $1`,
+			commentID,
+		).Scan(
+			&comment.ID,
+			&comment.ContentID,
+			&comment.UserID,
+			&comment.CommentText,
+			&comment.CreatedAt,
+			&comment.UpdatedAt,
+			&comment.Username,
+			&comment.UserAvatar,
+		)
+		if err != nil {
+			log.Printf("[CreatePostComment] Failed to fetch created comment %s for post %s: %v", commentID, postID, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch created comment"})
+			return
+		}
+
+		comment.IsCurrentUser = true
+		comment.UserAvatar = readableMediaURLPtr(comment.UserAvatar)
+		c.JSON(http.StatusOK, comment)
 	}
 }
 

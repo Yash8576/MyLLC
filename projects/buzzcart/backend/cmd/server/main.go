@@ -272,6 +272,10 @@ func main() {
 			posts.DELETE("/:post_id", middleware.Auth(cfg.JWTSecret), handlers.DeletePost(db))
 			posts.POST("/:post_id/like", middleware.Auth(cfg.JWTSecret), handlers.LikePost(db))
 			posts.DELETE("/:post_id/like", middleware.Auth(cfg.JWTSecret), handlers.UnlikePost(db))
+
+			// Comments on a post
+			posts.GET("/:post_id/comments", middleware.OptionalAuth(cfg.JWTSecret), handlers.GetPostComments(db))
+			posts.POST("/:post_id/comments", middleware.Auth(cfg.JWTSecret), handlers.CreatePostComment(db))
 		}
 
 		// Legacy feed routes (backward compatibility)
