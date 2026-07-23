@@ -28,6 +28,12 @@ Future<int?> showContentCommentsSheet({
   }) loadComments,
   required Future<ContentCommentModel> Function(String commentText)
       submitComment,
+  // Called immediately whenever a comment is posted, in addition to the
+  // count this returns when the sheet closes — swipe-to-dismiss/tapping the
+  // scrim closes the modal route with a null result (only the explicit "X"
+  // button passes the count through), so callers that only look at the
+  // return value miss updates whenever the sheet is dismissed any other way.
+  ValueChanged<int>? onCountChanged,
 }) {
   return showModalBottomSheet<int>(
     context: context,
@@ -38,6 +44,7 @@ Future<int?> showContentCommentsSheet({
       initialCount: initialCount,
       loadComments: loadComments,
       submitComment: submitComment,
+      onCountChanged: onCountChanged,
     ),
   );
 }
@@ -218,6 +225,7 @@ class _ContentCommentsSheet extends StatefulWidget {
     required this.initialCount,
     required this.loadComments,
     required this.submitComment,
+    this.onCountChanged,
   });
 
   final String title;
@@ -226,6 +234,7 @@ class _ContentCommentsSheet extends StatefulWidget {
     required bool connectionsOnly,
   }) loadComments;
   final Future<ContentCommentModel> Function(String commentText) submitComment;
+  final ValueChanged<int>? onCountChanged;
 
   @override
   State<_ContentCommentsSheet> createState() => _ContentCommentsSheetState();
@@ -300,6 +309,7 @@ class _ContentCommentsSheetState extends State<_ContentCommentsSheet> {
         _commentCount += 1;
         _commentController.clear();
       });
+      widget.onCountChanged?.call(_commentCount);
     } catch (error) {
       if (!mounted) {
         return;

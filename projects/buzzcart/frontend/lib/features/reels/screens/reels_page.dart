@@ -828,6 +828,12 @@ class _ReelViewportState extends State<_ReelViewport> {
           isCurrentUser: comment.isCurrentUser,
         );
       },
+      onCountChanged: (count) {
+        if (!mounted) return;
+        setState(() {
+          _commentCount = count;
+        });
+      },
     );
     if (!mounted || updatedCount == null || updatedCount == _commentCount) {
       return;

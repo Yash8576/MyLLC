@@ -1971,6 +1971,12 @@ class _HomePageState extends State<HomePage> {
           isCurrentUser: comment.isCurrentUser,
         );
       },
+      onCountChanged: (count) {
+        if (!mounted) return;
+        setState(() {
+          engagement.commentCount = count;
+        });
+      },
     );
     if (!mounted || updatedCount == null) return;
     setState(() {
