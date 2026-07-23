@@ -11,6 +11,7 @@ import 'package:timeago/timeago.dart' as timeago;
 import 'package:video_player/video_player.dart';
 
 import '../../../core/models/models.dart';
+import '../../../core/notifications/in_app_notification_center.dart';
 import '../../../core/providers/app_refresh_provider.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/utils/url_helper.dart';
@@ -492,7 +493,8 @@ class _VideoDetailViewState extends State<_VideoDetailView> {
         _showInlineControls = true;
       });
       _updateInlineControlsForPlaybackState(_isPlaying);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Video failed to load (${widget.video.url}): $e');
       await controller.dispose();
       if (!mounted) {
         return;
@@ -651,6 +653,9 @@ class _VideoDetailViewState extends State<_VideoDetailView> {
 
     _resumeAfterFullscreen = controller.value.isPlaying;
 
+    // Hold in-app message banners while the fullscreen player is up; they
+    // resume from the queue once the viewer exits.
+    InAppNotificationCenter.instance.suppressed.value = true;
     setState(() => _fullscreenOpen = true);
     if (!kIsWeb) {
       await SystemChrome.setPreferredOrientations(const [
@@ -689,6 +694,7 @@ class _VideoDetailViewState extends State<_VideoDetailView> {
         },
       );
     } finally {
+      InAppNotificationCenter.instance.suppressed.value = false;
       if (mounted) {
         setState(() => _fullscreenOpen = false);
       }

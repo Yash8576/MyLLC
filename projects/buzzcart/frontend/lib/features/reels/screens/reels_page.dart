@@ -701,7 +701,8 @@ class _ReelViewportState extends State<_ReelViewport> {
       setState(() {
         _controller = controller;
       });
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Reel video failed to load (${widget.reel.url}): $e');
       await controller.dispose();
     } finally {
       _initializing = false;

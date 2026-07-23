@@ -13,8 +13,8 @@ import '../../features/messages/providers/messages_provider.dart';
 import '../../core/router/shell_obscured_notifier.dart';
 import 'app_sidebar.dart';
 
-const double _kGlossyNavHeight = 64;
-const double _kGlossyNavMargin = 8;
+const double _kGlossyNavHeight = 64 * 0.8;
+const double _kGlossyNavMargin = 16;
 
 /// Extra bottom clearance needed by full-bleed pages (e.g. Reels) so their
 /// own bottom-anchored overlays don't sit underneath the floating glass nav
@@ -30,7 +30,7 @@ double glossyBottomNavClearance(BuildContext context) {
   // margin, not the device's safe-area inset — the nav bar doesn't reserve
   // extra space for that), so this clearance lines up with its real top edge.
   final bottomInset = MediaQuery.of(context).padding.bottom;
-  return _kGlossyNavHeight + (bottomInset > 0 ? _kGlossyNavMargin : 12);
+  return _kGlossyNavHeight + (bottomInset > 0 ? _kGlossyNavMargin : 18);
 }
 
 class MainLayout extends StatefulWidget {
@@ -153,6 +153,14 @@ class _MainLayoutState extends State<MainLayout>
         (path != '/' && currentPath.startsWith('$path/'));
   }
 
+  // Guards against a pushed route (Messages, Search, Cart, Settings, ...)
+  // being pushed twice in a row. `widget.currentPath` only updates once the
+  // router rebuilds this widget, so a second tap on a nav icon that lands
+  // before that rebuild would slip past `_isOnPath` and push a duplicate
+  // page — stacking two slide-in transitions that then both have to be
+  // popped, which reads as an extra, unwanted right-to-left animation.
+  bool _pushNavigationInFlight = false;
+
   void _navigateTo(String path) {
     if (!path.startsWith('/messages')) {
       final messagesProvider = context.read<MessagesProvider>();
@@ -181,7 +189,13 @@ class _MainLayoutState extends State<MainLayout>
       return;
     }
 
-    context.push(path);
+    if (_pushNavigationInFlight) {
+      return;
+    }
+    _pushNavigationInFlight = true;
+    context.push(path).whenComplete(() {
+      _pushNavigationInFlight = false;
+    });
   }
 
   @override
@@ -492,7 +506,7 @@ class _MainLayoutState extends State<MainLayout>
 
     return SafeArea(
       top: false,
-      minimum: const EdgeInsets.only(bottom: 8),
+      minimum: const EdgeInsets.only(bottom: 16),
       child: Container(
         decoration: BoxDecoration(
           border: Border(
@@ -541,7 +555,7 @@ class _MainLayoutState extends State<MainLayout>
         16,
         0,
         16,
-        bottomInset > 0 ? _kGlossyNavMargin : 12,
+        bottomInset > 0 ? _kGlossyNavMargin : 18,
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(32),

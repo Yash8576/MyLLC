@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart' show TapGestureRecognizer;
 import 'package:flutter/material.dart';
 import 'package:buzz_social_cart/core/utils/app_snack_bar.dart';
 import 'package:go_router/go_router.dart';
@@ -16,6 +18,8 @@ import '../../../core/services/api_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/url_helper.dart';
 import '../../../core/widgets/network_media.dart';
+import '../../content/presentation/widgets/content_bottom_sheets.dart'
+    as content_sheets;
 import '../../layout/main_layout.dart';
 import '../../products/widgets/product_card_social_preview.dart';
 
@@ -34,6 +38,19 @@ bool get _allowDesktopWebBackgroundPlayback =>
         defaultTargetPlatform == TargetPlatform.macOS ||
         defaultTargetPlatform == TargetPlatform.linux);
 
+bool get _isNativeMobilePlatform =>
+    !kIsWeb &&
+    (defaultTargetPlatform == TargetPlatform.iOS ||
+        defaultTargetPlatform == TargetPlatform.android);
+
+// Native mobile trims 5% off the top and 5% off the bottom of inline reels
+// (90% of height remains) to free up room for the buttons/caption below —
+// the video fills the shorter frame via BoxFit.cover, so this reads as a
+// center-crop rather than letterboxing. Web/desktop keep the native 9:14.
+const double _kInlineReelMobileCropFactor = 0.9;
+double get _inlineReelAspectRatio =>
+    _isNativeMobilePlatform ? 9 / (14 * _kInlineReelMobileCropFactor) : 9 / 14;
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -43,7 +60,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   static const double _pageMaxWidth = 760;
-  static const double _mediaCardMaxWidth = 560;
+  static const double _mediaCardMaxWidth = 560 * 0.75;
   static const double _productRailCardWidth = 188;
   static const double _productRailHeight = 308;
   static const double _desktopListCacheExtent = 2200;
@@ -72,6 +89,8 @@ class _HomePageState extends State<HomePage> {
   bool _areInlineReelsMuted = true;
   bool _inlineReelVisibilityCheckScheduled = false;
   Map<String, VideoModel> _videoLookupByUrl = <String, VideoModel>{};
+  Map<String, ReelModel> _reelLookupByUrl = <String, ReelModel>{};
+  final Map<String, _FeedEngagement> _feedEngagement = {};
 
   @override
   void initState() {
@@ -224,13 +243,17 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  bool _sectionContainsInlineReel(_HomeSection section) {
-    if (section.type == _HomeSectionType.reel) {
+  // True for any section that renders an inline auto-playing video (reel
+  // card, reel-type post, standalone video card, or video-type post) — only
+  // one of these plays at a time, driven by which is most visible.
+  bool _sectionContainsInlinePlayableMedia(_HomeSection section) {
+    if (section.type == _HomeSectionType.reel ||
+        section.type == _HomeSectionType.video) {
       return true;
     }
     if (section.type == _HomeSectionType.post) {
       final post = section.data as PostModel;
-      return post.mediaType == 'reel';
+      return post.mediaType == 'reel' || post.mediaType == 'video';
     }
     return false;
   }
@@ -238,7 +261,7 @@ class _HomePageState extends State<HomePage> {
   void _pruneInlineReelKeys(List<_HomeSection> sections) {
     final activeIndexes = <int>{};
     for (var index = 0; index < sections.length; index++) {
-      if (_sectionContainsInlineReel(sections[index])) {
+      if (_sectionContainsInlinePlayableMedia(sections[index])) {
         activeIndexes.add(index);
       }
     }
@@ -373,7 +396,8 @@ class _HomePageState extends State<HomePage> {
           (a, b) => _parseDate(b.createdAt).compareTo(_parseDate(a.createdAt)),
         );
 
-      final reels = (results[3] as List<ReelModel>)
+      final allReels = results[3] as List<ReelModel>;
+      final reels = allReels
           .where(
             (reel) =>
                 reel.creatorId != currentUserId &&
@@ -399,6 +423,10 @@ class _HomePageState extends State<HomePage> {
         _videoLookupByUrl = <String, VideoModel>{
           for (final video in allVideos) video.url: video,
         };
+        _reelLookupByUrl = <String, ReelModel>{
+          for (final reel in allReels) reel.url: reel,
+        };
+        _feedEngagement.clear();
         _isLoading = false;
       });
       _scheduleInlineReelVisibilityCheck();
@@ -901,12 +929,13 @@ class _HomePageState extends State<HomePage> {
                   );
                   break;
                 case _HomeSectionType.post:
-                  final containsInlineReel = _sectionContainsInlineReel(section);
+                  final containsInlinePlayable =
+                      _sectionContainsInlinePlayableMedia(section);
                   child = KeyedSubtree(
-                    key: containsInlineReel
+                    key: containsInlinePlayable
                         ? _getInlineReelSectionKey(index)
                         : null,
-                    child: containsInlineReel
+                    child: containsInlinePlayable
                         ? buildInlineReelSection(
                             (isActive) => _buildPostCard(
                               section.data as PostModel,
@@ -934,9 +963,15 @@ class _HomePageState extends State<HomePage> {
                   );
                   break;
                 case _HomeSectionType.video:
-                  child = _buildVideoCard(
-                    section.data as VideoModel,
-                    constraints.maxWidth,
+                  child = KeyedSubtree(
+                    key: _getInlineReelSectionKey(index),
+                    child: buildInlineReelSection(
+                      (isActive) => _buildVideoCard(
+                        section.data as VideoModel,
+                        constraints.maxWidth,
+                        isActive,
+                      ),
+                    ),
                   );
                   break;
               }
@@ -1332,7 +1367,40 @@ class _HomePageState extends State<HomePage> {
     bool isInlineReelActive,
   ) {
     final linkedVideo = _linkedVideoForPost(post);
+    final linkedReel = _linkedReelForPost(post);
     final isVideoPost = post.mediaType == 'video';
+    final isReelPost = post.mediaType == 'reel';
+
+    final String likeKind;
+    final String likeId;
+    final bool initialLiked;
+    final int initialLikeCount;
+    final int initialCommentCount;
+    String? commentKind;
+    String? commentId;
+    if (isVideoPost && linkedVideo != null) {
+      likeKind = 'video';
+      likeId = linkedVideo.id;
+      initialLiked = linkedVideo.isLiked;
+      initialLikeCount = linkedVideo.likes;
+      initialCommentCount = linkedVideo.commentCount;
+      commentKind = 'video';
+      commentId = linkedVideo.id;
+    } else if (isReelPost && linkedReel != null) {
+      likeKind = 'reel';
+      likeId = linkedReel.id;
+      initialLiked = linkedReel.isLiked;
+      initialLikeCount = linkedReel.likes;
+      initialCommentCount = linkedReel.commentCount;
+      commentKind = 'reel';
+      commentId = linkedReel.id;
+    } else {
+      likeKind = 'post';
+      likeId = post.id;
+      initialLiked = post.isLiked;
+      initialLikeCount = post.likeCount;
+      initialCommentCount = post.commentCount;
+    }
 
     return _buildMediaCard(
       maxWidth: _mediaCardMaxWidth,
@@ -1353,19 +1421,34 @@ class _HomePageState extends State<HomePage> {
       bodyTextPosition: isVideoPost
           ? _MediaCardBodyTextPosition.aboveMedia
           : _MediaCardBodyTextPosition.belowMedia,
+      engagementKey: 'post:${post.id}',
+      likeKind: likeKind,
+      likeId: likeId,
+      initialLiked: initialLiked,
+      initialLikeCount: initialLikeCount,
+      initialCommentCount: initialCommentCount,
+      commentKind: commentKind,
+      commentId: commentId,
+      collapsibleCaption: isReelPost,
     );
   }
 
-  Widget _buildVideoCard(VideoModel video, double viewportWidth) {
+  Widget _buildVideoCard(
+    VideoModel video,
+    double viewportWidth,
+    bool isInlineMediaActive,
+  ) {
     return _buildMediaCard(
       maxWidth: _mediaCardMaxWidth,
       viewportWidth: viewportWidth,
       onTap: () => context.push('/videos/${video.id}'),
       onHeaderTap: () => context.push('/profile/${video.creatorId}'),
-      media: _buildFramedMedia(
-        imageUrl: video.thumbnail,
-        aspectRatio: 16 / 9,
-        playIcon: true,
+      media: _InlineVideoMedia(
+        videoUrl: video.url,
+        thumbnailUrl: video.thumbnail,
+        isActive: isInlineMediaActive,
+        isMuted: _areInlineReelsMuted,
+        onMuteChanged: _handleInlineReelMuteChanged,
         durationBadge: _HomeVideoDurationBadge(
           videoUrl: video.url,
           initialDurationSeconds: video.duration,
@@ -1376,6 +1459,14 @@ class _HomePageState extends State<HomePage> {
       createdAt: video.createdAt,
       bodyText: video.title,
       bodyTextPosition: _MediaCardBodyTextPosition.aboveMedia,
+      engagementKey: 'video:${video.id}',
+      likeKind: 'video',
+      likeId: video.id,
+      initialLiked: video.isLiked,
+      initialLikeCount: video.likes,
+      initialCommentCount: video.commentCount,
+      commentKind: 'video',
+      commentId: video.id,
     );
   }
 
@@ -1396,6 +1487,15 @@ class _HomePageState extends State<HomePage> {
         isMuted: _areInlineReelsMuted,
         onMuteChanged: _handleInlineReelMuteChanged,
       ),
+      engagementKey: 'reel:${reel.id}',
+      likeKind: 'reel',
+      likeId: reel.id,
+      initialLiked: reel.isLiked,
+      initialLikeCount: reel.likes,
+      initialCommentCount: reel.commentCount,
+      commentKind: 'reel',
+      commentId: reel.id,
+      collapsibleCaption: true,
       creatorName: reel.creatorName,
       creatorAvatar: reel.creatorAvatar,
       createdAt: reel.createdAt,
@@ -1405,31 +1505,37 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildPostMedia(
     PostModel post,
-    bool isInlineReelActive, {
+    bool isInlineMediaActive, {
     VideoModel? linkedVideo,
   }) {
     if (post.mediaType == 'reel') {
       return _InlineReelMedia(
         videoUrl: post.mediaUrl,
         thumbnailUrl: post.thumbnailUrl ?? post.mediaUrl,
-        isActive: isInlineReelActive,
+        isActive: isInlineMediaActive,
         isMuted: _areInlineReelsMuted,
         onMuteChanged: _handleInlineReelMuteChanged,
       );
     }
 
-    final aspectRatio = post.mediaType == 'video' ? 16 / 9 : 4 / 5;
+    if (post.mediaType == 'video') {
+      return _InlineVideoMedia(
+        videoUrl: post.mediaUrl,
+        thumbnailUrl: post.thumbnailUrl ?? post.mediaUrl,
+        isActive: isInlineMediaActive,
+        isMuted: _areInlineReelsMuted,
+        onMuteChanged: _handleInlineReelMuteChanged,
+        durationBadge: _HomeVideoDurationBadge(
+          videoUrl: post.mediaUrl,
+          initialDurationSeconds: linkedVideo?.duration ?? 0,
+        ),
+      );
+    }
 
     return _buildFramedMedia(
       imageUrl: post.thumbnailUrl ?? post.mediaUrl,
-      aspectRatio: aspectRatio,
-      playIcon: post.mediaType == 'video',
-      durationBadge: post.mediaType == 'video'
-          ? _HomeVideoDurationBadge(
-              videoUrl: post.mediaUrl,
-              initialDurationSeconds: linkedVideo?.duration ?? 0,
-            )
-          : null,
+      aspectRatio: 1,
+      playIcon: false,
     );
   }
 
@@ -1492,9 +1598,31 @@ class _HomePageState extends State<HomePage> {
     VoidCallback? onHeaderTap,
     _MediaCardBodyTextPosition bodyTextPosition =
         _MediaCardBodyTextPosition.belowMedia,
+    String? engagementKey,
+    String? likeKind,
+    String? likeId,
+    bool initialLiked = false,
+    int initialLikeCount = 0,
+    int initialCommentCount = 0,
+    String? commentKind,
+    String? commentId,
+    bool collapsibleCaption = false,
   }) {
     final trimmedBodyText = bodyText?.trim();
     final hasBodyText = trimmedBodyText != null && trimmedBodyText.isNotEmpty;
+    final showBelowMediaCaption =
+        bodyTextPosition == _MediaCardBodyTextPosition.belowMedia &&
+            hasBodyText;
+    final hasEngagement =
+        engagementKey != null && likeKind != null && likeId != null;
+    if (hasEngagement) {
+      _ensureEngagement(
+        engagementKey,
+        liked: initialLiked,
+        likeCount: initialLikeCount,
+        commentCount: initialCommentCount,
+      );
+    }
 
     return _buildSectionShell(
       maxWidth: viewportWidth,
@@ -1581,18 +1709,6 @@ class _HomePageState extends State<HomePage> {
                             ),
                           ),
                         media,
-                        if (bodyTextPosition ==
-                                _MediaCardBodyTextPosition.belowMedia &&
-                            hasBodyText)
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-                            child: Text(
-                              trimmedBodyText,
-                              style: Theme.of(context).textTheme.bodyMedium,
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
                       ],
                     ),
                   )
@@ -1613,19 +1729,34 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                   media,
-                  if (bodyTextPosition ==
-                          _MediaCardBodyTextPosition.belowMedia &&
-                      hasBodyText)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-                      child: Text(
-                        trimmedBodyText,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
                 ],
+                if (hasEngagement)
+                  _buildEngagementRow(
+                    engagementKey: engagementKey,
+                    likeKind: likeKind,
+                    likeId: likeId,
+                    commentKind: commentKind,
+                    commentId: commentId,
+                  ),
+                if (showBelowMediaCaption)
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      14,
+                      hasEngagement ? 8 : 12,
+                      14,
+                      14,
+                    ),
+                    child: collapsibleCaption
+                        ? _MediaCaptionText(text: trimmedBodyText)
+                        : Text(
+                            trimmedBodyText,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                  )
+                else if (hasEngagement)
+                  const SizedBox(height: 14),
               ],
             ),
           ),
@@ -1695,6 +1826,13 @@ class _HomePageState extends State<HomePage> {
     return _videoLookupByUrl[post.mediaUrl];
   }
 
+  ReelModel? _linkedReelForPost(PostModel post) {
+    if (post.mediaType != 'reel') {
+      return null;
+    }
+    return _reelLookupByUrl[post.mediaUrl];
+  }
+
   String _postVideoTitle(PostModel post, VideoModel? linkedVideo) {
     final linkedTitle = linkedVideo?.title.trim() ?? '';
     if (linkedTitle.isNotEmpty) {
@@ -1705,6 +1843,316 @@ class _HomePageState extends State<HomePage> {
       return caption;
     }
     return 'Untitled Video';
+  }
+
+  _FeedEngagement _ensureEngagement(
+    String key, {
+    required bool liked,
+    required int likeCount,
+    required int commentCount,
+  }) {
+    return _feedEngagement.putIfAbsent(
+      key,
+      () => _FeedEngagement(
+        liked: liked,
+        likeCount: likeCount,
+        commentCount: commentCount,
+      ),
+    );
+  }
+
+  Future<void> _handleFeedLike({
+    required String key,
+    required String kind,
+    required String id,
+  }) async {
+    final engagement = _feedEngagement[key];
+    if (engagement == null) return;
+    final wasLiked = engagement.liked;
+    setState(() {
+      engagement.liked = !wasLiked;
+      engagement.likeCount =
+          math.max(0, engagement.likeCount + (wasLiked ? -1 : 1));
+    });
+    try {
+      final api = context.read<ApiService>();
+      if (kind == 'video') {
+        final result = await api.likeVideo(id);
+        if (!mounted) return;
+        setState(() {
+          engagement.liked = result.isLiked;
+          engagement.likeCount = result.likes;
+        });
+      } else if (kind == 'reel') {
+        final result = await api.likeReel(id);
+        if (!mounted) return;
+        setState(() {
+          engagement.liked = result.isLiked;
+          engagement.likeCount = result.likes;
+        });
+      } else {
+        if (wasLiked) {
+          await api.unlikePost(id);
+        } else {
+          await api.likePost(id);
+        }
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        engagement.liked = wasLiked;
+        engagement.likeCount =
+            math.max(0, engagement.likeCount + (wasLiked ? 1 : -1));
+      });
+    }
+  }
+
+  Future<void> _handleFeedComments({
+    required String key,
+    required String kind,
+    required String id,
+  }) async {
+    final engagement = _feedEngagement[key];
+    if (engagement == null) return;
+    final api = context.read<ApiService>();
+    final updatedCount = await content_sheets.showContentCommentsSheet(
+      context: context,
+      title: 'Comments',
+      initialCount: engagement.commentCount,
+      loadComments: ({required bool connectionsOnly}) async {
+        if (kind == 'video') {
+          return api.getVideoComments(id, connectionsOnly: connectionsOnly);
+        }
+        final comments =
+            await api.getReelComments(id, connectionsOnly: connectionsOnly);
+        return comments
+            .map(
+              (comment) => ContentCommentModel(
+                id: comment.id,
+                contentId: comment.reelId,
+                userId: comment.userId,
+                commentText: comment.commentText,
+                createdAt: comment.createdAt,
+                updatedAt: comment.updatedAt,
+                username: comment.username,
+                userAvatar: comment.userAvatar,
+                isFollowing: comment.isFollowing,
+                isCurrentUser: comment.isCurrentUser,
+              ),
+            )
+            .toList();
+      },
+      submitComment: (commentText) async {
+        if (kind == 'video') {
+          return api.createVideoComment(videoId: id, commentText: commentText);
+        }
+        final comment = await api.createReelComment(
+          reelId: id,
+          commentText: commentText,
+        );
+        return ContentCommentModel(
+          id: comment.id,
+          contentId: comment.reelId,
+          userId: comment.userId,
+          commentText: comment.commentText,
+          createdAt: comment.createdAt,
+          updatedAt: comment.updatedAt,
+          username: comment.username,
+          userAvatar: comment.userAvatar,
+          isFollowing: comment.isFollowing,
+          isCurrentUser: comment.isCurrentUser,
+        );
+      },
+    );
+    if (!mounted || updatedCount == null) return;
+    setState(() {
+      engagement.commentCount = updatedCount;
+    });
+  }
+
+  Widget _buildEngagementRow({
+    required String engagementKey,
+    required String likeKind,
+    required String likeId,
+    String? commentKind,
+    String? commentId,
+  }) {
+    final engagement = _feedEngagement[engagementKey]!;
+    final hasComments = commentKind != null && commentId != null;
+
+    Widget buildButton({
+      required IconData icon,
+      required Color color,
+      required String label,
+      VoidCallback? onTap,
+    }) {
+      return InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 20, color: color),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: color,
+                    ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+      child: Row(
+        children: [
+          buildButton(
+            icon: engagement.liked ? Icons.favorite : Icons.favorite_border,
+            color: engagement.liked
+                ? AppColors.vibrantPink
+                : (Colors.grey[700] ?? Colors.grey),
+            label: '${engagement.likeCount}',
+            onTap: () => _handleFeedLike(
+              key: engagementKey,
+              kind: likeKind,
+              id: likeId,
+            ),
+          ),
+          const SizedBox(width: 18),
+          buildButton(
+            icon: Icons.chat_bubble_outline,
+            color: hasComments
+                ? (Colors.grey[700] ?? Colors.grey)
+                : (Colors.grey[400] ?? Colors.grey),
+            label: '${engagement.commentCount}',
+            onTap: hasComments
+                ? () => _handleFeedComments(
+                      key: engagementKey,
+                      kind: commentKind,
+                      id: commentId,
+                    )
+                : null,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FeedEngagement {
+  _FeedEngagement({
+    required this.liked,
+    required this.likeCount,
+    required this.commentCount,
+  });
+
+  bool liked;
+  int likeCount;
+  int commentCount;
+}
+
+// Clamps a caption to 1 line, appending a tappable "See more" affordance
+// when it doesn't fit; tapping it expands the full caption inline.
+class _MediaCaptionText extends StatefulWidget {
+  const _MediaCaptionText({required this.text});
+
+  final String text;
+
+  @override
+  State<_MediaCaptionText> createState() => _MediaCaptionTextState();
+}
+
+class _MediaCaptionTextState extends State<_MediaCaptionText> {
+  bool _expanded = false;
+  TapGestureRecognizer? _seeMoreRecognizer;
+
+  @override
+  void dispose() {
+    _seeMoreRecognizer?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final caption = widget.text.trim();
+    final style = Theme.of(context).textTheme.bodyMedium ?? const TextStyle();
+    final seeMoreStyle = style.copyWith(
+      color: AppColors.electricBlue,
+      fontWeight: FontWeight.w700,
+    );
+    const seeMoreLabel = 'See more';
+
+    if (_expanded) {
+      return Text(caption, style: style);
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxWidth = constraints.maxWidth;
+        final fullPainter = TextPainter(
+          text: TextSpan(text: caption, style: style),
+          maxLines: 1,
+          textDirection: TextDirection.ltr,
+        )..layout(maxWidth: maxWidth);
+
+        if (!fullPainter.didExceedMaxLines) {
+          return Text(caption, style: style, maxLines: 1);
+        }
+
+        const ellipsis = '… ';
+        var low = 0;
+        var high = caption.length;
+        while (low < high) {
+          final mid = (low + high + 1) ~/ 2;
+          final probe = TextPainter(
+            text: TextSpan(
+              style: style,
+              children: [
+                TextSpan(
+                  text: '${caption.substring(0, mid).trimRight()}$ellipsis',
+                ),
+                const TextSpan(text: seeMoreLabel),
+              ],
+            ),
+            maxLines: 1,
+            textDirection: TextDirection.ltr,
+          )..layout(maxWidth: maxWidth);
+          if (!probe.didExceedMaxLines) {
+            low = mid;
+          } else {
+            high = mid - 1;
+          }
+        }
+        final truncated = caption.substring(0, low).trimRight();
+
+        _seeMoreRecognizer?.dispose();
+        _seeMoreRecognizer = TapGestureRecognizer()
+          ..onTap = () => setState(() => _expanded = true);
+
+        return RichText(
+          maxLines: 1,
+          overflow: TextOverflow.clip,
+          text: TextSpan(
+            style: style,
+            children: [
+              TextSpan(text: '$truncated$ellipsis'),
+              TextSpan(
+                text: seeMoreLabel,
+                style: seeMoreStyle,
+                recognizer: _seeMoreRecognizer,
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 }
 
@@ -1976,7 +2424,8 @@ class _InlineReelMediaState extends State<_InlineReelMedia>
       setState(() {
         _controller = controller;
       });
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Inline reel video failed to load (${widget.videoUrl}): $e');
       await controller.dispose();
     } finally {
       _initializing = false;
@@ -2003,7 +2452,7 @@ class _InlineReelMediaState extends State<_InlineReelMedia>
     final isReady = controller != null && controller.value.isInitialized;
 
     return AspectRatio(
-      aspectRatio: 9 / 14,
+      aspectRatio: _inlineReelAspectRatio,
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -2089,6 +2538,241 @@ class _InlineReelThumbnail extends StatelessWidget {
       errorWidget: (_, __, ___) => Container(
         color: Colors.grey[200],
         child: const Icon(Icons.play_circle_outline, size: 40),
+      ),
+    );
+  }
+}
+
+// Standalone video cards / video-type posts autoplay inline like reels, but
+// wait a beat once they become the most-visible section before starting
+// playback — scrolling straight past shouldn't kick off a load — and show
+// the mute toggle top-right, since the duration badge already owns the
+// bottom-right corner.
+class _InlineVideoMedia extends StatefulWidget {
+  const _InlineVideoMedia({
+    required this.videoUrl,
+    required this.thumbnailUrl,
+    required this.isActive,
+    required this.isMuted,
+    required this.onMuteChanged,
+    required this.durationBadge,
+  });
+
+  final String videoUrl;
+  final String thumbnailUrl;
+  final bool isActive;
+  final bool isMuted;
+  final ValueChanged<bool> onMuteChanged;
+  final Widget durationBadge;
+
+  @override
+  State<_InlineVideoMedia> createState() => _InlineVideoMediaState();
+}
+
+class _InlineVideoMediaState extends State<_InlineVideoMedia>
+    with WidgetsBindingObserver {
+  static const Duration _autoplayDelay = Duration(milliseconds: 1500);
+
+  VideoPlayerController? _controller;
+  bool _initializing = false;
+  bool _isAppActive = true;
+  Timer? _startDelayTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    if (widget.isActive) {
+      _scheduleStart();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _InlineVideoMedia oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.videoUrl != widget.videoUrl) {
+      _cancelPendingStart();
+      _disposeController();
+    }
+    if (widget.isActive && _isAppActive) {
+      if (_controller == null) {
+        _scheduleStart();
+      } else {
+        _controller!.setVolume(widget.isMuted ? 0 : 1);
+        _controller!.play();
+      }
+    } else {
+      _cancelPendingStart();
+      _controller?.pause();
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (_allowDesktopWebBackgroundPlayback) {
+      return;
+    }
+    final isAppActive = state == AppLifecycleState.resumed;
+    _isAppActive = isAppActive;
+    if (!isAppActive) {
+      _cancelPendingStart();
+      _controller?.pause();
+      return;
+    }
+    if (widget.isActive) {
+      if (_controller == null) {
+        _scheduleStart();
+      } else {
+        _controller!.setVolume(widget.isMuted ? 0 : 1);
+        _controller!.play();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _cancelPendingStart();
+    _disposeController();
+    super.dispose();
+  }
+
+  void _cancelPendingStart() {
+    _startDelayTimer?.cancel();
+    _startDelayTimer = null;
+  }
+
+  void _disposeController() {
+    final controller = _controller;
+    _controller = null;
+    controller?.dispose();
+  }
+
+  void _scheduleStart() {
+    _cancelPendingStart();
+    _startDelayTimer = Timer(_autoplayDelay, () {
+      _startDelayTimer = null;
+      if (!mounted || !widget.isActive || !_isAppActive) {
+        return;
+      }
+      _ensureController();
+    });
+  }
+
+  Future<void> _ensureController() async {
+    if (_controller != null || _initializing) {
+      return;
+    }
+
+    _initializing = true;
+    final controller = VideoPlayerController.networkUrl(
+      Uri.parse(UrlHelper.getPlayableVideoUrl(widget.videoUrl)),
+    );
+
+    try {
+      await controller.initialize();
+      await controller.setLooping(true);
+      await controller.setVolume(widget.isMuted ? 0 : 1);
+      if (widget.isActive && _isAppActive) {
+        await controller.play();
+      } else {
+        await controller.pause();
+      }
+      if (!mounted) {
+        await controller.dispose();
+        return;
+      }
+      setState(() {
+        _controller = controller;
+      });
+    } catch (e) {
+      debugPrint('Inline video failed to load (${widget.videoUrl}): $e');
+      await controller.dispose();
+    } finally {
+      _initializing = false;
+    }
+  }
+
+  Future<void> _toggleMute() async {
+    final controller = _controller;
+    final nextMuted = !widget.isMuted;
+    if (controller != null) {
+      await controller.setVolume(nextMuted ? 0 : 1);
+    }
+    if (!mounted) {
+      return;
+    }
+    widget.onMuteChanged(nextMuted);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = _controller;
+    final isReady = controller != null && controller.value.isInitialized;
+
+    return AspectRatio(
+      aspectRatio: 16 / 9,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (isReady)
+            RepaintBoundary(
+              child: FittedBox(
+                fit: BoxFit.cover,
+                clipBehavior: Clip.hardEdge,
+                child: SizedBox(
+                  width: controller.value.size.width,
+                  height: controller.value.size.height,
+                  child: VideoPlayer(controller),
+                ),
+              ),
+            )
+          else
+            _InlineReelThumbnail(thumbnailUrl: widget.thumbnailUrl),
+          if (!isReady)
+            Center(
+              child: Container(
+                width: 58,
+                height: 58,
+                decoration: BoxDecoration(
+                  color: Colors.black.withAlpha(140),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.play_arrow_rounded,
+                  color: Colors.white,
+                  size: 34,
+                ),
+              ),
+            ),
+          Positioned(
+            right: 12,
+            top: 12,
+            child: Material(
+              color: Colors.black54,
+              shape: const CircleBorder(),
+              child: InkWell(
+                onTap: isReady ? _toggleMute : null,
+                customBorder: const CircleBorder(),
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Icon(
+                    widget.isMuted
+                        ? Icons.volume_off_rounded
+                        : Icons.volume_up_rounded,
+                    color: Colors.white,
+                    size: 18,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            right: 12,
+            bottom: 12,
+            child: widget.durationBadge,
+          ),
+        ],
       ),
     );
   }

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -174,13 +175,13 @@ func GetDiscoveryFeed(db *sql.DB) gin.HandlerFunc {
 		}
 
 		query := `
-			SELECT 
-				um.id::text, um.user_id::text, um.id::text as media_id, COALESCE(um.caption, '') as caption, um.media_type::text, um.media_url, 
-				um.thumbnail_url, FALSE as is_private, 'public' as visibility, COALESCE(um.like_count, 0) as like_count, 
+			SELECT
+				um.id::text, um.user_id::text, um.id::text as media_id, COALESCE(um.caption, '') as caption, um.media_type::text, um.media_url,
+				um.thumbnail_url, FALSE as is_private, 'public' as visibility, COALESCE(p.like_count, um.like_count, 0) as like_count,
 				COALESCE(um.comment_count, 0) as comment_count, 0 as share_count, COALESCE(um.view_count, 0) as view_count, um.created_at, um.updated_at,
 				u.name as author_name, u.avatar as author_avatar, u.is_verified as author_verified,
 				COALESCE(
-					(COALESCE(um.like_count, 0) + COALESCE(um.comment_count, 0) * 3) / 
+					(COALESCE(um.like_count, 0) + COALESCE(um.comment_count, 0) * 3) /
 					POWER(EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - um.created_at)) / 3600.0 + 2, 1.8),
 					0
 				) as engagement_score
@@ -188,7 +189,7 @@ func GetDiscoveryFeed(db *sql.DB) gin.HandlerFunc {
 
 		if includeInteractionColumns {
 			query += `,
-				EXISTS(SELECT 1 FROM post_likes WHERE post_id = um.id AND user_id = $1) as is_liked,
+				EXISTS(SELECT 1 FROM post_likes WHERE post_id = p.id AND user_id = $1) as is_liked,
 				EXISTS(SELECT 1 FROM user_follows WHERE follower_id = $1 AND following_id = um.user_id) as is_following
 			`
 		}
@@ -196,6 +197,7 @@ func GetDiscoveryFeed(db *sql.DB) gin.HandlerFunc {
 		query += `
 			FROM user_media um
 			JOIN users u ON um.user_id = u.id
+			LEFT JOIN posts p ON p.media_id = um.id
 			WHERE COALESCE(u.status::text, 'active') = 'active'
 			  AND COALESCE(u.privacy_profile::text, 'public') = 'public'
 			  AND um.is_archived = FALSE
@@ -502,6 +504,32 @@ func CreatePost(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
+// resolvePostID accepts either a posts.id or the user_media.id the
+// discovery feed hands out (they differ — GetDiscoveryFeed reads straight
+// from user_media and returns um.id as the post id, see the comment there)
+// and returns the real posts.id that post_likes.post_id has a FK to.
+func resolvePostID(db *sql.DB, rawID string) (string, error) {
+	requestedID := strings.TrimSpace(rawID)
+	if requestedID == "" {
+		return "", sql.ErrNoRows
+	}
+
+	var postID string
+	err := db.QueryRow(`SELECT id FROM posts WHERE id = $1`, requestedID).Scan(&postID)
+	if err == nil {
+		return postID, nil
+	}
+	if err != sql.ErrNoRows {
+		return "", err
+	}
+
+	err = db.QueryRow(`SELECT id FROM posts WHERE media_id = $1`, requestedID).Scan(&postID)
+	if err != nil {
+		return "", err
+	}
+	return postID, nil
+}
+
 // LikePost allows a user to like a post
 func LikePost(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -511,9 +539,15 @@ func LikePost(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		postID := c.Param("post_id")
-		if postID == "" {
+		requestedID := c.Param("post_id")
+		if requestedID == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Post ID required"})
+			return
+		}
+
+		postID, err := resolvePostID(db, requestedID)
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Post not found"})
 			return
 		}
 
@@ -528,7 +562,7 @@ func LikePost(db *sql.DB) gin.HandlerFunc {
 
 		// Insert like (trigger will auto-increment post like_count)
 		likeID := uuid.New().String()
-		_, err := db.Exec(
+		_, err = db.Exec(
 			"INSERT INTO post_likes (id, post_id, user_id, created_at) VALUES ($1, $2, $3, $4)",
 			likeID, postID, userID, time.Now(),
 		)
@@ -550,7 +584,11 @@ func UnlikePost(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		postID := c.Param("post_id")
+		postID, err := resolvePostID(db, c.Param("post_id"))
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Post not found"})
+			return
+		}
 
 		// Delete like (trigger will auto-decrement post like_count)
 		result, err := db.Exec("DELETE FROM post_likes WHERE post_id = $1 AND user_id = $2", postID, userID)
