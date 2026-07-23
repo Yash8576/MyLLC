@@ -179,7 +179,7 @@ func GetDiscoveryFeed(db *sql.DB) gin.HandlerFunc {
 			SELECT
 				um.id::text, um.user_id::text, um.id::text as media_id, COALESCE(um.caption, '') as caption, um.media_type::text, um.media_url,
 				um.thumbnail_url, FALSE as is_private, 'public' as visibility, COALESCE(p.like_count, um.like_count, 0) as like_count,
-				COALESCE(um.comment_count, 0) as comment_count, 0 as share_count, COALESCE(um.view_count, 0) as view_count, um.created_at, um.updated_at,
+				COALESCE(p.comment_count, um.comment_count, 0) as comment_count, 0 as share_count, COALESCE(um.view_count, 0) as view_count, um.created_at, um.updated_at,
 				u.name as author_name, u.avatar as author_avatar, u.is_verified as author_verified,
 				COALESCE(
 					(COALESCE(um.like_count, 0) + COALESCE(um.comment_count, 0) * 3) /
