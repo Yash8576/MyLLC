@@ -1048,16 +1048,22 @@ func Search(db *sql.DB) gin.HandlerFunc {
 			}
 		}
 
-		// Search videos from user_media table (case-insensitive caption search)
+		// Search videos from user_media table (case-insensitive caption search).
+		// view_count/like_count on user_media are never updated after upload —
+		// the real, live counters live on content_items (see videos.go's view
+		// increment and content_likes.go's like increment), so join through
+		// um.content_id to get accurate numbers instead of stale zeros.
 		videoRows, _ := db.Query(
-			`SELECT um.id, COALESCE(um.caption, '') as title, COALESCE(um.caption, '') as description, 
-			        um.media_url, COALESCE(um.thumbnail_url, um.media_url) as thumbnail, 
-			        COALESCE(um.duration_seconds, 0) as duration, 
-			        COALESCE(um.view_count, 0) as views, COALESCE(um.like_count, 0) as likes,
+			`SELECT um.id, COALESCE(um.caption, '') as title, COALESCE(um.caption, '') as description,
+			        um.media_url, COALESCE(um.thumbnail_url, um.media_url) as thumbnail,
+			        COALESCE(um.duration_seconds, 0) as duration,
+			        COALESCE(ci.view_count, um.view_count, 0) as views,
+			        COALESCE(ci.like_count, um.like_count, 0) as likes,
 			        um.user_id, u.name as creator_name, u.avatar as creator_avatar,
 			        '[]'::jsonb as products, um.created_at
 			 FROM user_media um
 			 JOIN users u ON um.user_id = u.id
+			 LEFT JOIN content_items ci ON ci.id = um.content_id
 			 WHERE um.media_type = 'video' AND (um.caption ILIKE $1)
 			 ORDER BY um.created_at DESC LIMIT 10`,
 			searchPattern,
@@ -1082,15 +1088,19 @@ func Search(db *sql.DB) gin.HandlerFunc {
 			}
 		}
 
-		// Search reels from user_media table (case-insensitive caption search)
+		// Search reels from user_media table (case-insensitive caption search).
+		// Same staleness issue as videos above — join content_items for the
+		// real counters.
 		reelRows, _ := db.Query(
-			`SELECT um.id, um.media_url, COALESCE(um.thumbnail_url, um.media_url) as thumbnail, 
-			        COALESCE(um.caption, '') as caption, 
-			        COALESCE(um.view_count, 0) as views, COALESCE(um.like_count, 0) as likes,
+			`SELECT um.id, um.media_url, COALESCE(um.thumbnail_url, um.media_url) as thumbnail,
+			        COALESCE(um.caption, '') as caption,
+			        COALESCE(ci.view_count, um.view_count, 0) as views,
+			        COALESCE(ci.like_count, um.like_count, 0) as likes,
 			        um.user_id, u.name as creator_name, u.avatar as creator_avatar,
 			        '[]'::jsonb as products, um.created_at
 			 FROM user_media um
 			 JOIN users u ON um.user_id = u.id
+			 LEFT JOIN content_items ci ON ci.id = um.content_id
 			 WHERE um.media_type = 'reel' AND (um.caption ILIKE $1)
 			 ORDER BY um.created_at DESC LIMIT 10`,
 			searchPattern,
