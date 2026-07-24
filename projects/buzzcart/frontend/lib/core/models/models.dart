@@ -975,6 +975,8 @@ class PostModel {
   final bool isCommented;
   final bool isFollowing;
 
+  final List<ProductModel> products;
+
   PostModel({
     required this.id,
     required this.userId,
@@ -997,6 +999,7 @@ class PostModel {
     this.isLiked = false,
     this.isCommented = false,
     this.isFollowing = false,
+    this.products = const [],
   });
 
   factory PostModel.fromJson(Map<String, dynamic> json) {
@@ -1022,6 +1025,12 @@ class PostModel {
       isLiked: json['is_liked'] as bool? ?? false,
       isCommented: json['is_commented'] as bool? ?? false,
       isFollowing: json['is_following'] as bool? ?? false,
+      products: (json['products'] as List?)
+              ?.map((p) => ProductModel.fromJson(VideoModel._videoTaggedProductJson(
+                    p as Map<String, dynamic>,
+                  )))
+              .toList() ??
+          [],
     );
   }
 

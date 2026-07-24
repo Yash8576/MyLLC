@@ -444,6 +444,8 @@ class _UploadContentScreenState extends State<UploadContentScreen> {
           imageFile: file,
           caption: caption,
           createPost: true,
+          productIds:
+              provider.taggedProducts.map((product) => product.id).toList(),
         );
         if (result['success'] == true) {
           if (mounted) {
@@ -912,6 +914,11 @@ class _UploadContentScreenState extends State<UploadContentScreen> {
                       },
                     ),
                   ),
+                ],
+
+                if (provider.selectedMediaType == 'video' ||
+                    provider.selectedMediaType == 'reel' ||
+                    provider.selectedMediaType == 'photo') ...[
                   const SizedBox(height: 12),
                   Card(
                     child: Padding(

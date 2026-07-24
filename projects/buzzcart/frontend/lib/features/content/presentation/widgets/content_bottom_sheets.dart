@@ -71,6 +71,7 @@ class _ContentLikesSheet extends StatefulWidget {
 }
 
 class _ContentLikesSheetState extends State<_ContentLikesSheet> {
+  final ScrollController _scrollController = ScrollController();
   List<ContentLikeUserModel> _likes = <ContentLikeUserModel>[];
   bool _loading = true;
   String? _error;
@@ -79,6 +80,12 @@ class _ContentLikesSheetState extends State<_ContentLikesSheet> {
   void initState() {
     super.initState();
     _loadLikes();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadLikes() async {
@@ -110,8 +117,10 @@ class _ContentLikesSheetState extends State<_ContentLikesSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return FractionallySizedBox(
-      heightFactor: 0.72,
+    final sheetHeight = MediaQuery.of(context).size.height * 0.65;
+
+    return SizedBox(
+      height: sheetHeight,
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: theme.scaffoldBackgroundColor,
@@ -121,17 +130,17 @@ class _ContentLikesSheetState extends State<_ContentLikesSheet> {
           top: false,
           child: Column(
             children: [
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Container(
-                width: 44,
-                height: 5,
+                width: 40,
+                height: 4,
                 decoration: BoxDecoration(
                   color: theme.dividerColor,
                   borderRadius: BorderRadius.circular(999),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 8, 12),
+                padding: const EdgeInsets.fromLTRB(16, 10, 8, 8),
                 child: Row(
                   children: [
                     const Icon(Icons.people_outline, size: 20),
@@ -147,6 +156,11 @@ class _ContentLikesSheetState extends State<_ContentLikesSheet> {
                     IconButton(
                       onPressed: () => Navigator.of(context).pop(),
                       icon: const Icon(Icons.close),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 32,
+                        minHeight: 32,
+                      ),
                     ),
                   ],
                 ),
@@ -171,15 +185,16 @@ class _ContentLikesSheetState extends State<_ContentLikesSheet> {
       return RefreshIndicator(
         onRefresh: _loadLikes,
         child: ListView(
+          shrinkWrap: true,
           physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(vertical: 24),
           children: const [
-            SizedBox(height: 120),
-            Icon(Icons.people_outline, size: 48, color: Colors.grey),
-            SizedBox(height: 12),
+            Icon(Icons.people_outline, size: 40, color: Colors.grey),
+            SizedBox(height: 8),
             Center(
               child: Text(
                 'No connections have liked this yet',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
               ),
             ),
           ],
@@ -189,31 +204,37 @@ class _ContentLikesSheetState extends State<_ContentLikesSheet> {
 
     return RefreshIndicator(
       onRefresh: _loadLikes,
-      child: ListView.separated(
-        padding: const EdgeInsets.all(16),
-        itemCount: _likes.length,
-        separatorBuilder: (_, __) => const Divider(height: 20),
-        itemBuilder: (context, index) {
-          final like = _likes[index];
-          return ListTile(
-            contentPadding: EdgeInsets.zero,
-            onTap: () {
-              Navigator.of(context).pop();
-              context.push('/profile/${like.userId}');
-            },
-            leading: AppAvatar(
-              name: like.username,
-              avatarUrl: like.userAvatar,
-              radius: 22,
-            ),
-            title: Text(
-              like.username,
-              style: const TextStyle(fontWeight: FontWeight.w700),
-            ),
-            subtitle: Text(timeago.format(DateTime.parse(like.likedAt))),
-            trailing: const _MiniBadge(label: 'Connection'),
-          );
-        },
+      child: Scrollbar(
+        controller: _scrollController,
+        thumbVisibility: true,
+        child: ListView.separated(
+          controller: _scrollController,
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(16, 8, 20, 12),
+          itemCount: _likes.length,
+          separatorBuilder: (_, __) => const Divider(height: 14),
+          itemBuilder: (context, index) {
+            final like = _likes[index];
+            return ListTile(
+              contentPadding: EdgeInsets.zero,
+              onTap: () {
+                Navigator.of(context).pop();
+                context.push('/profile/${like.userId}');
+              },
+              leading: AppAvatar(
+                name: like.username,
+                avatarUrl: like.userAvatar,
+                radius: 22,
+              ),
+              title: Text(
+                like.username,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              subtitle: Text(timeago.format(DateTime.parse(like.likedAt))),
+              trailing: const _MiniBadge(label: 'Connection'),
+            );
+          },
+        ),
       ),
     );
   }
@@ -242,6 +263,7 @@ class _ContentCommentsSheet extends StatefulWidget {
 
 class _ContentCommentsSheetState extends State<_ContentCommentsSheet> {
   late final TextEditingController _commentController;
+  final ScrollController _scrollController = ScrollController();
   List<ContentCommentModel> _comments = <ContentCommentModel>[];
   bool _loading = true;
   bool _submitting = false;
@@ -259,6 +281,7 @@ class _ContentCommentsSheetState extends State<_ContentCommentsSheet> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _commentController.dispose();
     super.dispose();
   }
@@ -329,8 +352,10 @@ class _ContentCommentsSheetState extends State<_ContentCommentsSheet> {
     final theme = Theme.of(context);
     final viewInsets = MediaQuery.of(context).viewInsets.bottom;
 
-    return FractionallySizedBox(
-      heightFactor: 0.9,
+    final sheetHeight = MediaQuery.of(context).size.height * 0.65;
+
+    return SizedBox(
+      height: sheetHeight,
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: theme.scaffoldBackgroundColor,
@@ -340,49 +365,63 @@ class _ContentCommentsSheetState extends State<_ContentCommentsSheet> {
           top: false,
           child: Column(
             children: [
-              const SizedBox(height: 10),
+              const SizedBox(height: 4),
               Container(
-                width: 44,
-                height: 5,
+                width: 36,
+                height: 4,
                 decoration: BoxDecoration(
                   color: theme.dividerColor,
                   borderRadius: BorderRadius.circular(999),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                padding: const EdgeInsets.fromLTRB(16, 6, 12, 4),
                 child: Row(
                   children: [
-                    const Icon(Icons.chat_bubble_outline, size: 20),
-                    const SizedBox(width: 10),
+                    Icon(Icons.chat_bubble_outline,
+                        size: 16, color: theme.hintColor),
+                    const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        widget.title,
-                        style: theme.textTheme.titleMedium?.copyWith(
+                        '$_commentCount ${_commentCount == 1 ? 'comment' : 'comments'}',
+                        style: theme.textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
                     IconButton(
                       onPressed: () => Navigator.of(context).pop(_commentCount),
-                      icon: const Icon(Icons.close),
+                      icon: const Icon(Icons.close, size: 20),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 28,
+                        minHeight: 28,
+                      ),
                     ),
                   ],
                 ),
               ),
               Divider(height: 1, color: theme.dividerColor),
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 2),
                 child: SegmentedButton<bool>(
+                  style: SegmentedButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 0,
+                    ),
+                    textStyle: const TextStyle(fontSize: 12.5),
+                  ),
                   segments: const [
                     ButtonSegment<bool>(
                       value: false,
-                      icon: Icon(Icons.schedule),
+                      icon: Icon(Icons.schedule, size: 16),
                       label: Text('Recent'),
                     ),
                     ButtonSegment<bool>(
                       value: true,
-                      icon: Icon(Icons.people_outline),
+                      icon: Icon(Icons.people_outline, size: 16),
                       label: Text('Connections'),
                     ),
                   ],
@@ -409,7 +448,7 @@ class _ContentCommentsSheetState extends State<_ContentCommentsSheet> {
                   child: SafeArea(
                     top: false,
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                      padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
                       child: Row(
                         children: [
                           Expanded(
@@ -418,6 +457,11 @@ class _ContentCommentsSheetState extends State<_ContentCommentsSheet> {
                               minLines: 1,
                               maxLines: 4,
                               decoration: InputDecoration(
+                                isDense: true,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 10,
+                                ),
                                 hintText: 'Write a comment',
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(18),
@@ -428,6 +472,11 @@ class _ContentCommentsSheetState extends State<_ContentCommentsSheet> {
                           const SizedBox(width: 8),
                           IconButton.filled(
                             onPressed: _submitting ? null : _submitComment,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 38,
+                              minHeight: 38,
+                            ),
                             icon: _submitting
                                 ? const SizedBox(
                                     width: 18,
@@ -462,19 +511,20 @@ class _ContentCommentsSheetState extends State<_ContentCommentsSheet> {
       return RefreshIndicator(
         onRefresh: _loadComments,
         child: ListView(
+          shrinkWrap: true,
           physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(vertical: 24),
           children: [
-            const SizedBox(height: 140),
             const Icon(Icons.mode_comment_outlined,
-                size: 48, color: Colors.grey),
-            const SizedBox(height: 12),
+                size: 40, color: Colors.grey),
+            const SizedBox(height: 8),
             Center(
               child: Text(
                 _connectionsOnly
                     ? 'No connection comments yet'
                     : 'No comments yet',
                 style:
-                    const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
               ),
             ),
           ],
@@ -484,12 +534,18 @@ class _ContentCommentsSheetState extends State<_ContentCommentsSheet> {
 
     return RefreshIndicator(
       onRefresh: _loadComments,
-      child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-        itemCount: _comments.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 14),
-        itemBuilder: (context, index) =>
-            _ContentCommentTile(comment: _comments[index]),
+      child: Scrollbar(
+        controller: _scrollController,
+        thumbVisibility: true,
+        child: ListView.separated(
+          controller: _scrollController,
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(16, 10, 20, 12),
+          itemCount: _comments.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 10),
+          itemBuilder: (context, index) =>
+              _ContentCommentTile(comment: _comments[index]),
+        ),
       ),
     );
   }
@@ -570,8 +626,10 @@ class _TaggedProductsSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return FractionallySizedBox(
-      heightFactor: 0.82,
+    final sheetHeight = MediaQuery.of(context).size.height * 0.65;
+
+    return SizedBox(
+      height: sheetHeight,
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: theme.scaffoldBackgroundColor,
@@ -581,17 +639,17 @@ class _TaggedProductsSheet extends StatelessWidget {
           top: false,
           child: Column(
             children: [
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Container(
-                width: 44,
-                height: 5,
+                width: 40,
+                height: 4,
                 decoration: BoxDecoration(
                   color: theme.dividerColor,
                   borderRadius: BorderRadius.circular(999),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
                 child: Row(
                   children: [
                     const Icon(Icons.shopping_bag_outlined, size: 20),
@@ -607,18 +665,27 @@ class _TaggedProductsSheet extends StatelessWidget {
                     IconButton(
                       onPressed: () => Navigator.of(context).pop(),
                       icon: const Icon(Icons.close),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 32,
+                        minHeight: 32,
+                      ),
                     ),
                   ],
                 ),
               ),
               Divider(height: 1, color: theme.dividerColor),
               Expanded(
-                child: ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-                  itemCount: products.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) => _TaggedProductCard(
-                    product: products[index],
+                child: Scrollbar(
+                  thumbVisibility: true,
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.fromLTRB(16, 10, 20, 12),
+                    itemCount: products.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) => _TaggedProductCard(
+                      product: products[index],
+                    ),
                   ),
                 ),
               ),

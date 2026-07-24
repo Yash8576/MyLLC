@@ -12,25 +12,6 @@ import (
 	"github.com/google/uuid"
 )
 
-const videoProductsJSONSelect = `
-COALESCE(
-	jsonb_agg(
-		DISTINCT jsonb_build_object(
-			'id', p.id,
-			'title', p.title,
-			'price', p.price,
-			'image', COALESCE((
-				SELECT pi.image_url
-				FROM product_images pi
-				WHERE pi.product_id = p.id
-				ORDER BY pi.is_primary DESC, pi.display_order ASC, pi.created_at ASC
-				LIMIT 1
-			), '')
-		)
-	) FILTER (WHERE p.id IS NOT NULL),
-	'[]'::jsonb
-) AS products`
-
 func videoQueryBase(whereClause string) string {
 	return `
 		SELECT
@@ -58,12 +39,12 @@ func videoQueryBase(whereClause string) string {
 			ci.creator_id,
 			COALESCE(u.name, '') AS name,
 			u.avatar,
-			` + videoProductsJSONSelect + `,
+			` + contentProductsJSONSelect + `,
 			ci.created_at
 		FROM content_items ci
 		JOIN users u ON ci.creator_id = u.id
 		LEFT JOIN content_products cp ON cp.content_id = ci.id
-		LEFT JOIN products p ON p.id = cp.product_id
+		LEFT JOIN products prod ON prod.id = cp.product_id
 		` + whereClause + `
 		GROUP BY ci.id, u.name, u.avatar
 	`
@@ -370,12 +351,12 @@ func GetVideos(db *sql.DB) gin.HandlerFunc {
 				ci.creator_id,
 				COALESCE(u.name, '') AS name,
 				u.avatar,
-				` + videoProductsJSONSelect + `,
+				` + contentProductsJSONSelect + `,
 				ci.created_at
 			FROM content_items ci
 			JOIN users u ON ci.creator_id = u.id
 			LEFT JOIN content_products cp ON cp.content_id = ci.id
-			LEFT JOIN products p ON p.id = cp.product_id
+			LEFT JOIN products prod ON prod.id = cp.product_id
 			LEFT JOIN user_follows viewer_follows_creator
 				ON viewer_follows_creator.follower_id = NULLIF($1, '')::uuid
 				AND viewer_follows_creator.following_id = ci.creator_id

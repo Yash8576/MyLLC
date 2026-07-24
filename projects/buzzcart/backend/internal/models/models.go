@@ -547,6 +547,8 @@ type Post struct {
 	IsLiked        bool    `json:"is_liked" db:"-"`     // Whether current user liked this post
 	IsCommented    bool    `json:"is_commented" db:"-"` // Whether current user commented on this post
 	IsFollowing    bool    `json:"is_following" db:"-"` // Whether current user follows the author
+
+	Products []ProductSimple `json:"products" db:"-"` // Tagged products, joined via user_media.content_id
 }
 
 type PostCreate struct {

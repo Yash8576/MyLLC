@@ -34,6 +34,7 @@ class _ProductBuyersSheet extends StatefulWidget {
 
 class _ProductBuyersSheetState extends State<_ProductBuyersSheet> {
   late final ApiService _api;
+  final ScrollController _scrollController = ScrollController();
 
   List<ProductBuyerModel> _buyers = <ProductBuyerModel>[];
   bool _loading = true;
@@ -44,6 +45,12 @@ class _ProductBuyersSheetState extends State<_ProductBuyersSheet> {
     super.initState();
     _api = context.read<ApiService>();
     _loadBuyers();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadBuyers() async {
@@ -98,8 +105,10 @@ class _ProductBuyersSheetState extends State<_ProductBuyersSheet> {
     final theme = Theme.of(context);
     final buyerCount = _buyers.length;
 
-    return FractionallySizedBox(
-      heightFactor: 0.82,
+    final sheetHeight = MediaQuery.of(context).size.height * 0.65;
+
+    return SizedBox(
+      height: sheetHeight,
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: theme.scaffoldBackgroundColor,
@@ -109,45 +118,38 @@ class _ProductBuyersSheetState extends State<_ProductBuyersSheet> {
           top: false,
           child: Column(
             children: [
-              const SizedBox(height: 10),
+              const SizedBox(height: 4),
               Container(
-                width: 44,
-                height: 5,
+                width: 36,
+                height: 4,
                 decoration: BoxDecoration(
                   color: theme.dividerColor,
                   borderRadius: BorderRadius.circular(999),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                padding: const EdgeInsets.fromLTRB(16, 6, 12, 4),
                 child: Row(
                   children: [
-                    const Icon(Icons.people_outline_rounded, size: 20),
-                    const SizedBox(width: 10),
+                    Icon(Icons.people_outline_rounded,
+                        size: 16, color: theme.hintColor),
+                    const SizedBox(width: 6),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Who bought this',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          Text(
-                            '$buyerCount ${buyerCount == 1 ? 'buyer' : 'buyers'}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: theme.textTheme.bodySmall?.color,
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        '$buyerCount ${buyerCount == 1 ? 'buyer' : 'buyers'}',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                     IconButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close),
+                      icon: const Icon(Icons.close, size: 20),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 28,
+                        minHeight: 28,
+                      ),
                     ),
                   ],
                 ),
@@ -171,7 +173,6 @@ class _ProductBuyersSheetState extends State<_ProductBuyersSheet> {
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(Icons.error_outline,
                   size: 40, color: Colors.redAccent),
@@ -195,18 +196,18 @@ class _ProductBuyersSheetState extends State<_ProductBuyersSheet> {
       return RefreshIndicator(
         onRefresh: _loadBuyers,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 28, 20, 20),
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
           children: const [
-            SizedBox(height: 120),
-            Icon(Icons.shopping_bag_outlined, size: 48, color: Colors.grey),
-            SizedBox(height: 14),
+            Icon(Icons.shopping_bag_outlined, size: 40, color: Colors.grey),
+            SizedBox(height: 10),
             Center(
               child: Text(
                 'No buyers to show yet',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
               ),
             ),
-            SizedBox(height: 8),
+            SizedBox(height: 6),
             Center(
               child: Text(
                 'When people purchase this product, they will show up here.',
@@ -220,19 +221,25 @@ class _ProductBuyersSheetState extends State<_ProductBuyersSheet> {
 
     return RefreshIndicator(
       onRefresh: _loadBuyers,
-      child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-        itemCount: _buyers.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemBuilder: (context, index) {
-          final currentUserId = context.read<AuthProvider>().user?.id;
-          final buyer = _buyers[index];
-          return _BuyerListItem(
-            buyer: buyer,
-            isCurrentUser:
-                currentUserId != null && currentUserId == buyer.buyerId,
-          );
-        },
+      child: Scrollbar(
+        controller: _scrollController,
+        thumbVisibility: true,
+        child: ListView.separated(
+          controller: _scrollController,
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(16, 10, 20, 12),
+          itemCount: _buyers.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 10),
+          itemBuilder: (context, index) {
+            final currentUserId = context.read<AuthProvider>().user?.id;
+            final buyer = _buyers[index];
+            return _BuyerListItem(
+              buyer: buyer,
+              isCurrentUser:
+                  currentUserId != null && currentUserId == buyer.buyerId,
+            );
+          },
+        ),
       ),
     );
   }

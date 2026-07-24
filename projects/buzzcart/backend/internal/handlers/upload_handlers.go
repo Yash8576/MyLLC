@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"buzzcart/internal/database"
+	"buzzcart/internal/models"
 	"buzzcart/internal/storage"
 	"buzzcart/internal/utils"
 	"database/sql"
@@ -176,6 +177,7 @@ func UploadUserPhotoHandler(db *sql.DB) gin.HandlerFunc {
 		// Get caption and create_post flag from form data
 		caption := c.PostForm("caption")
 		createPost := c.DefaultPostForm("create_post", "false") == "true"
+		productIDs := uniqueOrderedStrings(c.PostFormArray("product_ids"))
 
 		// Upload to cloud storage
 		storageClient := storage.GetStorageClient()
@@ -194,12 +196,68 @@ func UploadUserPhotoHandler(db *sql.DB) gin.HandlerFunc {
 		ctx, cancel := database.NewContext()
 		defer cancel()
 
+		var contentID *string
+		if len(productIDs) > 0 {
+			var user models.User
+			if err := db.QueryRowContext(ctx, "SELECT id, name, avatar, role FROM users WHERE id = $1", userID).Scan(
+				&user.ID, &user.Name, &user.Avatar, &user.Role,
+			); err != nil {
+				log.Printf("[UploadUserPhoto] Failed to load user %s: %v", userID, err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save photo to database"})
+				return
+			}
+
+			tx, err := db.BeginTx(ctx, nil)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save photo to database"})
+				return
+			}
+			defer tx.Rollback()
+
+			products, err := fetchTaggedProducts(tx, userID, user.Role, productIDs)
+			if err != nil {
+				log.Printf("[UploadUserPhoto] Failed to fetch tagged products for user %s: %v", userID, err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch tagged products"})
+				return
+			}
+			if len(products) != len(productIDs) {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": "One or more tagged products are not eligible for this account",
+				})
+				return
+			}
+
+			newContentID := uuid.New().String()
+			if _, err := tx.ExecContext(ctx,
+				`INSERT INTO content_items (id, creator_id, content_type, video_url, is_published, created_at, published_at)
+				 VALUES ($1, $2, 'photo', $3, TRUE, $4, $4)`,
+				newContentID, userID, url, time.Now(),
+			); err != nil {
+				log.Printf("[UploadUserPhoto] Failed to create content item for user %s: %v", userID, err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save photo to database"})
+				return
+			}
+
+			if err := insertContentProducts(tx, newContentID, productIDs); err != nil {
+				log.Printf("[UploadUserPhoto] Failed to tag products for user %s: %v", userID, err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to tag products on photo"})
+				return
+			}
+
+			if err := tx.Commit(); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save photo to database"})
+				return
+			}
+
+			contentID = &newContentID
+		}
+
 		// Save to user_media table
 		mediaID := uuid.New().String()
 		_, err = db.ExecContext(ctx,
-			`INSERT INTO user_media (id, user_id, media_type, media_url, caption) 
-			 VALUES ($1, $2, 'photo', $3, $4)`,
-			mediaID, userID, url, caption,
+			`INSERT INTO user_media (id, user_id, media_type, media_url, caption, content_id)
+			 VALUES ($1, $2, 'photo', $3, $4, $5)`,
+			mediaID, userID, url, caption, contentID,
 		)
 		if err != nil {
 			log.Printf("[UploadUserPhoto] Database insert failed for user %s: %v", userID, err)
@@ -234,6 +292,10 @@ func UploadUserPhotoHandler(db *sql.DB) gin.HandlerFunc {
 			"url":      url,
 			"media_id": mediaID,
 			"message":  "Photo uploaded successfully",
+		}
+
+		if contentID != nil {
+			response["content_id"] = *contentID
 		}
 
 		if postID != nil {

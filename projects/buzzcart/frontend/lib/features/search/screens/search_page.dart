@@ -250,6 +250,9 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   Widget _buildFilterChips() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       child: Row(
@@ -275,12 +278,14 @@ class _SearchPageState extends State<SearchPage> {
                   decoration: BoxDecoration(
                     color: selected
                         ? AppColors.electricBlue
-                        : Colors.white.withValues(alpha: 0.06),
+                        : (isDark
+                            ? AppColors.darkSecondary
+                            : AppColors.lightSecondary),
                     borderRadius: BorderRadius.circular(999),
                     border: Border.all(
                       color: selected
                           ? AppColors.electricBlue
-                          : Colors.white.withValues(alpha: 0.10),
+                          : theme.dividerColor,
                     ),
                   ),
                   child: FittedBox(
@@ -291,7 +296,11 @@ class _SearchPageState extends State<SearchPage> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: selected ? Colors.white : Colors.white70,
+                        color: selected
+                            ? Colors.white
+                            : (isDark
+                                ? AppColors.darkForeground
+                                : AppColors.lightForeground),
                       ),
                     ),
                   ),
@@ -1149,61 +1158,100 @@ class _VideoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final creatorName = video['creator_name']?.toString() ?? '';
+    final creatorId = video['creator_id']?.toString();
+    final views = (video['views'] as num?)?.toInt() ?? 0;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
         onTap: () => context.push('/videos/${video['id']}'),
-        child: Row(
-          children: [
-            Container(
-              width: 120,
-              height: 80,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: AppCachedImage(
-                      imageUrl: video['thumbnail']?.toString(),
-                      fit: BoxFit.cover,
-                      errorWidget: Container(
-                        color: Colors.grey[300],
-                        child: const Icon(Icons.play_arrow),
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 128,
+                height: 96,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: AppCachedImage(
+                        imageUrl: video['thumbnail']?.toString(),
+                        fit: BoxFit.cover,
+                        errorWidget: Container(
+                          color: Colors.grey[300],
+                          child: const Icon(Icons.play_arrow),
+                        ),
                       ),
                     ),
-                  ),
-                  const Center(
-                    child: Icon(Icons.play_circle_fill,
-                        color: Colors.white, size: 32),
-                  ),
-                ],
+                    const Center(
+                      child: Icon(Icons.play_circle_fill,
+                          color: Colors.white, size: 32),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
+              const SizedBox(width: 12),
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      video['title'] ?? '',
+                      video['title']?.toString().trim().isNotEmpty == true
+                          ? video['title'].toString()
+                          : 'Untitled Video',
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.w500),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        height: 1.25,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    GestureDetector(
+                      onTap: creatorId == null
+                          ? null
+                          : () => context.push('/profile/$creatorId'),
+                      child: Row(
+                        children: [
+                          AppAvatar(
+                            name: creatorName,
+                            avatarUrl: video['creator_avatar']?.toString(),
+                            radius: 11,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              creatorName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${video['views'] ?? 0} views',
+                      '$views ${views == 1 ? 'view' : 'views'}',
                       style: const TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                   ],
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

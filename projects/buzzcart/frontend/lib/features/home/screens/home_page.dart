@@ -1379,6 +1379,7 @@ class _HomePageState extends State<HomePage> {
     final bool initialCommented;
     String? commentKind;
     String? commentId;
+    final List<ProductModel> taggedProducts;
     if (isVideoPost && linkedVideo != null) {
       likeKind = 'video';
       likeId = linkedVideo.id;
@@ -1388,6 +1389,8 @@ class _HomePageState extends State<HomePage> {
       initialCommented = linkedVideo.isCommented;
       commentKind = 'video';
       commentId = linkedVideo.id;
+      taggedProducts =
+          linkedVideo.products.isNotEmpty ? linkedVideo.products : post.products;
     } else if (isReelPost && linkedReel != null) {
       likeKind = 'reel';
       likeId = linkedReel.id;
@@ -1397,6 +1400,8 @@ class _HomePageState extends State<HomePage> {
       initialCommented = linkedReel.isCommented;
       commentKind = 'reel';
       commentId = linkedReel.id;
+      taggedProducts =
+          linkedReel.products.isNotEmpty ? linkedReel.products : post.products;
     } else {
       likeKind = 'post';
       likeId = post.id;
@@ -1406,6 +1411,7 @@ class _HomePageState extends State<HomePage> {
       initialCommented = post.isCommented;
       commentKind = 'post';
       commentId = post.id;
+      taggedProducts = post.products;
     }
 
     return _buildMediaCard(
@@ -1437,6 +1443,7 @@ class _HomePageState extends State<HomePage> {
       commentKind: commentKind,
       commentId: commentId,
       collapsibleCaption: isReelPost,
+      taggedProducts: taggedProducts,
     );
   }
 
@@ -1475,6 +1482,7 @@ class _HomePageState extends State<HomePage> {
       initialCommented: video.isCommented,
       commentKind: 'video',
       commentId: video.id,
+      taggedProducts: video.products,
     );
   }
 
@@ -1509,6 +1517,7 @@ class _HomePageState extends State<HomePage> {
       creatorAvatar: reel.creatorAvatar,
       createdAt: reel.createdAt,
       bodyText: reel.caption,
+      taggedProducts: reel.products,
     );
   }
 
@@ -1617,6 +1626,7 @@ class _HomePageState extends State<HomePage> {
     String? commentKind,
     String? commentId,
     bool collapsibleCaption = false,
+    List<ProductModel> taggedProducts = const [],
   }) {
     final trimmedBodyText = bodyText?.trim();
     final hasBodyText = trimmedBodyText != null && trimmedBodyText.isNotEmpty;
@@ -1748,6 +1758,7 @@ class _HomePageState extends State<HomePage> {
                     likeId: likeId,
                     commentKind: commentKind,
                     commentId: commentId,
+                    products: taggedProducts,
                   ),
                 if (showBelowMediaCaption)
                   Padding(
@@ -2002,6 +2013,7 @@ class _HomePageState extends State<HomePage> {
     required String likeId,
     String? commentKind,
     String? commentId,
+    List<ProductModel> products = const [],
   }) {
     final engagement = _feedEngagement[engagementKey]!;
     final hasComments = commentKind != null && commentId != null;
@@ -2070,6 +2082,18 @@ class _HomePageState extends State<HomePage> {
                     )
                 : null,
           ),
+          if (products.isNotEmpty) ...[
+            const SizedBox(width: 18),
+            buildButton(
+              icon: Icons.sell_outlined,
+              color: Colors.grey[700] ?? Colors.grey,
+              label: '${products.length}',
+              onTap: () => content_sheets.showTaggedProductsSheet(
+                context: context,
+                products: products,
+              ),
+            ),
+          ],
         ],
       ),
     );

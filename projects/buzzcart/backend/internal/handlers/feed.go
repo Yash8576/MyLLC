@@ -72,28 +72,38 @@ func GetFollowersFeed(db *sql.DB) gin.HandlerFunc {
 				p.comment_count, p.share_count, p.view_count, p.created_at, p.updated_at,
 				u.name as author_name, u.avatar as author_avatar, u.is_verified as author_verified,
 				EXISTS(SELECT 1 FROM post_likes WHERE post_id = p.id AND user_id = $1) as is_liked,
-				uf.created_at as feed_created_at
+				`+contentProductsJSONSelect+`,
+				MAX(uf.created_at) as feed_created_at
 			FROM user_feeds uf
 			JOIN posts p ON uf.post_id = p.id
 			JOIN users u ON p.user_id = u.id
+			LEFT JOIN user_media um ON um.id = p.media_id
+			LEFT JOIN content_products cp ON cp.content_id = um.content_id
+			LEFT JOIN products prod ON prod.id = cp.product_id
 			WHERE uf.user_id = $1
-			ORDER BY uf.created_at DESC LIMIT $2
+			GROUP BY p.id, u.name, u.avatar, u.is_verified
+			ORDER BY feed_created_at DESC LIMIT $2
 		`, userID, limit+1)
 		} else {
 			rows, err = db.Query(`
-			SELECT 
-				p.id, p.user_id, p.media_id, p.caption, p.media_type, p.media_url, 
-				p.thumbnail_url, p.is_private, p.visibility, p.like_count, 
+			SELECT
+				p.id, p.user_id, p.media_id, p.caption, p.media_type, p.media_url,
+				p.thumbnail_url, p.is_private, p.visibility, p.like_count,
 				p.comment_count, p.share_count, p.view_count, p.created_at, p.updated_at,
 				u.name as author_name, u.avatar as author_avatar, u.is_verified as author_verified,
 				EXISTS(SELECT 1 FROM post_likes WHERE post_id = p.id AND user_id = $1) as is_liked,
-				uf.created_at as feed_created_at
+				`+contentProductsJSONSelect+`,
+				MAX(uf.created_at) as feed_created_at
 			FROM user_feeds uf
 			JOIN posts p ON uf.post_id = p.id
 			JOIN users u ON p.user_id = u.id
+			LEFT JOIN user_media um ON um.id = p.media_id
+			LEFT JOIN content_products cp ON cp.content_id = um.content_id
+			LEFT JOIN products prod ON prod.id = cp.product_id
 			WHERE uf.user_id = $1
 				AND uf.created_at < $2
-			ORDER BY uf.created_at DESC LIMIT $3
+			GROUP BY p.id, u.name, u.avatar, u.is_verified
+			ORDER BY feed_created_at DESC LIMIT $3
 		`, userID, cursorTime, limit+1)
 		}
 		if err != nil {
@@ -107,17 +117,19 @@ func GetFollowersFeed(db *sql.DB) gin.HandlerFunc {
 
 		for rows.Next() {
 			var post models.Post
+			var productsJSON []byte
 			err := rows.Scan(
 				&post.ID, &post.UserID, &post.MediaID, &post.Caption, &post.MediaType,
 				&post.MediaURL, &post.ThumbnailURL, &post.IsPrivate, &post.Visibility,
 				&post.LikeCount, &post.CommentCount, &post.ShareCount, &post.ViewCount,
 				&post.CreatedAt, &post.UpdatedAt, &post.AuthorName, &post.AuthorAvatar,
-				&post.AuthorVerified, &post.IsLiked, &lastFeedTime,
+				&post.AuthorVerified, &post.IsLiked, &productsJSON, &lastFeedTime,
 			)
 			if err != nil {
 				continue
 			}
 			post.IsFollowing = true // By definition, in follower feed
+			post.Products = decodeTaggedProducts(productsJSON)
 			resolvePostMediaURLs(&post)
 			posts = append(posts, post)
 		}
@@ -185,7 +197,26 @@ func GetDiscoveryFeed(db *sql.DB) gin.HandlerFunc {
 					(COALESCE(um.like_count, 0) + COALESCE(um.comment_count, 0) * 3) /
 					POWER(EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - um.created_at)) / 3600.0 + 2, 1.8),
 					0
-				) as engagement_score
+				) as engagement_score,
+				COALESCE((
+					SELECT jsonb_agg(
+						jsonb_build_object(
+							'id', prod.id,
+							'title', prod.title,
+							'price', prod.price,
+							'image', COALESCE((
+								SELECT pi.image_url
+								FROM product_images pi
+								WHERE pi.product_id = prod.id
+								ORDER BY pi.is_primary DESC, pi.display_order ASC, pi.created_at ASC
+								LIMIT 1
+							), '')
+						)
+					)
+					FROM content_products cp
+					JOIN products prod ON prod.id = cp.product_id
+					WHERE cp.content_id = um.content_id
+				), '[]'::jsonb) as products
 		`
 
 		if includeInteractionColumns {
@@ -255,13 +286,14 @@ func GetDiscoveryFeed(db *sql.DB) gin.HandlerFunc {
 		for rows.Next() {
 			var post models.Post
 			var engagementScore float64
+			var productsJSON []byte
 
 			scanArgs := []interface{}{
 				&post.ID, &post.UserID, &post.MediaID, &post.Caption, &post.MediaType,
 				&post.MediaURL, &post.ThumbnailURL, &post.IsPrivate, &post.Visibility,
 				&post.LikeCount, &post.CommentCount, &post.ShareCount, &post.ViewCount,
 				&post.CreatedAt, &post.UpdatedAt, &post.AuthorName, &post.AuthorAvatar,
-				&post.AuthorVerified, &engagementScore,
+				&post.AuthorVerified, &engagementScore, &productsJSON,
 			}
 
 			if includeInteractionColumns {
@@ -273,6 +305,7 @@ func GetDiscoveryFeed(db *sql.DB) gin.HandlerFunc {
 				continue
 			}
 			lastCreatedAt = post.CreatedAt
+			post.Products = decodeTaggedProducts(productsJSON)
 			resolvePostMediaURLs(&post)
 			posts = append(posts, post)
 		}
@@ -354,11 +387,31 @@ func GetUserPosts(db *sql.DB) gin.HandlerFunc {
 
 		// Fetch user's posts
 		query := `
-			SELECT 
-				p.id, p.user_id, p.media_id, p.caption, p.media_type, p.media_url, 
-				p.thumbnail_url, p.is_private, p.visibility, p.like_count, 
+			SELECT
+				p.id, p.user_id, p.media_id, p.caption, p.media_type, p.media_url,
+				p.thumbnail_url, p.is_private, p.visibility, p.like_count,
 				p.comment_count, p.share_count, p.view_count, p.created_at, p.updated_at,
-				u.name as author_name, u.avatar as author_avatar, u.is_verified as author_verified
+				u.name as author_name, u.avatar as author_avatar, u.is_verified as author_verified,
+				COALESCE((
+					SELECT jsonb_agg(
+						jsonb_build_object(
+							'id', prod.id,
+							'title', prod.title,
+							'price', prod.price,
+							'image', COALESCE((
+								SELECT pi.image_url
+								FROM product_images pi
+								WHERE pi.product_id = prod.id
+								ORDER BY pi.is_primary DESC, pi.display_order ASC, pi.created_at ASC
+								LIMIT 1
+							), '')
+						)
+					)
+					FROM user_media um
+					JOIN content_products cp ON cp.content_id = um.content_id
+					JOIN products prod ON prod.id = cp.product_id
+					WHERE um.id = p.media_id
+				), '[]'::jsonb) as products
 		`
 
 		if currentUserID != "" {
@@ -402,12 +455,13 @@ func GetUserPosts(db *sql.DB) gin.HandlerFunc {
 
 		for rows.Next() {
 			var post models.Post
+			var productsJSON []byte
 			scanArgs := []interface{}{
 				&post.ID, &post.UserID, &post.MediaID, &post.Caption, &post.MediaType,
 				&post.MediaURL, &post.ThumbnailURL, &post.IsPrivate, &post.Visibility,
 				&post.LikeCount, &post.CommentCount, &post.ShareCount, &post.ViewCount,
 				&post.CreatedAt, &post.UpdatedAt, &post.AuthorName, &post.AuthorAvatar,
-				&post.AuthorVerified,
+				&post.AuthorVerified, &productsJSON,
 			}
 
 			if currentUserID != "" {
@@ -420,6 +474,7 @@ func GetUserPosts(db *sql.DB) gin.HandlerFunc {
 			}
 			lastCreatedAt = post.CreatedAt
 			post.IsFollowing = isFollowing || (currentUserID == profileUserID)
+			post.Products = decodeTaggedProducts(productsJSON)
 			resolvePostMediaURLs(&post)
 			posts = append(posts, post)
 		}

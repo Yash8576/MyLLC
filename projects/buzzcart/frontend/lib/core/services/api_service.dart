@@ -388,6 +388,7 @@ class ApiService {
     required XFile imageFile,
     String? caption,
     bool createPost = false,
+    List<String>? productIds,
   }) async {
     try {
       // Ensure token is loaded
@@ -407,6 +408,8 @@ class ApiService {
         ),
         if (caption != null && caption.isNotEmpty) 'caption': caption,
         'create_post': createPost.toString(),
+        if (productIds != null && productIds.isNotEmpty)
+          'product_ids': productIds,
       });
 
       final response = await _dio.post(

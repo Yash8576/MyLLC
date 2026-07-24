@@ -48,6 +48,7 @@ class _ProductReviewsSheet extends StatefulWidget {
 class _ProductReviewsSheetState extends State<_ProductReviewsSheet> {
   late final ApiService _api;
   late final TextEditingController _reviewController;
+  final ScrollController _scrollController = ScrollController();
 
   List<ReviewModel> _reviews = <ReviewModel>[];
   ReviewModel? _currentUserReview;
@@ -71,6 +72,7 @@ class _ProductReviewsSheetState extends State<_ProductReviewsSheet> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _reviewController.dispose();
     super.dispose();
   }
@@ -342,8 +344,10 @@ class _ProductReviewsSheetState extends State<_ProductReviewsSheet> {
     final theme = Theme.of(context);
     final reviewCount = _reviews.length;
 
-    return FractionallySizedBox(
-      heightFactor: 0.92,
+    final sheetHeight = MediaQuery.of(context).size.height * 0.65;
+
+    return SizedBox(
+      height: sheetHeight,
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: theme.scaffoldBackgroundColor,
@@ -353,46 +357,39 @@ class _ProductReviewsSheetState extends State<_ProductReviewsSheet> {
           top: false,
           child: Column(
             children: [
-              const SizedBox(height: 10),
+              const SizedBox(height: 4),
               Container(
-                width: 44,
-                height: 5,
+                width: 36,
+                height: 4,
                 decoration: BoxDecoration(
                   color: theme.dividerColor,
                   borderRadius: BorderRadius.circular(999),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                padding: const EdgeInsets.fromLTRB(16, 6, 12, 4),
                 child: Row(
                   children: [
-                    const Icon(Icons.chat_bubble_outline, size: 20),
-                    const SizedBox(width: 10),
+                    Icon(Icons.chat_bubble_outline,
+                        size: 16, color: theme.hintColor),
+                    const SizedBox(width: 6),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Reviews',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          Text(
-                            '$reviewCount ${reviewCount == 1 ? 'review' : 'reviews'}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: theme.textTheme.bodySmall?.color,
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        '$reviewCount ${reviewCount == 1 ? 'review' : 'reviews'}',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                     IconButton(
                       onPressed: () =>
                           Navigator.of(context).pop(_didChangeReviews),
-                      icon: const Icon(Icons.close),
+                      icon: const Icon(Icons.close, size: 20),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 28,
+                        minHeight: 28,
+                      ),
                     ),
                   ],
                 ),
@@ -417,7 +414,6 @@ class _ProductReviewsSheetState extends State<_ProductReviewsSheet> {
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(Icons.error_outline,
                   size: 40, color: Colors.redAccent),
@@ -441,18 +437,18 @@ class _ProductReviewsSheetState extends State<_ProductReviewsSheet> {
       return RefreshIndicator(
         onRefresh: () => _loadData(showLoading: false, forceRefresh: true),
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 28, 20, 20),
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
           children: const [
-            SizedBox(height: 140),
-            Icon(Icons.rate_review_outlined, size: 48, color: Colors.grey),
-            SizedBox(height: 14),
+            Icon(Icons.rate_review_outlined, size: 40, color: Colors.grey),
+            SizedBox(height: 10),
             Center(
               child: Text(
                 'No reviews yet',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
               ),
             ),
-            SizedBox(height: 8),
+            SizedBox(height: 6),
             Center(
               child: Text(
                 'Be the first to rate and review this product.',
@@ -466,19 +462,25 @@ class _ProductReviewsSheetState extends State<_ProductReviewsSheet> {
 
     return RefreshIndicator(
       onRefresh: () => _loadData(showLoading: false, forceRefresh: true),
-      child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-        itemCount: _reviews.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 18),
-        itemBuilder: (context, index) {
-          final currentUserId = context.read<AuthProvider>().user?.id;
-          final review = _reviews[index];
-          return _ReviewListItem(
-            review: review,
-            isCurrentUser:
-                currentUserId != null && currentUserId == review.userId,
-          );
-        },
+      child: Scrollbar(
+        controller: _scrollController,
+        thumbVisibility: true,
+        child: ListView.separated(
+          controller: _scrollController,
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(16, 10, 20, 12),
+          itemCount: _reviews.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 14),
+          itemBuilder: (context, index) {
+            final currentUserId = context.read<AuthProvider>().user?.id;
+            final review = _reviews[index];
+            return _ReviewListItem(
+              review: review,
+              isCurrentUser:
+                  currentUserId != null && currentUserId == review.userId,
+            );
+          },
+        ),
       ),
     );
   }
@@ -506,7 +508,7 @@ class _ProductReviewsSheetState extends State<_ProductReviewsSheet> {
             curve: Curves.easeOut,
             child: _composerExpanded
                 ? Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -613,7 +615,7 @@ class _ProductReviewsSheetState extends State<_ProductReviewsSheet> {
                     ),
                   )
                 : Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                    padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
                     child: InkWell(
                       onTap: () {
                         setState(() {
@@ -623,24 +625,25 @@ class _ProductReviewsSheetState extends State<_ProductReviewsSheet> {
                               _currentUserReview?.reviewText ?? '';
                         });
                       },
-                      borderRadius: BorderRadius.circular(18),
+                      borderRadius: BorderRadius.circular(14),
                       child: Ink(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 14,
+                          horizontal: 12,
+                          vertical: 8,
                         ),
                         decoration: BoxDecoration(
                           color: theme.colorScheme.surfaceContainerHighest
                               .withValues(alpha: 0.5),
-                          borderRadius: BorderRadius.circular(18),
+                          borderRadius: BorderRadius.circular(14),
                         ),
                         child: Row(
                           children: [
                             const Icon(
                               Icons.edit_outlined,
                               color: AppColors.electricBlue,
+                              size: 18,
                             ),
-                            const SizedBox(width: 10),
+                            const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 _currentUserReview == null
@@ -648,6 +651,7 @@ class _ProductReviewsSheetState extends State<_ProductReviewsSheet> {
                                     : 'Edit your review',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w600,
+                                  fontSize: 13,
                                 ),
                               ),
                             ),
@@ -656,6 +660,7 @@ class _ProductReviewsSheetState extends State<_ProductReviewsSheet> {
                                   ? 'Tap to add'
                                   : '${_currentUserReview!.rating}/5',
                               style: TextStyle(
+                                fontSize: 12,
                                 color: theme.textTheme.bodySmall?.color,
                               ),
                             ),

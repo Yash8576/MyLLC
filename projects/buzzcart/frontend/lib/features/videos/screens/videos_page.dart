@@ -745,8 +745,7 @@ class _VideoDetailViewState extends State<_VideoDetailView> {
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: ListView(
-          padding: EdgeInsets.zero,
+        child: Column(
           children: [
             MouseRegion(
               onEnter: _supportsHoverControls
@@ -769,13 +768,27 @@ class _VideoDetailViewState extends State<_VideoDetailView> {
                       ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Text(
+                    widget.video.title.trim().isEmpty
+                        ? 'Untitled Video'
+                        : widget.video.title,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      height: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       GestureDetector(
                         onTap: () => context.push(
@@ -784,80 +797,57 @@ class _VideoDetailViewState extends State<_VideoDetailView> {
                         child: AppAvatar(
                           name: widget.video.creatorName,
                           avatarUrl: widget.video.creatorAvatar,
-                          radius: 24,
+                          radius: 14,
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 8),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              widget.video.title.trim().isEmpty
-                                  ? 'Untitled Video'
-                                  : widget.video.title,
-                              style: const TextStyle(
-                                fontSize: 19,
-                                fontWeight: FontWeight.w800,
-                                height: 1.2,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              widget.video.creatorName,
-                              style: TextStyle(
-                                color: Theme.of(context).hintColor,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${widget.video.views} views · ${timeago.format(DateTime.parse(widget.video.createdAt))}',
-                              style: TextStyle(
-                                color: Theme.of(context).hintColor,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
+                        child: Text(
+                          widget.video.creatorName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Theme.of(context).hintColor,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 14),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          onPressed: _liking ? null : _likeVideo,
-                          icon: Icon(
-                            _liked ? Icons.favorite : Icons.favorite_border,
-                            color: _liked ? AppColors.instagramRed : null,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        TextButton(
-                          onPressed: _openLikes,
-                          child: Text('$_likeCount likes'),
-                        ),
-                      ],
+                  const SizedBox(height: 2),
+                  Text(
+                    '${widget.video.views} views · ${timeago.format(DateTime.parse(widget.video.createdAt))}',
+                    style: TextStyle(
+                      color: Theme.of(context).hintColor,
+                      fontSize: 12,
                     ),
                   ),
                   if (widget.video.description.trim().isNotEmpty) ...[
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 10),
                     Text(
                       widget.video.description,
-                      style: const TextStyle(height: 1.45),
+                      style: const TextStyle(height: 1.4),
                     ),
                   ],
-                  const SizedBox(height: 18),
                   if (widget.video.products.isNotEmpty) ...[
+                    const SizedBox(height: 10),
                     _TaggedProductsSection(products: widget.video.products),
-                    const SizedBox(height: 24),
-                  ] else
-                    const SizedBox(height: 24),
-                  _InlineVideoCommentsSection(videoId: widget.video.id),
+                  ],
+                  const SizedBox(height: 10),
+                  _InlineVideoCommentsSection(
+                    videoId: widget.video.id,
+                    liked: _liked,
+                    likeCount: _likeCount,
+                    liking: _liking,
+                    onToggleLike: _likeVideo,
+                    onOpenLikes: _openLikes,
+                    products: widget.video.products,
+                  ),
+                  const SizedBox(height: 16),
+                  _RelatedVideosSection(currentVideoId: widget.video.id),
+                ],
+              ),
+            ),
                 ],
               ),
             ),
@@ -1145,9 +1135,23 @@ class _TaggedProductCard extends StatelessWidget {
 }
 
 class _InlineVideoCommentsSection extends StatefulWidget {
-  const _InlineVideoCommentsSection({required this.videoId});
+  const _InlineVideoCommentsSection({
+    required this.videoId,
+    required this.liked,
+    required this.likeCount,
+    required this.liking,
+    required this.onToggleLike,
+    required this.onOpenLikes,
+    this.products = const [],
+  });
 
   final String videoId;
+  final bool liked;
+  final int likeCount;
+  final bool liking;
+  final VoidCallback onToggleLike;
+  final VoidCallback onOpenLikes;
+  final List<ProductModel> products;
 
   @override
   State<_InlineVideoCommentsSection> createState() =>
@@ -1157,93 +1161,57 @@ class _InlineVideoCommentsSection extends StatefulWidget {
 class _InlineVideoCommentsSectionState
     extends State<_InlineVideoCommentsSection> {
   late final ApiService _api;
-  late final TextEditingController _commentController;
   List<ContentCommentModel> _comments = <ContentCommentModel>[];
-  bool _loading = true;
-  bool _submitting = false;
-  bool _connectionsOnly = false;
   bool _hasCommented = false;
-  String? _error;
 
   @override
   void initState() {
     super.initState();
     _api = context.read<ApiService>();
-    _commentController = TextEditingController();
     _loadComments();
-  }
-
-  @override
-  void dispose() {
-    _commentController.dispose();
-    super.dispose();
   }
 
   Future<void> _loadComments() async {
     try {
-      setState(() {
-        _loading = true;
-        _error = null;
-      });
-      final comments = await _api.getVideoComments(
-        widget.videoId,
-        connectionsOnly: _connectionsOnly,
-      );
+      final comments = await _api.getVideoComments(widget.videoId);
       if (!mounted) {
         return;
       }
       setState(() {
         _comments = comments;
-        _loading = false;
         if (comments.any((comment) => comment.isCurrentUser)) {
           _hasCommented = true;
         }
       });
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _loading = false;
-        _error = '$error';
-      });
+    } catch (_) {
+      // The count/badge just stay at their last known values.
     }
   }
 
-  Future<void> _submitComment() async {
-    final text = _commentController.text.trim();
-    if (text.isEmpty || _submitting) {
-      return;
-    }
-
-    setState(() => _submitting = true);
-    try {
-      final comment = await _api.createVideoComment(
+  // Same bottom-sheet comments experience reels uses — slides up from the
+  // bottom with a vertical list.
+  Future<void> _openCommentsSheet() async {
+    await content_sheets.showContentCommentsSheet(
+      context: context,
+      title: 'Comments',
+      initialCount: _comments.length,
+      loadComments: ({required bool connectionsOnly}) => _api.getVideoComments(
+        widget.videoId,
+        connectionsOnly: connectionsOnly,
+      ),
+      submitComment: (commentText) => _api.createVideoComment(
         videoId: widget.videoId,
-        commentText: text,
-      );
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        if (!_connectionsOnly || comment.isFollowing) {
-          _comments = <ContentCommentModel>[comment, ..._comments];
-        }
-        _hasCommented = true;
-        _commentController.clear();
-      });
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(context).showSingleSnackBar(
-        SnackBar(content: Text('$error')),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _submitting = false);
-      }
-    }
+        commentText: commentText,
+      ),
+      onCountChanged: (count) {
+        if (!mounted) return;
+        setState(() => _hasCommented = true);
+      },
+    );
+    if (!mounted) return;
+    // Keep the header's count/"hasCommented" badge in sync with anything
+    // posted from the sheet.
+    _loadComments();
   }
 
   @override
@@ -1255,193 +1223,237 @@ class _InlineVideoCommentsSectionState
       children: [
         Row(
           children: [
-            Icon(
-              _hasCommented ? Icons.chat_bubble : Icons.chat_bubble_outline,
-              size: 20,
-              color: _hasCommented ? AppColors.electricBlue : null,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              'Comments',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const Spacer(),
             IconButton(
-              onPressed: _loading ? null : _loadComments,
-              icon: const Icon(Icons.refresh),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        SegmentedButton<bool>(
-          segments: const [
-            ButtonSegment<bool>(
-              value: false,
-              icon: Icon(Icons.schedule),
-              label: Text('Recent'),
-            ),
-            ButtonSegment<bool>(
-              value: true,
-              icon: Icon(Icons.people_outline),
-              label: Text('Connections'),
-            ),
-          ],
-          selected: {_connectionsOnly},
-          onSelectionChanged: (selection) {
-            final nextValue = selection.first;
-            if (nextValue == _connectionsOnly) {
-              return;
-            }
-            setState(() => _connectionsOnly = nextValue);
-            _loadComments();
-          },
-        ),
-        const SizedBox(height: 12),
-        TextField(
-          controller: _commentController,
-          minLines: 1,
-          maxLines: 4,
-          decoration: InputDecoration(
-            hintText: 'Write a comment',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(18),
-            ),
-            suffixIcon: Padding(
-              padding: const EdgeInsets.all(6),
-              child: IconButton.filled(
-                onPressed: _submitting ? null : _submitComment,
-                icon: _submitting
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.send_rounded),
+              onPressed: widget.liking ? null : widget.onToggleLike,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+              icon: Icon(
+                widget.liked ? Icons.favorite : Icons.favorite_border,
+                size: 20,
+                color: widget.liked ? AppColors.instagramRed : null,
               ),
             ),
+            const SizedBox(width: 2),
+            GestureDetector(
+              onTap: widget.onOpenLikes,
+              child: Text(
+                '${widget.likeCount} likes',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+            const SizedBox(width: 18),
+            GestureDetector(
+              onTap: _openCommentsSheet,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    _hasCommented
+                        ? Icons.chat_bubble
+                        : Icons.chat_bubble_outline,
+                    size: 18,
+                    color: _hasCommented ? AppColors.electricBlue : null,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${_comments.length} comments',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (widget.products.isNotEmpty) ...[
+              const SizedBox(width: 18),
+              GestureDetector(
+                onTap: () => content_sheets.showTaggedProductsSheet(
+                  context: context,
+                  products: widget.products,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.sell_outlined, size: 18),
+                    const SizedBox(width: 6),
+                    Text(
+                      '${widget.products.length}',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+// "Up next" list of other videos below the current one, YouTube-style.
+class _RelatedVideosSection extends StatefulWidget {
+  const _RelatedVideosSection({required this.currentVideoId});
+
+  final String currentVideoId;
+
+  @override
+  State<_RelatedVideosSection> createState() => _RelatedVideosSectionState();
+}
+
+class _RelatedVideosSectionState extends State<_RelatedVideosSection> {
+  late final ApiService _api;
+  List<VideoModel> _videos = <VideoModel>[];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _api = context.read<ApiService>();
+    _loadVideos();
+  }
+
+  Future<void> _loadVideos() async {
+    try {
+      final videos = await _api.getVideos();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _videos =
+            videos.where((video) => video.id != widget.currentVideoId).toList();
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (_videos.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Divider(height: 1, color: theme.dividerColor),
+        const SizedBox(height: 12),
+        Text(
+          'Up next',
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
           ),
         ),
-        const SizedBox(height: 16),
-        if (_loading)
-          const Center(child: CircularProgressIndicator())
-        else if (_error != null)
-          Center(child: Text(_error!))
-        else if (_comments.isEmpty)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest
-                  .withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Text(
-              _connectionsOnly
-                  ? 'No connection comments yet'
-                  : 'No comments yet',
-              textAlign: TextAlign.center,
-            ),
-          )
-        else
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _comments.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (context, index) =>
-                _InlineCommentTile(comment: _comments[index]),
+        const SizedBox(height: 10),
+        for (final video in _videos)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _RelatedVideoTile(video: video),
           ),
       ],
     );
   }
 }
 
-class _InlineCommentTile extends StatelessWidget {
-  const _InlineCommentTile({required this.comment});
+class _RelatedVideoTile extends StatelessWidget {
+  const _RelatedVideoTile({required this.video});
 
-  final ContentCommentModel comment;
+  final VideoModel video;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Theme.of(context)
-            .colorScheme
-            .surfaceContainerHighest
-            .withValues(alpha: 0.24),
-        borderRadius: BorderRadius.circular(18),
-      ),
+    final title = video.title.trim().isEmpty ? 'Untitled Video' : video.title;
+    final hintColor = Theme.of(context).hintColor;
+
+    return InkWell(
+      onTap: () => context.push('/videos/${video.id}'),
+      borderRadius: BorderRadius.circular(12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppAvatar(
-            name: comment.username,
-            avatarUrl: comment.userAvatar,
-            radius: 18,
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: SizedBox(
+              width: 140,
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    AppCachedImage(
+                      imageUrl: video.thumbnail,
+                      fit: BoxFit.cover,
+                      errorWidget: Container(
+                        color: Colors.black,
+                        alignment: Alignment.center,
+                        child: const Icon(
+                          Icons.play_circle_outline,
+                          color: Colors.white70,
+                          size: 32,
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      right: 6,
+                      bottom: 6,
+                      child: _DurationBadge(
+                        durationLabel: _formatDuration(video.duration),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        comment.isCurrentUser
-                            ? '${comment.username} (You)'
-                            : comment.username,
-                        style: const TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                    Text(
-                      timeago.format(DateTime.parse(comment.createdAt)),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context).hintColor,
-                      ),
-                    ),
-                  ],
-                ),
-                if (comment.isFollowing) ...[
-                  const SizedBox(height: 6),
-                  const _ConnectionBadge(),
-                ],
-                const SizedBox(height: 8),
                 Text(
-                  comment.commentText,
-                  style: const TextStyle(height: 1.35),
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    height: 1.25,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  video.creatorName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: hintColor, fontSize: 12.5),
+                ),
+                Text(
+                  '${video.views} views · ${timeago.format(DateTime.parse(video.createdAt))}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: hintColor, fontSize: 12.5),
                 ),
               ],
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ConnectionBadge extends StatelessWidget {
-  const _ConnectionBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        'Connection',
-        style: TextStyle(
-          color: Theme.of(context).colorScheme.primary,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-        ),
       ),
     );
   }
