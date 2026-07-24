@@ -361,6 +361,12 @@ func GetVideos(db *sql.DB) gin.HandlerFunc {
 					  AND cl.user_id = NULLIF($1, '')::uuid
 				) END AS is_liked,
 				COALESCE(ci.comment_count, 0) AS comment_count,
+				CASE WHEN NULLIF($1, '') IS NULL THEN false ELSE EXISTS(
+					SELECT 1
+					FROM content_comments cc
+					WHERE cc.content_id = ci.id
+					  AND cc.user_id = NULLIF($1, '')::uuid
+				) END AS is_commented,
 				ci.creator_id,
 				COALESCE(u.name, '') AS name,
 				u.avatar,

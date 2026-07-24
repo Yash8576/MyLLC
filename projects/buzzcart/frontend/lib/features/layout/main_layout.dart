@@ -268,7 +268,7 @@ class _MainLayoutState extends State<MainLayout>
       child: Padding(
         padding: EdgeInsets.only(top: topInset),
         child: Container(
-          height: 64,
+          height: 70,
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
             color: isDark ? AppColors.darkCard : AppColors.lightCard,
@@ -448,14 +448,12 @@ class _MainLayoutState extends State<MainLayout>
                         ],
                       ),
                       if (cart.total > 0)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
-                          child: Text(
-                            '\$${cart.total.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                            ),
+                        Text(
+                          '\$${cart.total.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            height: 1,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                     ],
