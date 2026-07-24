@@ -6,6 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:async';
 import 'dart:ui' show ImageFilter;
 import '../../core/theme/app_colors.dart';
+import '../../core/models/models.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/providers/cart_provider.dart';
 import '../../core/utils/app_visibility_listener.dart';
@@ -267,7 +268,7 @@ class _MainLayoutState extends State<MainLayout>
       child: Padding(
         padding: EdgeInsets.only(top: topInset),
         child: Container(
-          height: 52,
+          height: 64,
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
             color: isDark ? AppColors.darkCard : AppColors.lightCard,
@@ -397,49 +398,69 @@ class _MainLayoutState extends State<MainLayout>
                 icon: const Icon(Icons.search),
                 onPressed: () => _navigateTo('/search'),
               ),
-              Stack(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.shopping_cart),
-                    onPressed: () => _navigateTo('/cart'),
-                  ),
-                  // Scoped so cart updates only rebuild this badge, not the
-                  // whole shell (header + nav + body).
-                  Selector<CartProvider, int>(
-                    selector: (_, provider) => provider.cart.itemCount,
-                    builder: (context, itemCount, _) {
-                      if (itemCount <= 0) {
-                        return const SizedBox.shrink();
-                      }
-                      return Positioned(
-                        right: 8,
-                        top: 8,
-                        child: IgnorePointer(
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              color: AppColors.electricBlue,
-                              shape: BoxShape.circle,
-                            ),
+              // Scoped so cart updates only rebuild this button, not the
+              // whole shell (header + nav + body).
+              Selector<CartProvider, CartModel>(
+                selector: (_, provider) => provider.cart,
+                builder: (context, cart, _) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.shopping_cart),
+                            onPressed: () => _navigateTo('/cart'),
+                            padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(
-                              minWidth: 16,
-                              minHeight: 16,
+                              minWidth: 40,
+                              minHeight: 40,
                             ),
-                            child: Text(
-                              '$itemCount',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
+                          ),
+                          if (cart.itemCount > 0)
+                            Positioned(
+                              right: 8,
+                              top: 8,
+                              child: IgnorePointer(
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: const BoxDecoration(
+                                    color: AppColors.electricBlue,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  constraints: const BoxConstraints(
+                                    minWidth: 16,
+                                    minHeight: 16,
+                                  ),
+                                  child: Text(
+                                    '${cart.itemCount}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
                               ),
-                              textAlign: TextAlign.center,
+                            ),
+                        ],
+                      ),
+                      if (cart.total > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text(
+                            '\$${cart.total.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                         ),
-                      );
-                    },
-                  ),
-                ],
+                    ],
+                  );
+                },
               ),
               Stack(
                 children: [

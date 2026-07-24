@@ -310,11 +310,13 @@ class AppSidebar extends StatelessWidget {
       builder: (context) {
         final isActive = _isOnPath(item.path);
         final isDark = Theme.of(context).brightness == Brightness.dark;
-        final cartCount = context.watch<CartProvider>().cart.itemCount;
+        final cart = context.watch<CartProvider>().cart;
+        final cartCount = cart.itemCount;
         final unreadMessages =
             context.watch<MessagesProvider>().totalUnreadCount;
         final showCartBadge = item.path == '/cart' && cartCount > 0;
         final showMessageBadge = item.path == '/messages' && unreadMessages > 0;
+        final showCartValue = item.path == '/cart' && cart.total > 0;
 
         return Padding(
           padding: const EdgeInsets.only(bottom: 4),
@@ -381,19 +383,37 @@ class AppSidebar extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(width: 12),
-                    Text(
-                      item.label,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w500,
-                            color: isActive
-                                ? (isDark
-                                    ? AppColors.darkPrimaryForeground
-                                    : AppColors.lightPrimaryForeground)
-                                : (isDark
-                                    ? AppColors.darkMutedForeground
-                                    : AppColors.lightMutedForeground),
-                          ),
+                    Expanded(
+                      child: Text(
+                        item.label,
+                        style:
+                            Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w500,
+                                  color: isActive
+                                      ? (isDark
+                                          ? AppColors.darkPrimaryForeground
+                                          : AppColors.lightPrimaryForeground)
+                                      : (isDark
+                                          ? AppColors.darkMutedForeground
+                                          : AppColors.lightMutedForeground),
+                                ),
+                      ),
                     ),
+                    if (showCartValue)
+                      Text(
+                        '\$${cart.total.toStringAsFixed(2)}',
+                        style:
+                            Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: isActive
+                                      ? (isDark
+                                          ? AppColors.darkPrimaryForeground
+                                          : AppColors.lightPrimaryForeground)
+                                      : (isDark
+                                          ? AppColors.darkMutedForeground
+                                          : AppColors.lightMutedForeground),
+                                ),
+                      ),
                   ],
                 ),
               ),
