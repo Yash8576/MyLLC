@@ -65,8 +65,12 @@ class VideosPage extends StatefulWidget {
 }
 
 class _VideosPageState extends State<VideosPage> {
-  static const double _desktopVideoTileTargetWidth = 340;
-  static const double _videoTileSpacing = 18;
+  // YouTube-style grid: every tile is exactly this wide regardless of window
+  // size or shell layout (sidebar vs bottom nav) — the viewport width only
+  // changes how many columns fit, and the grid block is centered.
+  static const double _videoTileWidth = 360;
+  static const double _videoTileSpacing = 16;
+  static const double _videoTileRunSpacing = 28;
 
   final ApiService _api = ApiService();
   List<VideoModel> _videos = <VideoModel>[];
@@ -202,38 +206,45 @@ class _VideosPageState extends State<VideosPage> {
                   onRefresh: _fetchVideos,
                   child: LayoutBuilder(
                     builder: (context, constraints) {
-                      final isCompact = constraints.maxWidth < 700;
-                      if (isCompact) {
-                        return ListView.separated(
-                          padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
-                          itemCount: _videos.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(height: 12),
-                          itemBuilder: (context, index) {
-                            final video = _videos[index];
-                            return _VideoListCard(video: video);
-                          },
-                        );
-                      }
-
-                      final availableWidth = constraints.maxWidth - 40;
-                      final columnCount = math.max(
-                        2,
-                        (availableWidth / _desktopVideoTileTargetWidth).floor(),
+                      // Fixed-size tiles, YouTube style: the viewport only
+                      // decides the column count; the centered grid block is
+                      // exactly wide enough for those columns. Tiles never
+                      // stretch or shrink with the window (clamped only when
+                      // the screen is narrower than a single tile).
+                      final tileWidth = math.min(
+                        _videoTileWidth,
+                        constraints.maxWidth - 24,
                       );
-                      return GridView.builder(
-                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: columnCount,
-                          mainAxisSpacing: _videoTileSpacing,
-                          crossAxisSpacing: _videoTileSpacing,
-                          childAspectRatio: 1.12,
+                      final columns = math.max(
+                        1,
+                        ((constraints.maxWidth - 24 + _videoTileSpacing) /
+                                (tileWidth + _videoTileSpacing))
+                            .floor(),
+                      );
+                      final gridWidth = columns * tileWidth +
+                          (columns - 1) * _videoTileSpacing;
+                      return SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 20,
+                          horizontal: 12,
                         ),
-                        itemCount: _videos.length,
-                        itemBuilder: (context, index) {
-                          final video = _videos[index];
-                          return _VideoListCard(video: video);
-                        },
+                        child: Center(
+                          child: SizedBox(
+                            width: gridWidth,
+                            child: Wrap(
+                              spacing: _videoTileSpacing,
+                              runSpacing: _videoTileRunSpacing,
+                              children: [
+                                for (final video in _videos)
+                                  SizedBox(
+                                    width: tileWidth,
+                                    child: _VideoListCard(video: video),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
                       );
                     },
                   ),
@@ -298,126 +309,134 @@ class _VideoListCardState extends State<_VideoListCard> {
 
   @override
   Widget build(BuildContext context) {
+    final title = widget.video.title.trim().isEmpty
+        ? 'Untitled Video'
+        : widget.video.title;
+
     return InkWell(
       onTap: () => context.push('/videos/${widget.video.id}'),
-      borderRadius: BorderRadius.circular(18),
-      child: Ink(
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: Theme.of(context).dividerColor.withValues(alpha: 0.4),
+      borderRadius: BorderRadius.circular(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: AspectRatio(
+              aspectRatio: 16 / 9,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  AppCachedImage(
+                    imageUrl: widget.video.thumbnail,
+                    fit: BoxFit.cover,
+                    errorWidget: Container(
+                      color: Colors.black,
+                      alignment: Alignment.center,
+                      child: const Icon(
+                        Icons.play_circle_outline,
+                        color: Colors.white70,
+                        size: 52,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    right: 8,
+                    bottom: 8,
+                    child: _DurationBadge(
+                      durationLabel: _formatDuration(
+                          _resolvedDuration ?? widget.video.duration),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(14),
-                child: AspectRatio(
-                  aspectRatio: 16 / 9,
-                  child: Stack(
-                    fit: StackFit.expand,
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                GestureDetector(
+                  onTap: () =>
+                      context.push('/profile/${widget.video.creatorId}'),
+                  child: AppAvatar(
+                    name: widget.video.creatorName,
+                    avatarUrl: widget.video.creatorAvatar,
+                    radius: 18,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      AppCachedImage(
-                        imageUrl: widget.video.thumbnail,
-                        fit: BoxFit.cover,
-                        errorWidget: Container(
-                          color: Colors.black,
-                          alignment: Alignment.center,
-                          child: const Icon(
-                            Icons.play_circle_outline,
-                            color: Colors.white70,
-                            size: 52,
-                          ),
+                      Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          height: 1.25,
                         ),
                       ),
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.black.withValues(alpha: 0.06),
-                              Colors.transparent,
-                              Colors.black.withValues(alpha: 0.58),
-                            ],
-                          ),
+                      const SizedBox(height: 5),
+                      Text(
+                        widget.video.creatorName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Theme.of(context).hintColor,
+                          fontSize: 13,
                         ),
                       ),
-                      const Center(
-                        child: Icon(
-                          Icons.play_circle_fill,
-                          color: Colors.white,
-                          size: 58,
-                        ),
-                      ),
-                      Positioned(
-                        right: 10,
-                        bottom: 10,
-                        child: _DurationBadge(
-                          durationLabel: _formatDuration(
-                              _resolvedDuration ?? widget.video.duration),
+                      Text(
+                        _videoMetaLine(widget.video),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Theme.of(context).hintColor,
+                          fontSize: 13,
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  GestureDetector(
-                    onTap: () =>
-                        context.push('/profile/${widget.video.creatorId}'),
-                    child: AppAvatar(
-                      name: widget.video.creatorName,
-                      avatarUrl: widget.video.creatorAvatar,
-                      radius: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.video.title.trim().isEmpty
-                              ? 'Untitled Video'
-                              : widget.video.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            height: 1.2,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          widget.video.creatorName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Theme.of(context).hintColor,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
+}
+
+String _videoMetaLine(VideoModel video) {
+  final views = _formatViewCount(video.views);
+  final created = video.createdAt.trim();
+  String? relative;
+  if (created.isNotEmpty) {
+    final parsed = DateTime.tryParse(created);
+    if (parsed != null) {
+      relative = timeago.format(parsed);
+    }
+  }
+  final viewsLabel = '$views ${video.views == 1 ? 'view' : 'views'}';
+  return relative == null ? viewsLabel : '$viewsLabel · $relative';
+}
+
+String _formatViewCount(int views) {
+  if (views >= 1000000) {
+    final millions = views / 1000000;
+    return '${millions.toStringAsFixed(millions >= 10 ? 0 : 1)}M';
+  }
+  if (views >= 1000) {
+    final thousands = views / 1000;
+    return '${thousands.toStringAsFixed(thousands >= 10 ? 0 : 1)}K';
+  }
+  return '$views';
 }
 
 class _VideoDetailView extends StatefulWidget {
